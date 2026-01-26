@@ -2,27 +2,37 @@ Package: spacc
 Title: Fast Spatial Species Accumulation Curves
 Version: 0.0.1
 Authors@R:
-    person("Gilles", "Colling", , "gilles.colling@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+    person("Gilles", "Colling", , "gilles.colling051@gmail.com", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0003-3070-6066"))
 Description: High-performance spatial species accumulation curves using
     nearest-neighbor algorithms. Implements kNN and kNCN sampling methods
-    with C++ backend for speed. Supports multiple starting points (seeds)
-    for uncertainty quantification.
+    with a C++ backend for speed. Supports multiple starting points (seeds)
+    for uncertainty quantification, extrapolation to asymptotic richness,
+    and statistical comparison between curves.
 License: MIT + file LICENSE
+Language: en-US
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Depends:
+    R (>= 3.5)
 LinkingTo:
     Rcpp,
     RcppParallel
 Imports:
     Rcpp,
     RcppParallel,
-    ggplot2
+    stats,
+    parallel
 Suggests:
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    rmarkdown,
+    ggplot2,
+    cli,
+    sf,
+    vegan,
+    mobr
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 SystemRequirements: GNU make, C++11
