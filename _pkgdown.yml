@@ -1,0 +1,44 @@
+url: https://gillescolling.com/spacc/
+
+template:
+  bootstrap: 5
+  bootswatch: sandstone
+  light-switch: true
+
+home:
+  title: spacc
+  description: Fast Spatial Species Accumulation Curves
+
+navbar:
+  structure:
+    left: [intro, reference, news]
+    right: [search, github, lightswitch]
+  components:
+    github:
+      icon: fab fa-github
+      href: https://github.com/gcol33/spacc
+
+reference:
+  - title: Core Functions
+    desc: Main spatial accumulation functions
+    contents:
+      - spacc
+      - wavefront
+      - distanceDecay
+      - distances
+
+  - title: Analytical Methods
+    desc: Expected curves without simulation
+    contents:
+      - coleman
+      - mao_tau
+      - collector
+      - spatialRarefaction
+
+  - title: Analysis
+    desc: Post-hoc analysis of accumulation curves
+    contents:
+      - extrapolate
+      - compare
+      - rarefy
+      - subsample

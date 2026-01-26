@@ -4,7 +4,7 @@
 export(spacc)
 export(distances)
 export(wavefront)
-export(distance_decay)
+export(distanceDecay)
 
 # Analysis functions
 export(extrapolate)
@@ -16,7 +16,7 @@ export(subsample)
 export(coleman)
 export(mao_tau)
 export(collector)
-export(spatial_rarefaction)
+export(spatialRarefaction)
 
 # S3 methods for spacc
 S3method(print, spacc)

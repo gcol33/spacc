@@ -20,3 +20,6 @@ R/RcppExports.R
 # System
 .DS_Store
 Thumbs.db
+
+# Claude
+.claude/

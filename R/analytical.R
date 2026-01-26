@@ -176,7 +176,7 @@ collector <- function(x) {
 #' the ecological literature. Community Ecology, 10, 195-199.
 #'
 #' @export
-spatial_rarefaction <- function(x, coords, n_perm = 100, bandwidth = NULL) {
+spatialRarefaction <- function(x, coords, n_perm = 100, bandwidth = NULL) {
   x <- as.matrix(x)
   x <- (x > 0) * 1L
 

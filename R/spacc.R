@@ -333,7 +333,7 @@ plot.spacc_wavefront <- function(x, ci = TRUE, ci_alpha = 0.3,
 #' @return An object of class `spacc_decay` with distance-species relationships.
 #'
 #' @export
-distance_decay <- function(x,
+distanceDecay <- function(x,
                            coords,
                            n_seeds = 50L,
                            breaks = NULL,
