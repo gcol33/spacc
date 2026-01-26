@@ -46,7 +46,7 @@ IntegerVector cpp_collector_single(IntegerMatrix species_pa) {
 //' Single Gaussian-weighted Accumulation
 //'
 //' Probabilistically select next site weighted by distance (Gaussian decay).
-//' Small sigma ≈ kNN, large sigma ≈ random.
+//' Small sigma approximates kNN, large sigma approximates random.
 //'
 //' @param species_pa Integer matrix (sites x species)
 //' @param dist_mat Numeric matrix of pairwise distances
@@ -182,6 +182,14 @@ struct GaussianWorker : public Worker {
 
 
 //' Parallel Gaussian-weighted Accumulation
+//'
+//' @param species_pa Integer matrix (sites x species)
+//' @param dist_mat Numeric matrix of pairwise distances
+//' @param n_seeds Number of random starting points
+//' @param sigma Gaussian bandwidth parameter
+//' @param n_cores Number of cores
+//' @param progress Show progress
+//' @return Integer matrix of accumulation curves
 // [[Rcpp::export]]
 IntegerMatrix cpp_gaussian_parallel(IntegerMatrix species_pa,
                                     NumericMatrix dist_mat,
@@ -394,6 +402,13 @@ struct RadiusWorker : public Worker {
 
 
 //' Parallel Radius-Order Accumulation
+//'
+//' @param species_pa Integer matrix (sites x species)
+//' @param dist_mat Numeric matrix of pairwise distances
+//' @param n_seeds Number of random starting points
+//' @param n_cores Number of cores
+//' @param progress Show progress
+//' @return Integer matrix of accumulation curves
 // [[Rcpp::export]]
 IntegerMatrix cpp_radius_parallel(IntegerMatrix species_pa,
                                   NumericMatrix dist_mat,
@@ -506,6 +521,15 @@ IntegerVector cpp_cone_single(IntegerMatrix species_pa,
 
 
 //' Parallel Directional Cone Accumulation
+//'
+//' @param species_pa Integer matrix (sites x species)
+//' @param x Numeric vector of x coordinates
+//' @param y Numeric vector of y coordinates
+//' @param n_seeds Number of random starting points
+//' @param width Cone half-width in radians (default pi/4)
+//' @param n_cores Number of cores
+//' @param progress Show progress
+//' @return Integer matrix of accumulation curves
 // [[Rcpp::export]]
 IntegerMatrix cpp_cone_parallel(IntegerMatrix species_pa,
                                 NumericVector x, NumericVector y,
@@ -573,6 +597,14 @@ IntegerVector cpp_distance_decay_single(IntegerMatrix species_pa,
 
 
 //' Parallel Distance-Decay Accumulation
+//'
+//' @param species_pa Integer matrix (sites x species)
+//' @param dist_mat Numeric matrix of pairwise distances
+//' @param n_seeds Number of random starting points
+//' @param breaks Distance thresholds
+//' @param n_cores Number of cores
+//' @param progress Show progress
+//' @return Integer matrix of species counts
 // [[Rcpp::export]]
 IntegerMatrix cpp_distance_decay_parallel(IntegerMatrix species_pa,
                                           NumericMatrix dist_mat,

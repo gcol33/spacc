@@ -18,6 +18,17 @@
 #'   - `"cone"`: Directional expansion within angular constraint
 #'   - `"collector"`: Sites in data order (no randomization, single curve)
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
+#' @param support Optional. Spatial support for core/halo classification via
+#'   [areaOfEffect::aoe()]. Can be:
+#'   - Country name or ISO code: `"France"`, `"FR"`, `"FRA"`
+#'   - Vector of countries: `c("France", "Germany")`
+#'   - An `sf` polygon object
+#'   - An `aoe_result` object (pre-computed)
+#'   When provided, seeds are sampled only from "core" sites (inside support),
+#'   while accumulation can expand into "halo" sites (buffer zone).
+#' @param include_halo Logical. When `support` is provided, should halo sites
+#'   be included in accumulation? Default `TRUE` (ecological boundary).
+#'   Set to `FALSE` for political/hard boundary.
 #' @param sigma Numeric. Bandwidth for Gaussian method. Default auto-calculated.
 #' @param cone_width Numeric. Half-width in radians for cone method. Default pi/4.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
@@ -46,6 +57,12 @@
 #' # Compare to null model
 #' sac_rand <- spacc(species, coords, method = "random")
 #' comp <- compare(sac_knn, sac_rand)
+#'
+#' # With spatial support (seeds from France, accumulate into neighbors)
+#' sac_france <- spacc(species, coords, support = "France")
+#'
+#' # Hard boundary (France only, no halo)
+#' sac_france_only <- spacc(species, coords, support = "France", include_halo = FALSE)
 #' }
 #'
 #' @export
@@ -54,6 +71,8 @@ spacc <- function(x,
                   n_seeds = 50L,
                   method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
                   distance = c("euclidean", "haversine"),
+                  support = NULL,
+                  include_halo = TRUE,
                   sigma = NULL,
                   cone_width = pi / 4,
                   parallel = TRUE,
@@ -90,6 +109,75 @@ spacc <- function(x,
     "n_seeds must be positive integer" = n_seeds > 0
   )
 
+  # Handle areaOfEffect support
+  aoe_result <- NULL
+  core_indices <- NULL
+  original_indices <- seq_len(nrow(x))
+
+  if (!is.null(support)) {
+    check_suggests("sf")
+    check_suggests("areaOfEffect")
+
+    if (progress) cli_info("Processing spatial support via areaOfEffect")
+
+    # Convert coords to sf if needed
+    coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"))
+
+    # Get aoe classification
+    if (inherits(support, "aoe_result")) {
+      aoe_result <- support
+    } else {
+      aoe_result <- areaOfEffect::aoe(coords_sf, support = support)
+    }
+
+    # Get indices of core and halo sites
+    core_mask <- aoe_result$aoe_class == "core"
+    halo_mask <- aoe_result$aoe_class == "halo"
+
+    # Map back to original indices (aoe may have pruned some points)
+    point_ids <- as.integer(aoe_result$point_id)
+    core_indices <- point_ids[core_mask]
+    halo_indices <- point_ids[halo_mask]
+
+    if (include_halo) {
+      # Keep core + halo sites
+      keep_indices <- c(core_indices, halo_indices)
+    } else {
+      # Keep core sites only (hard boundary)
+      keep_indices <- core_indices
+    }
+
+    # Filter data to kept sites
+    x <- x[keep_indices, , drop = FALSE]
+    coord_data <- coord_data[keep_indices, , drop = FALSE]
+    original_indices <- keep_indices
+
+    # Update core_indices to be relative to filtered data
+    core_indices <- which(keep_indices %in% core_indices)
+
+    if (progress) {
+      cli_info(sprintf("Support: %d core, %d halo sites (using %d total)",
+                        sum(core_mask), sum(halo_mask), length(keep_indices)))
+    }
+
+    # Warn if core/halo are unbalanced
+    n_core <- sum(core_mask)
+    n_halo <- sum(halo_mask)
+    if (n_core > 0 && n_halo > 0) {
+      ratio <- max(n_core, n_halo) / min(n_core, n_halo)
+      if (ratio > 3) {
+        warning(sprintf(
+          "Unbalanced core/halo: %d core vs %d halo (ratio %.1f:1). Consider adjusting support scale.",
+          n_core, n_halo, ratio
+        ), call. = FALSE)
+      }
+    } else if (n_core == 0) {
+      stop("No core sites found. Check that your points intersect the support polygon.", call. = FALSE)
+    } else if (n_halo == 0 && include_halo) {
+      if (progress) cli_info("No halo sites found. All points are inside the support.")
+    }
+  }
+
   n_sites <- nrow(x)
   n_species_total <- ncol(x)
 
@@ -120,8 +208,21 @@ spacc <- function(x,
     # Run accumulation curves
     if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores)", method, n_seeds, n_cores))
 
+    # Sample seeds (from core sites only if support provided)
+    if (!is.null(core_indices) && length(core_indices) > 0) {
+      # Sample from core sites only (0-based for C++)
+      seed_pool <- core_indices - 1L
+      explicit_seeds <- sample(seed_pool, n_seeds, replace = TRUE)
+    } else {
+      explicit_seeds <- NULL
+    }
+
     curves <- switch(method,
-      knn = cpp_knn_parallel(species_pa, dist_mat, n_seeds, n_cores, progress),
+      knn = if (is.null(explicit_seeds)) {
+        cpp_knn_parallel(species_pa, dist_mat, n_seeds, n_cores, progress)
+      } else {
+        cpp_knn_parallel_seeds(species_pa, dist_mat, explicit_seeds, n_cores, progress)
+      },
       kncn = cpp_kncn_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress),
       random = cpp_random_parallel(species_pa, n_seeds, n_cores, progress),
       radius = cpp_radius_parallel(species_pa, dist_mat, n_seeds, n_cores, progress),
@@ -143,6 +244,13 @@ spacc <- function(x,
       distance = distance,
       sigma = sigma,
       cone_width = if (method == "cone") cone_width else NULL,
+      support = if (!is.null(support)) list(
+        aoe_result = aoe_result,
+        include_halo = include_halo,
+        n_core = length(core_indices),
+        n_halo = n_sites - length(core_indices),
+        original_indices = original_indices
+      ) else NULL,
       call = match.call()
     ),
     class = "spacc"

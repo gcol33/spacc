@@ -144,27 +144,26 @@ spacc uses a C++ backend via Rcpp and RcppParallel for high performance:
 
 ## Support
 
-> If it's free, it's because I'm not spending time supporting you.
-> — Linus Torvalds
+> "Software is like sex: it's better when it's free." — Linus Torvalds
 
-This package is a product of my PhD work at UCLouvain. If you find it useful, consider supporting development:
+I'm a PhD student who builds R packages in my free time because I believe good tools should be free and open. I started these projects for my own work and figured others might find them useful too.
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow)](https://www.buymeacoffee.com/gillescolling)
+If this package saved you some time, buying me a coffee is a nice way to say thanks. It helps with my coffee addiction.
+
+[![Buy Me A Coffee](https://img.shields.io/badge/-Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gcol33)
 
 ## License
 
-MIT License. See [LICENSE](LICENSE.md) for details.
+MIT (see the LICENSE.md file)
 
 ## Citation
 
-If you use spacc in your research, please cite it:
-
 ```bibtex
-@Manual{spacc,
+@software{spacc,
+  author = {Colling, Gilles},
   title = {spacc: Fast Spatial Species Accumulation Curves},
-  author = {Gilles Colling},
   year = {2026},
-  note = {R package version 0.1.0},
-  url = {https://gillescolling.com/spacc/}
+  url = {https://CRAN.R-project.org/package=spacc},
+  doi = {10.32614/CRAN.package.spacc}
 }
 ```

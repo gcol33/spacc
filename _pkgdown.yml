@@ -27,6 +27,34 @@ reference:
       - distanceDecay
       - distances
 
+  - title: Hill Numbers
+    desc: Diversity accumulation with Hill numbers (q=0,1,2)
+    contents:
+      - spaccHill
+
+  - title: Beta Diversity
+    desc: Spatial beta diversity with turnover/nestedness partitioning
+    contents:
+      - spaccBeta
+
+  - title: Coverage-Based Rarefaction
+    desc: Standardize by sample completeness
+    contents:
+      - spaccCoverage
+      - interpolateCoverage
+
+  - title: Phylogenetic & Functional Diversity
+    desc: Accumulation of PD and FD metrics
+    contents:
+      - spaccPhylo
+      - spaccFunc
+
+  - title: Per-Site Metrics
+    desc: Extract metrics per starting site for heatmap visualization
+    contents:
+      - spaccMetrics
+      - as_sf
+
   - title: Analytical Methods
     desc: Expected curves without simulation
     contents:

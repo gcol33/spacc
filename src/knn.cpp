@@ -172,3 +172,38 @@ IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa,
 
   return curves;
 }
+
+
+//' Parallel kNN Accumulation with Explicit Seeds
+//'
+//' Run kNN accumulation from specified starting points in parallel.
+//'
+//' @param species_pa Integer matrix (sites x species)
+//' @param dist_mat Numeric matrix of pairwise distances
+//' @param seeds Integer vector of starting point indices (0-based)
+//' @param n_cores Number of cores to use
+//' @param progress Show progress (currently ignored in C++)
+//' @return Integer matrix (n_seeds x n_sites) of accumulation curves
+//'
+// [[Rcpp::export]]
+IntegerMatrix cpp_knn_parallel_seeds(IntegerMatrix species_pa,
+                                      NumericMatrix dist_mat,
+                                      IntegerVector seeds,
+                                      int n_cores = 1,
+                                      bool progress = false) {
+  int n_sites = species_pa.nrow();
+  int n_seeds = seeds.size();
+  IntegerMatrix curves(n_seeds, n_sites);
+
+  if (n_cores > 1) {
+    KnnWorker worker(species_pa, dist_mat, seeds, curves);
+    parallelFor(0, n_seeds, worker);
+  } else {
+    for (int s = 0; s < n_seeds; s++) {
+      IntegerVector curve = cpp_knn_single(species_pa, dist_mat, seeds[s]);
+      curves(s, _) = curve;
+    }
+  }
+
+  return curves;
+}
