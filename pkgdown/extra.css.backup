@@ -1,0 +1,24 @@
+/* Dark mode support for SVG figures */
+[data-bs-theme="dark"] .figure img,
+[data-bs-theme="dark"] .pkgdown img {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+
+/* Keep images in code blocks normal */
+[data-bs-theme="dark"] pre img {
+  filter: none;
+}
+
+/* Transparent backgrounds for plots */
+.figure {
+  background: transparent;
+}
+
+/* Improve code readability in dark mode */
+[data-bs-theme="dark"] pre {
+  background-color: #1e1e1e;
+}
+
+[data-bs-theme="dark"] code {
+  color: #d4d4d4;
+}
