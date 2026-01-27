@@ -177,6 +177,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_kncn_kdtree_single
+IntegerVector cpp_kncn_kdtree_single(IntegerMatrix species_pa, NumericVector x, NumericVector y, int seed, std::string distance);
+RcppExport SEXP _spacc_cpp_kncn_kdtree_single(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedSEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_kncn_kdtree_single(species_pa, x, y, seed, distance));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_kncn_kdtree_parallel
+IntegerMatrix cpp_kncn_kdtree_parallel(IntegerMatrix species_pa, NumericVector x, NumericVector y, int n_seeds, int n_cores, bool progress, std::string distance);
+RcppExport SEXP _spacc_cpp_kncn_kdtree_parallel(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
+    Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_kncn_kdtree_parallel(species_pa, x, y, n_seeds, n_cores, progress, distance));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_knn_single
 IntegerVector cpp_knn_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed);
 RcppExport SEXP _spacc_cpp_knn_single(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedSEXP) {
@@ -217,6 +249,55 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_knn_parallel_seeds(species_pa, dist_mat, seeds, n_cores, progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_knn_kdtree_single
+IntegerVector cpp_knn_kdtree_single(IntegerMatrix species_pa, NumericVector x, NumericVector y, int seed, std::string distance);
+RcppExport SEXP _spacc_cpp_knn_kdtree_single(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedSEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_kdtree_single(species_pa, x, y, seed, distance));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_knn_kdtree_parallel
+IntegerMatrix cpp_knn_kdtree_parallel(IntegerMatrix species_pa, NumericVector x, NumericVector y, int n_seeds, int n_cores, bool progress, std::string distance);
+RcppExport SEXP _spacc_cpp_knn_kdtree_parallel(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
+    Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_kdtree_parallel(species_pa, x, y, n_seeds, n_cores, progress, distance));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_knn_kdtree_parallel_seeds
+IntegerMatrix cpp_knn_kdtree_parallel_seeds(IntegerMatrix species_pa, NumericVector x, NumericVector y, IntegerVector seeds, int n_cores, bool progress, std::string distance);
+RcppExport SEXP _spacc_cpp_knn_kdtree_parallel_seeds(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type seeds(seedsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
+    Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_kdtree_parallel_seeds(species_pa, x, y, seeds, n_cores, progress, distance));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -586,9 +667,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_knn_hill_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_parallel, 6},
     {"_spacc_cpp_kncn_single", (DL_FUNC) &_spacc_cpp_kncn_single, 4},
     {"_spacc_cpp_kncn_parallel", (DL_FUNC) &_spacc_cpp_kncn_parallel, 6},
+    {"_spacc_cpp_kncn_kdtree_single", (DL_FUNC) &_spacc_cpp_kncn_kdtree_single, 5},
+    {"_spacc_cpp_kncn_kdtree_parallel", (DL_FUNC) &_spacc_cpp_kncn_kdtree_parallel, 7},
     {"_spacc_cpp_knn_single", (DL_FUNC) &_spacc_cpp_knn_single, 3},
     {"_spacc_cpp_knn_parallel", (DL_FUNC) &_spacc_cpp_knn_parallel, 5},
     {"_spacc_cpp_knn_parallel_seeds", (DL_FUNC) &_spacc_cpp_knn_parallel_seeds, 5},
+    {"_spacc_cpp_knn_kdtree_single", (DL_FUNC) &_spacc_cpp_knn_kdtree_single, 5},
+    {"_spacc_cpp_knn_kdtree_parallel", (DL_FUNC) &_spacc_cpp_knn_kdtree_parallel, 7},
+    {"_spacc_cpp_knn_kdtree_parallel_seeds", (DL_FUNC) &_spacc_cpp_knn_kdtree_parallel_seeds, 7},
     {"_spacc_cpp_collector_single", (DL_FUNC) &_spacc_cpp_collector_single, 1},
     {"_spacc_cpp_gaussian_single", (DL_FUNC) &_spacc_cpp_gaussian_single, 4},
     {"_spacc_cpp_gaussian_parallel", (DL_FUNC) &_spacc_cpp_gaussian_parallel, 6},

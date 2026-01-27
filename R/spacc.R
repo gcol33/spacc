@@ -29,14 +29,27 @@
 #' @param include_halo Logical. When `support` is provided, should halo sites
 #'   be included in accumulation? Default `TRUE` (ecological boundary).
 #'   Set to `FALSE` for political/hard boundary.
+#' @param backend Character. Nearest-neighbor backend for `knn` and `kncn`:
+#'   - `"auto"` (default): Uses exact (brute-force) for ≤500 sites,
+#'     spatial tree for >500 sites.
+#'   - `"exact"`: Always use brute-force with precomputed distance matrix.
+#'   - `"kdtree"`: Always use spatial tree. Uses k-d tree (nanoflann) for
+#'     Euclidean distances and ball tree for haversine distances. Faster for
+#'     large datasets, no distance matrix needed.
 #' @param sigma Numeric. Bandwidth for Gaussian method. Default auto-calculated.
 #' @param cone_width Numeric. Half-width in radians for cone method. Default pi/4.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores. Default `NULL` uses `detectCores() - 1`.
 #' @param progress Logical. Show progress bar? Default `TRUE`.
+#' @param groups Optional. A factor, character, or integer vector of length
+#'   `ncol(x)` assigning each species (column) to a group. When provided,
+#'   separate accumulation curves are computed for each group using the
+#'   **same spatial site ordering**, and a `spacc_multi` object is returned.
+#'   Useful for comparing native vs alien species, families, or any
+#'   categorical split. Default `NULL` (no grouping).
 #' @param seed Integer. Random seed for reproducibility. Default `NULL`.
 #'
-#' @return An object of class `spacc` containing:
+#' @return When `groups = NULL`, an object of class `spacc` containing:
 #'   \item{curves}{Matrix of cumulative species counts (n_seeds x n_sites)}
 #'   \item{coords}{Original coordinates}
 #'   \item{n_seeds}{Number of seeds used}
@@ -63,6 +76,11 @@
 #'
 #' # Hard boundary (France only, no halo)
 #' sac_france_only <- spacc(species, coords, support = "France", include_halo = FALSE)
+#'
+#' # Grouped accumulation (e.g., native vs alien)
+#' status <- ifelse(grepl("alien", colnames(species)), "alien", "native")
+#' sac_grouped <- spacc(species, coords, groups = status, seed = 42)
+#' plot(sac_grouped)  # Overlaid curves per group
 #' }
 #'
 #' @export
@@ -71,6 +89,7 @@ spacc <- function(x,
                   n_seeds = 50L,
                   method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
                   distance = c("euclidean", "haversine"),
+                  backend = c("auto", "exact", "kdtree"),
                   support = NULL,
                   include_halo = TRUE,
                   sigma = NULL,
@@ -78,10 +97,12 @@ spacc <- function(x,
                   parallel = TRUE,
                   n_cores = NULL,
                   progress = TRUE,
+                  groups = NULL,
                   seed = NULL) {
 
   method <- match.arg(method)
   distance <- match.arg(distance)
+  backend <- match.arg(backend)
 
   # Set RNG seed if provided
   if (!is.null(seed)) set.seed(seed)
@@ -108,6 +129,28 @@ spacc <- function(x,
     "x and coords must have same number of rows" = nrow(x) == nrow(coord_data),
     "n_seeds must be positive integer" = n_seeds > 0
   )
+
+  # Handle groups: split species by group and recurse
+  if (!is.null(groups)) {
+    groups <- as.character(groups)
+    stopifnot(
+      "groups must have length equal to ncol(x)" = length(groups) == ncol(x)
+    )
+    group_levels <- unique(groups)
+    if (progress) cli_info(sprintf("Running grouped accumulation (%d groups: %s)",
+                                    length(group_levels), paste(group_levels, collapse = ", ")))
+    objects <- lapply(group_levels, function(g) {
+      cols <- which(groups == g)
+      spacc(x[, cols, drop = FALSE], coords,
+            n_seeds = n_seeds, method = method, distance = distance,
+            backend = backend, support = support, include_halo = include_halo,
+            sigma = sigma, cone_width = cone_width,
+            parallel = parallel, n_cores = n_cores,
+            progress = FALSE, groups = NULL, seed = seed)
+    })
+    names(objects) <- group_levels
+    return(do.call(c, objects))
+  }
 
   # Handle areaOfEffect support
   aoe_result <- NULL
@@ -185,14 +228,25 @@ spacc <- function(x,
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
+  # Resolve backend for knn/kncn
+  use_kdtree <- FALSE
+  if (method %in% c("knn", "kncn")) {
+    if (backend == "auto") {
+      use_kdtree <- n_sites > 500L
+    } else {
+      use_kdtree <- backend == "kdtree"
+    }
+  }
+
   # Collector method: no simulation needed
   if (method == "collector") {
     curve <- cpp_collector_single(species_pa)
     curves <- matrix(curve, nrow = 1)
     n_seeds <- 1L
   } else {
-    # Compute distance matrix if not provided (needed for most methods)
-    if (is.null(dist_mat) && method %in% c("knn", "radius", "gaussian")) {
+    # Compute distance matrix if needed (exact knn, radius, gaussian)
+    needs_dist <- (!use_kdtree && method == "knn") || method %in% c("radius", "gaussian")
+    if (is.null(dist_mat) && needs_dist) {
       if (progress) cli_info(sprintf("Computing distances (%d x %d)", n_sites, n_sites))
       dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
     }
@@ -206,11 +260,20 @@ spacc <- function(x,
     }
 
     # Run accumulation curves
-    if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores)", method, n_seeds, n_cores))
+    backend_label <- if (method %in% c("knn", "kncn")) {
+      if (use_kdtree) "kdtree" else "exact"
+    } else {
+      NA_character_
+    }
+    if (method %in% c("knn", "kncn")) {
+      if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores, %s backend)",
+                                      method, n_seeds, n_cores, backend_label))
+    } else {
+      if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores)", method, n_seeds, n_cores))
+    }
 
     # Sample seeds (from core sites only if support provided)
     if (!is.null(core_indices) && length(core_indices) > 0) {
-      # Sample from core sites only (0-based for C++)
       seed_pool <- core_indices - 1L
       explicit_seeds <- sample(seed_pool, n_seeds, replace = TRUE)
     } else {
@@ -218,12 +281,24 @@ spacc <- function(x,
     }
 
     curves <- switch(method,
-      knn = if (is.null(explicit_seeds)) {
-        cpp_knn_parallel(species_pa, dist_mat, n_seeds, n_cores, progress)
+      knn = if (use_kdtree) {
+        if (is.null(explicit_seeds)) {
+          cpp_knn_kdtree_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress, distance)
+        } else {
+          cpp_knn_kdtree_parallel_seeds(species_pa, coord_data$x, coord_data$y, explicit_seeds, n_cores, progress, distance)
+        }
       } else {
-        cpp_knn_parallel_seeds(species_pa, dist_mat, explicit_seeds, n_cores, progress)
+        if (is.null(explicit_seeds)) {
+          cpp_knn_parallel(species_pa, dist_mat, n_seeds, n_cores, progress)
+        } else {
+          cpp_knn_parallel_seeds(species_pa, dist_mat, explicit_seeds, n_cores, progress)
+        }
       },
-      kncn = cpp_kncn_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress),
+      kncn = if (use_kdtree) {
+        cpp_kncn_kdtree_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress, distance)
+      } else {
+        cpp_kncn_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress)
+      },
       random = cpp_random_parallel(species_pa, n_seeds, n_cores, progress),
       radius = cpp_radius_parallel(species_pa, dist_mat, n_seeds, n_cores, progress),
       gaussian = cpp_gaussian_parallel(species_pa, dist_mat, n_seeds, sigma, n_cores, progress),
@@ -242,6 +317,7 @@ spacc <- function(x,
       n_species = n_species_total,
       method = method,
       distance = distance,
+      backend = backend_label,
       sigma = sigma,
       cone_width = if (method == "cone") cone_width else NULL,
       support = if (!is.null(support)) list(

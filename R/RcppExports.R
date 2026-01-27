@@ -49,6 +49,14 @@ cpp_kncn_parallel <- function(species_pa, x, y, n_seeds, n_cores = 1L, progress 
     .Call(`_spacc_cpp_kncn_parallel`, species_pa, x, y, n_seeds, n_cores, progress)
 }
 
+cpp_kncn_kdtree_single <- function(species_pa, x, y, seed, distance = "euclidean") {
+    .Call(`_spacc_cpp_kncn_kdtree_single`, species_pa, x, y, seed, distance)
+}
+
+cpp_kncn_kdtree_parallel <- function(species_pa, x, y, n_seeds, n_cores = 1L, progress = FALSE, distance = "euclidean") {
+    .Call(`_spacc_cpp_kncn_kdtree_parallel`, species_pa, x, y, n_seeds, n_cores, progress, distance)
+}
+
 cpp_knn_single <- function(species_pa, dist_mat, seed) {
     .Call(`_spacc_cpp_knn_single`, species_pa, dist_mat, seed)
 }
@@ -59,6 +67,18 @@ cpp_knn_parallel <- function(species_pa, dist_mat, n_seeds, n_cores = 1L, progre
 
 cpp_knn_parallel_seeds <- function(species_pa, dist_mat, seeds, n_cores = 1L, progress = FALSE) {
     .Call(`_spacc_cpp_knn_parallel_seeds`, species_pa, dist_mat, seeds, n_cores, progress)
+}
+
+cpp_knn_kdtree_single <- function(species_pa, x, y, seed, distance = "euclidean") {
+    .Call(`_spacc_cpp_knn_kdtree_single`, species_pa, x, y, seed, distance)
+}
+
+cpp_knn_kdtree_parallel <- function(species_pa, x, y, n_seeds, n_cores = 1L, progress = FALSE, distance = "euclidean") {
+    .Call(`_spacc_cpp_knn_kdtree_parallel`, species_pa, x, y, n_seeds, n_cores, progress, distance)
+}
+
+cpp_knn_kdtree_parallel_seeds <- function(species_pa, x, y, seeds, n_cores = 1L, progress = FALSE, distance = "euclidean") {
+    .Call(`_spacc_cpp_knn_kdtree_parallel_seeds`, species_pa, x, y, seeds, n_cores, progress, distance)
 }
 
 cpp_collector_single <- function(species_pa) {

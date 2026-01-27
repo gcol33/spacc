@@ -10,6 +10,7 @@ spacc(
   n_seeds = 50L,
   method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
   distance = c("euclidean", "haversine"),
+  backend = c("auto", "exact", "kdtree"),
   support = NULL,
   include_halo = TRUE,
   sigma = NULL,
@@ -17,6 +18,7 @@ spacc(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
+  groups = NULL,
   seed = NULL
 )
 }
@@ -43,6 +45,15 @@ quantification. Default 50.}
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}
 
+\item{backend}{Character. Nearest-neighbor backend for \code{knn} and \code{kncn}:
+\itemize{
+\item \code{"auto"} (default): Uses exact (brute-force) for ≤500 sites,
+k-d tree for >500 sites.
+\item \code{"exact"}: Always use brute-force with precomputed distance matrix.
+\item \code{"kdtree"}: Always use k-d tree (nanoflann). Faster for large datasets,
+uses Euclidean distances only (ignores \code{distance} argument).
+}}
+
 \item{support}{Optional. Spatial support for core/halo classification via
 \code{\link[areaOfEffect:aoe]{areaOfEffect::aoe()}}. Can be:
 \itemize{
@@ -68,10 +79,17 @@ Set to \code{FALSE} for political/hard boundary.}
 
 \item{progress}{Logical. Show progress bar? Default \code{TRUE}.}
 
+\item{groups}{Optional. A factor, character, or integer vector of length
+\code{ncol(x)} assigning each species (column) to a group. When provided,
+separate accumulation curves are computed for each group using the
+\strong{same spatial site ordering}, and a \code{spacc_multi} object is returned.
+Useful for comparing native vs alien species, families, or any
+categorical split. Default \code{NULL} (no grouping).}
+
 \item{seed}{Integer. Random seed for reproducibility. Default \code{NULL}.}
 }
 \value{
-An object of class \code{spacc} containing:
+When \code{groups = NULL}, an object of class \code{spacc} containing:
 \item{curves}{Matrix of cumulative species counts (n_seeds x n_sites)}
 \item{coords}{Original coordinates}
 \item{n_seeds}{Number of seeds used}
@@ -102,6 +120,11 @@ sac_france <- spacc(species, coords, support = "France")
 
 # Hard boundary (France only, no halo)
 sac_france_only <- spacc(species, coords, support = "France", include_halo = FALSE)
+
+# Grouped accumulation (e.g., native vs alien)
+status <- ifelse(grepl("alien", colnames(species)), "alien", "native")
+sac_grouped <- spacc(species, coords, groups = status, seed = 42)
+plot(sac_grouped)  # Overlaid curves per group
 }
 
 }
