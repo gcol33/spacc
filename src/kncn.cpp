@@ -2,7 +2,6 @@
 #include <Rcpp.h>
 #include <RcppParallel.h>
 #include <vector>
-#include <set>
 #include <cmath>
 #include "kdtree_adapter.h"
 #include "balltree.h"
@@ -12,6 +11,8 @@ using namespace RcppParallel;
 
 // ============================================================================
 // EXACT (brute-force) kNCN
+// Uses: incremental centroid, squared distances, shrinking candidate list,
+//       boolean vector for species tracking.
 // ============================================================================
 
 // [[Rcpp::export]]
@@ -22,62 +23,76 @@ IntegerVector cpp_kncn_single(IntegerMatrix species_pa,
   int n_species = species_pa.ncol();
 
   IntegerVector curve(n_sites);
-  std::vector<bool> visited(n_sites, false);
-  std::set<int> species_seen;
-  std::vector<int> visited_sites;
+  std::vector<bool> species_seen(n_species, false);
+  int richness = 0;
 
-  // Start at seed
-  int current = seed;
-  visited[current] = true;
-  visited_sites.push_back(current);
+  // Shrinking candidate list: indices of unvisited sites
+  std::vector<int> candidates(n_sites);
+  for (int i = 0; i < n_sites; i++) candidates[i] = i;
 
-  // Record species at starting site
-  for (int sp = 0; sp < n_species; sp++) {
-    if (species_pa(current, sp) > 0) {
-      species_seen.insert(sp);
+  // Remove seed from candidates
+  for (int i = 0; i < n_sites; i++) {
+    if (candidates[i] == seed) {
+      candidates[i] = candidates.back();
+      candidates.pop_back();
+      break;
     }
   }
-  curve[0] = species_seen.size();
+
+  // Incremental centroid
+  double sum_x = x[seed];
+  double sum_y = y[seed];
+  int n_visited = 1;
+
+  // Record species at seed
+  int current = seed;
+  for (int sp = 0; sp < n_species; sp++) {
+    if (species_pa(current, sp) > 0 && !species_seen[sp]) {
+      species_seen[sp] = true;
+      richness++;
+    }
+  }
+  curve[0] = richness;
 
   // Visit remaining sites
   for (int step = 1; step < n_sites; step++) {
-    // Calculate centroid of visited sites
-    double cx = 0.0, cy = 0.0;
-    for (size_t v = 0; v < visited_sites.size(); v++) {
-      cx += x[visited_sites[v]];
-      cy += y[visited_sites[v]];
-    }
-    cx /= visited_sites.size();
-    cy /= visited_sites.size();
+    double cx = sum_x / n_visited;
+    double cy = sum_y / n_visited;
 
-    // Find nearest unvisited to centroid
-    double min_dist = R_PosInf;
-    int nearest = -1;
+    // Find nearest unvisited to centroid (squared distance, no sqrt)
+    double min_dist_sq = R_PosInf;
+    int best_idx = -1; // index into candidates
 
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j]) {
-        double dx = x[j] - cx;
-        double dy = y[j] - cy;
-        double d = std::sqrt(dx * dx + dy * dy);
-        if (d < min_dist) {
-          min_dist = d;
-          nearest = j;
-        }
+    int n_cand = static_cast<int>(candidates.size());
+    for (int i = 0; i < n_cand; i++) {
+      int j = candidates[i];
+      double dx = x[j] - cx;
+      double dy = y[j] - cy;
+      double d_sq = dx * dx + dy * dy;
+      if (d_sq < min_dist_sq) {
+        min_dist_sq = d_sq;
+        best_idx = i;
       }
     }
 
     // Move to nearest
-    current = nearest;
-    visited[current] = true;
-    visited_sites.push_back(current);
+    current = candidates[best_idx];
+    // Swap-remove from candidates
+    candidates[best_idx] = candidates.back();
+    candidates.pop_back();
+
+    sum_x += x[current];
+    sum_y += y[current];
+    n_visited++;
 
     // Add new species
     for (int sp = 0; sp < n_species; sp++) {
-      if (species_pa(current, sp) > 0) {
-        species_seen.insert(sp);
+      if (species_pa(current, sp) > 0 && !species_seen[sp]) {
+        species_seen[sp] = true;
+        richness++;
       }
     }
-    curve[step] = species_seen.size();
+    curve[step] = richness;
   }
 
   return curve;
@@ -105,57 +120,69 @@ struct KncnWorker : public Worker {
     int n_species = species_pa.ncol();
 
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
-      std::set<int> species_seen;
-      std::vector<int> visited_sites;
+      std::vector<bool> species_seen(n_species, false);
+      int richness = 0;
+
+      // Shrinking candidate list
+      std::vector<int> candidates(n_sites);
+      for (int i = 0; i < n_sites; i++) candidates[i] = i;
 
       int current = seeds[s];
-      visited[current] = true;
-      visited_sites.push_back(current);
+      // Remove seed from candidates
+      for (int i = 0; i < n_sites; i++) {
+        if (candidates[i] == current) {
+          candidates[i] = candidates.back();
+          candidates.pop_back();
+          break;
+        }
+      }
+
+      double sum_x = x[current];
+      double sum_y = y[current];
+      int n_visited = 1;
 
       for (int sp = 0; sp < n_species; sp++) {
         if (species_pa(current, sp) > 0) {
-          species_seen.insert(sp);
+          species_seen[sp] = true;
+          richness++;
         }
       }
-      curves(s, 0) = species_seen.size();
+      curves(s, 0) = richness;
 
       for (int step = 1; step < n_sites; step++) {
-        // Calculate centroid
-        double cx = 0.0, cy = 0.0;
-        for (size_t v = 0; v < visited_sites.size(); v++) {
-          cx += x[visited_sites[v]];
-          cy += y[visited_sites[v]];
-        }
-        cx /= visited_sites.size();
-        cy /= visited_sites.size();
+        double cx = sum_x / n_visited;
+        double cy = sum_y / n_visited;
 
-        // Find nearest unvisited to centroid
-        double min_dist = R_PosInf;
-        int nearest = -1;
+        double min_dist_sq = R_PosInf;
+        int best_idx = -1;
 
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j]) {
-            double dx = x[j] - cx;
-            double dy = y[j] - cy;
-            double d = std::sqrt(dx * dx + dy * dy);
-            if (d < min_dist) {
-              min_dist = d;
-              nearest = j;
-            }
+        int n_cand = static_cast<int>(candidates.size());
+        for (int i = 0; i < n_cand; i++) {
+          int j = candidates[i];
+          double dx = x[j] - cx;
+          double dy = y[j] - cy;
+          double d_sq = dx * dx + dy * dy;
+          if (d_sq < min_dist_sq) {
+            min_dist_sq = d_sq;
+            best_idx = i;
           }
         }
 
-        current = nearest;
-        visited[current] = true;
-        visited_sites.push_back(current);
+        current = candidates[best_idx];
+        candidates[best_idx] = candidates.back();
+        candidates.pop_back();
+
+        sum_x += x[current];
+        sum_y += y[current];
+        n_visited++;
 
         for (int sp = 0; sp < n_species; sp++) {
-          if (species_pa(current, sp) > 0) {
-            species_seen.insert(sp);
+          if (species_pa(current, sp) > 0 && !species_seen[sp]) {
+            species_seen[sp] = true;
+            richness++;
           }
         }
-        curves(s, step) = species_seen.size();
+        curves(s, step) = richness;
       }
     }
   }
@@ -190,6 +217,7 @@ IntegerMatrix cpp_kncn_parallel(IntegerMatrix species_pa,
 // ============================================================================
 // SPATIAL TREE kNCN — k-d tree (Euclidean) or ball tree (haversine)
 // Queries tree with centroid each step.
+// Uses boolean vector for species tracking + incremental centroid.
 // ============================================================================
 
 // Generic kNCN accumulation with a find-nearest functor
@@ -203,7 +231,8 @@ IntegerVector kncn_tree_single_impl(const IntegerMatrix& species_pa,
 
   IntegerVector curve(n_sites);
   std::vector<bool> visited(n_sites, false);
-  std::set<int> species_seen;
+  std::vector<bool> species_seen(n_species, false);
+  int richness = 0;
 
   double sum_x = px[seed];
   double sum_y = py[seed];
@@ -213,9 +242,12 @@ IntegerVector kncn_tree_single_impl(const IntegerMatrix& species_pa,
   visited[current] = true;
 
   for (int sp = 0; sp < n_species; sp++) {
-    if (species_pa(current, sp) > 0) species_seen.insert(sp);
+    if (species_pa(current, sp) > 0) {
+      species_seen[sp] = true;
+      richness++;
+    }
   }
-  curve[0] = species_seen.size();
+  curve[0] = richness;
 
   for (int step = 1; step < n_sites; step++) {
     double cx = sum_x / n_visited;
@@ -230,9 +262,12 @@ IntegerVector kncn_tree_single_impl(const IntegerMatrix& species_pa,
     n_visited++;
 
     for (int sp = 0; sp < n_species; sp++) {
-      if (species_pa(current, sp) > 0) species_seen.insert(sp);
+      if (species_pa(current, sp) > 0 && !species_seen[sp]) {
+        species_seen[sp] = true;
+        richness++;
+      }
     }
-    curve[step] = species_seen.size();
+    curve[step] = richness;
   }
 
   return curve;
@@ -297,7 +332,8 @@ struct KncnKdtreeWorker : public Worker {
 
     for (std::size_t s = begin; s < end; s++) {
       std::vector<bool> visited(n_sites, false);
-      std::set<int> species_seen;
+      std::vector<bool> species_seen(n_species, false);
+      int richness = 0;
 
       double sum_x = x[seeds[s]];
       double sum_y = y[seeds[s]];
@@ -307,9 +343,12 @@ struct KncnKdtreeWorker : public Worker {
       visited[current] = true;
 
       for (int sp = 0; sp < n_species; sp++) {
-        if (species_pa(current, sp) > 0) species_seen.insert(sp);
+        if (species_pa(current, sp) > 0) {
+          species_seen[sp] = true;
+          richness++;
+        }
       }
-      curves(s, 0) = species_seen.size();
+      curves(s, 0) = richness;
 
       for (int step = 1; step < n_sites; step++) {
         double cx = sum_x / n_visited;
@@ -324,9 +363,12 @@ struct KncnKdtreeWorker : public Worker {
         n_visited++;
 
         for (int sp = 0; sp < n_species; sp++) {
-          if (species_pa(current, sp) > 0) species_seen.insert(sp);
+          if (species_pa(current, sp) > 0 && !species_seen[sp]) {
+            species_seen[sp] = true;
+            richness++;
+          }
         }
-        curves(s, step) = species_seen.size();
+        curves(s, step) = richness;
       }
     }
   }
@@ -356,7 +398,8 @@ struct KncnBalltreeWorker : public Worker {
 
     for (std::size_t s = begin; s < end; s++) {
       std::vector<bool> visited(n_sites, false);
-      std::set<int> species_seen;
+      std::vector<bool> species_seen(n_species, false);
+      int richness = 0;
 
       double sum_x = px[seeds[s]];
       double sum_y = py[seeds[s]];
@@ -366,9 +409,12 @@ struct KncnBalltreeWorker : public Worker {
       visited[current] = true;
 
       for (int sp = 0; sp < n_species; sp++) {
-        if (species_pa(current, sp) > 0) species_seen.insert(sp);
+        if (species_pa(current, sp) > 0) {
+          species_seen[sp] = true;
+          richness++;
+        }
       }
-      curves(s, 0) = species_seen.size();
+      curves(s, 0) = richness;
 
       for (int step = 1; step < n_sites; step++) {
         double cx = sum_x / n_visited;
@@ -383,9 +429,12 @@ struct KncnBalltreeWorker : public Worker {
         n_visited++;
 
         for (int sp = 0; sp < n_species; sp++) {
-          if (species_pa(current, sp) > 0) species_seen.insert(sp);
+          if (species_pa(current, sp) > 0 && !species_seen[sp]) {
+            species_seen[sp] = true;
+            richness++;
+          }
         }
-        curves(s, step) = species_seen.size();
+        curves(s, step) = richness;
       }
     }
   }

@@ -1,7 +1,7 @@
 #ifndef SPACC_KDTREE_ADAPTER_H
 #define SPACC_KDTREE_ADAPTER_H
 
-#include "nanoflann.hpp"
+#include <nanoflann.hpp>
 #include <vector>
 #include <cstddef>
 #include <cstdint>
