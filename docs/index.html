@@ -74,7 +74,7 @@
 </h1></div>
 <p><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg" alt="codecov"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p><strong>Fast Spatial Species Accumulation Curves with C++ Performance</strong></p>
-<p>The <code>spacc</code> package computes spatially-explicit species accumulation curves and diversity metrics. Unlike traditional SACs that assume random sampling order, <code>spacc</code> respects the spatial arrangement of sites using nearest-neighbor algorithms with a C++ backend (Rcpp/RcppParallel) for speed.</p>
+<p>The <code>spacc</code> package computes species accumulation curves and diversity metrics. It supports both classical random-order SACs (<code>method = "random"</code>) and spatially-explicit methods that respect the spatial arrangement of sites using nearest-neighbor algorithms. All methods use a C++ backend (Rcpp/RcppParallel) for speed.</p>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
@@ -95,7 +95,7 @@
 <div class="section level2">
 <h2 id="statement-of-need">Statement of Need<a class="anchor" aria-label="anchor" href="#statement-of-need"></a>
 </h2>
-<p>Species accumulation curves are fundamental tools for understanding sampling completeness and comparing biodiversity. Standard SACs assume random sampling order, but real ecological sampling is spatially structured. <code>spacc</code> addresses this by computing SACs that respect spatial arrangement, with applications in:</p>
+<p>Species accumulation curves are fundamental tools for understanding sampling completeness and comparing biodiversity. <code>spacc</code> computes both classical random-order SACs and spatially-explicit SACs that respect the spatial arrangement of sites. Comparing the two reveals how spatial structure affects observed diversity. Applications include:</p>
 <ul>
 <li>biodiversity assessment for spatially structured surveys,</li>
 <li>community ecology and scale-dependent diversity patterns,</li>

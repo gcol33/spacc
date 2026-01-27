@@ -7,11 +7,11 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 
 **Fast Spatial Species Accumulation Curves with C++ Performance**
 
-The `spacc` package computes spatially-explicit species accumulation
-curves and diversity metrics. Unlike traditional SACs that assume random
-sampling order, `spacc` respects the spatial arrangement of sites using
-nearest-neighbor algorithms with a C++ backend (Rcpp/RcppParallel) for
-speed.
+The `spacc` package computes species accumulation curves and diversity
+metrics. It supports both classical random-order SACs
+(`method = "random"`) and spatially-explicit methods that respect the
+spatial arrangement of sites using nearest-neighbor algorithms. All
+methods use a C++ backend (Rcpp/RcppParallel) for speed.
 
 ## Quick Start
 
@@ -34,10 +34,10 @@ print(part)
 ## Statement of Need
 
 Species accumulation curves are fundamental tools for understanding
-sampling completeness and comparing biodiversity. Standard SACs assume
-random sampling order, but real ecological sampling is spatially
-structured. `spacc` addresses this by computing SACs that respect
-spatial arrangement, with applications in:
+sampling completeness and comparing biodiversity. `spacc` computes both
+classical random-order SACs and spatially-explicit SACs that respect the
+spatial arrangement of sites. Comparing the two reveals how spatial
+structure affects observed diversity. Applications include:
 
 - biodiversity assessment for spatially structured surveys,
 - community ecology and scale-dependent diversity patterns,
