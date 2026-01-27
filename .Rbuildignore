@@ -16,3 +16,4 @@
 .*\.Rcheck$
 ^API\.md$
 ^PLAN\.md$
+^IMPLEMENTATION_PLAN\.md$

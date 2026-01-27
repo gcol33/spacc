@@ -59,14 +59,14 @@ test_that("spaccHill returns correct structure", {
   expect_equal(result$q, c(0, 1, 2))
 
   # Should have 3 curve matrices
- expect_equal(length(result$curves), 3)
+  expect_equal(length(result$curves), 3)
 
   # Each matrix should be n_seeds x n_sites
   expect_equal(dim(result$curves[[1]]), c(5, 20))
 })
 
 
-test_that("Hill numbers are monotonically non-decreasing", {
+test_that("Species richness (q=0) is monotonically non-decreasing", {
   skip_on_cran()
 
   set.seed(123)
@@ -76,13 +76,14 @@ test_that("Hill numbers are monotonically non-decreasing", {
   result <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 3,
                       parallel = FALSE, progress = FALSE)
 
-  # Each curve should be non-decreasing
-  for (q_idx in 1:3) {
-    for (seed in 1:3) {
-      curve <- result$curves[[q_idx]][seed, ]
-      diffs <- diff(curve)
-      expect_true(all(diffs >= -1e-10),
-                  info = paste("q =", result$q[q_idx], "seed =", seed))
-    }
+  # Only q=0 (richness) is guaranteed to be monotonically non-decreasing.
+  # For q>0, Hill numbers depend on evenness and can decrease when adding
+  # sites that shift dominance.
+  q0_idx <- which(result$q == 0)
+  for (seed in 1:3) {
+    curve <- result$curves[[q0_idx]][seed, ]
+    diffs <- diff(curve)
+    expect_true(all(diffs >= -1e-10),
+                info = paste("q = 0, seed =", seed))
   }
 })
