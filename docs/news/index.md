@@ -68,8 +68,7 @@
 
 - New C++ implementations: hill.cpp, beta.cpp, coverage.cpp, phylo.cpp,
   metrics.cpp
-- [`cpp_knn_parallel_seeds()`](https://gillescolling.com/spacc/reference/cpp_knn_parallel_seeds.md) -
-  kNN with explicit seed indices
+- `cpp_knn_parallel_seeds()` - kNN with explicit seed indices
 - Added sf, areaOfEffect, ape, iNEXT, betapart to Suggests
 
 ------------------------------------------------------------------------

@@ -46,6 +46,12 @@ reference:
   contents:
   - spaccPhylo
   - spaccFunc
+- title: Diversity
+  desc: Alpha, beta, and gamma diversity partitioning
+  contents:
+  - alphaDiversity
+  - gammaDiversity
+  - diversityPartition
 - title: Per-Site Metrics
   desc: Extract metrics per starting site for heatmap visualization
   contents:

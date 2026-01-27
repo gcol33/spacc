@@ -12,6 +12,7 @@ spacc(
   n_seeds = 50L,
   method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
   distance = c("euclidean", "haversine"),
+  backend = c("auto", "exact", "kdtree"),
   support = NULL,
   include_halo = TRUE,
   sigma = NULL,
@@ -19,6 +20,7 @@ spacc(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
+  groups = NULL,
   seed = NULL
 )
 ```
@@ -63,6 +65,19 @@ spacc(
 
   Character. Distance method: `"euclidean"` or `"haversine"`.
 
+- backend:
+
+  Character. Nearest-neighbor backend for `knn` and `kncn`:
+
+  - `"auto"` (default): Uses exact (brute-force) for ≤500 sites, spatial
+    tree for \>500 sites.
+
+  - `"exact"`: Always use brute-force with precomputed distance matrix.
+
+  - `"kdtree"`: Always use spatial tree. Uses k-d tree (nanoflann) for
+    Euclidean distances and ball tree for haversine distances. Faster
+    for large datasets, no distance matrix needed.
+
 - support:
 
   Optional. Spatial support for core/halo classification via
@@ -105,13 +120,22 @@ spacc(
 
   Logical. Show progress bar? Default `TRUE`.
 
+- groups:
+
+  Optional. A factor, character, or integer vector of length `ncol(x)`
+  assigning each species (column) to a group. When provided, separate
+  accumulation curves are computed for each group using the **same
+  spatial site ordering**, and a `spacc_multi` object is returned.
+  Useful for comparing native vs alien species, families, or any
+  categorical split. Default `NULL` (no grouping).
+
 - seed:
 
   Integer. Random seed for reproducibility. Default `NULL`.
 
 ## Value
 
-An object of class `spacc` containing:
+When `groups = NULL`, an object of class `spacc` containing:
 
 - curves:
 
@@ -155,5 +179,10 @@ sac_france <- spacc(species, coords, support = "France")
 
 # Hard boundary (France only, no halo)
 sac_france_only <- spacc(species, coords, support = "France", include_halo = FALSE)
+
+# Grouped accumulation (e.g., native vs alien)
+status <- ifelse(grepl("alien", colnames(species)), "alien", "native")
+sac_grouped <- spacc(species, coords, groups = status, seed = 42)
+plot(sac_grouped)  # Overlaid curves per group
 } # }
 ```

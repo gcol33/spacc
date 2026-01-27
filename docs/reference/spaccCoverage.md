@@ -16,7 +16,8 @@ spaccCoverage(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 ```
 
@@ -58,6 +59,13 @@ spaccCoverage(
 
   Integer. Random seed.
 
+- map:
+
+  Logical. If `TRUE`, run accumulation from every site as seed and store
+  per-site final coverage and richness for spatial mapping. Enables
+  [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
+  `plot(type = "map")`. Default `FALSE`.
+
 ## Value
 
 An object of class `spacc_coverage` containing:
@@ -96,8 +104,8 @@ Ecology, 93, 2533-2547.
 
 ## See also
 
-`iNEXT::iNEXT()` for coverage-based rarefaction without spatial
-structure
+[`iNEXT::iNEXT()`](https://rdrr.io/pkg/iNEXT/man/iNEXT.html) for
+coverage-based rarefaction without spatial structure
 
 ## Examples
 

@@ -69,108 +69,153 @@
   </div>
 </nav><div class="container template-home">
 <div class="row">
-  <main id="main" class="col-md-9">
-<div class="section level1">
+  <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="spacc">spacc<a class="anchor" aria-label="anchor" href="#spacc"></a>
 </h1></div>
-<p><strong>Fast spatial species accumulation curves with C++ performance.</strong></p>
+<p><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg" alt="codecov"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
+<p><strong>Fast Spatial Species Accumulation Curves with C++ Performance</strong></p>
+<p>The <code>spacc</code> package computes spatially-explicit species accumulation curves and diversity metrics. Unlike traditional SACs that assume random sampling order, <code>spacc</code> respects the spatial arrangement of sites using nearest-neighbor algorithms with a C++ backend (Rcpp/RcppParallel) for speed.</p>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Site coordinates and species matrix</span></span>
 <span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">2</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Spatial accumulation curve</span></span>
 <span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Diversity partitioning</span></span>
+<span><span class="va">part</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/diversityPartition.html">diversityPartition</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">part</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="statement-of-need">Statement of Need<a class="anchor" aria-label="anchor" href="#statement-of-need"></a>
 </h2>
-<p>Species accumulation curves (SACs) are fundamental in ecology for understanding sampling completeness and comparing biodiversity across sites. Standard SACs assume random sampling, but real sampling is often spatially structured.</p>
-<p><strong>spacc</strong> computes spatial SACs that respect the spatial arrangement of sampling sites, providing more realistic estimates for:</p>
+<p>Species accumulation curves are fundamental tools for understanding sampling completeness and comparing biodiversity. Standard SACs assume random sampling order, but real ecological sampling is spatially structured. <code>spacc</code> addresses this by computing SACs that respect spatial arrangement, with applications in:</p>
 <ul>
-<li>Assessing sampling completeness in ecological surveys</li>
-<li>Comparing biodiversity across regions with different spatial configurations</li>
-<li>Modeling invasion spread or range expansion</li>
-<li>Understanding distance-decay relationships in species composition</li>
+<li>biodiversity assessment for spatially structured surveys,</li>
+<li>community ecology and scale-dependent diversity patterns,</li>
+<li>invasion modeling with wavefront and directional methods,</li>
+<li>conservation planning to identify high-diversity areas.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
+</h2>
+<p><code>spacc</code> automatically selects the fastest backend for nearest-neighbor queries:</p>
+<table class="table">
+<colgroup>
+<col width="27%">
+<col width="30%">
+<col width="24%">
+<col width="18%">
+</colgroup>
+<thead><tr>
+<th>Backend</th>
+<th>Distance</th>
+<th>Method</th>
+<th>When</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+<strong>k-d tree</strong> (<a href="https://github.com/jlblancoc/nanoflann" class="external-link">nanoflann</a>)</td>
+<td>Euclidean</td>
+<td>O(log n) per query</td>
+<td>&gt;500 sites (auto)</td>
+</tr>
+<tr>
+<td>
+<strong>Ball tree</strong> (custom)</td>
+<td>Haversine</td>
+<td>O(log n) per query</td>
+<td>&gt;500 sites + <code>distance = "haversine"</code>
+</td>
+</tr>
+<tr>
+<td>
+<strong>Exact</strong> (brute-force)</td>
+<td>Any</td>
+<td>O(n) per query</td>
+<td>≤500 sites (auto)</td>
+</tr>
+</tbody>
+</table>
+<p>Override with <code>backend = "kdtree"</code> or <code>backend = "exact"</code>. The ball tree uses haversine distance natively — no coordinate projection needed for geographic data.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Geographic coordinates with haversine distance</span></span>
+<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords_lonlat</span>, distance <span class="op">=</span> <span class="st">"haversine"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Force tree backend for smaller datasets</span></span>
+<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, backend <span class="op">=</span> <span class="st">"kdtree"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
 </h2>
 <div class="section level3">
-<h3 id="spatial-accumulation-methods">Spatial Accumulation Methods<a class="anchor" aria-label="anchor" href="#spatial-accumulation-methods"></a>
+<h3 id="accumulation-curves">Accumulation Curves<a class="anchor" aria-label="anchor" href="#accumulation-curves"></a>
 </h3>
 <ul>
 <li>
-<code><a href="reference/spacc.html">spacc()</a></code> - Main function with 7 spatial methods:
-<ul>
+<strong><code><a href="reference/spacc.html">spacc()</a></code></strong>: Spatial accumulation with 7 methods (<code>knn</code>, <code>kncn</code>, <code>random</code>, <code>radius</code>, <code>gaussian</code>, <code>cone</code>, <code>collector</code>)</li>
 <li>
-<code>knn</code>: k-Nearest Neighbor (always visit closest unvisited)</li>
+<strong><code><a href="reference/spaccHill.html">spaccHill()</a></code></strong>: Hill number accumulation (q = 0, 1, 2)</li>
 <li>
-<code>kncn</code>: k-Nearest Centroid Neighbor (visit closest to growing centroid)</li>
+<strong><code><a href="reference/spaccBeta.html">spaccBeta()</a></code></strong>: Beta diversity with turnover/nestedness partitioning (Baselga 2010)</li>
 <li>
-<code>random</code>: Random order (null model for comparison)</li>
+<strong><code><a href="reference/spaccCoverage.html">spaccCoverage()</a></code></strong>: Coverage-based rarefaction (Chao &amp; Jost 2012)</li>
 <li>
-<code>radius</code>: Expand by distance from seed</li>
+<strong><code><a href="reference/spaccPhylo.html">spaccPhylo()</a></code></strong>: Phylogenetic diversity accumulation (MPD, MNTD)</li>
 <li>
-<code>gaussian</code>: Probabilistic distance-weighted selection</li>
+<strong><code><a href="reference/spaccFunc.html">spaccFunc()</a></code></strong>: Functional diversity accumulation (FDis, FRic)</li>
 <li>
-<code>cone</code>: Directional expansion within angular constraint</li>
+<strong><code><a href="reference/wavefront.html">wavefront()</a></code></strong>: Expanding radius accumulation for invasion modeling</li>
 <li>
-<code>collector</code>: Sites in data order (no randomization)</li>
-</ul>
-</li>
+<strong><code><a href="reference/distanceDecay.html">distanceDecay()</a></code></strong>: Species richness vs distance from focal points</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="additional-functions">Additional Functions<a class="anchor" aria-label="anchor" href="#additional-functions"></a>
+<h3 id="diversity">Diversity<a class="anchor" aria-label="anchor" href="#diversity"></a>
 </h3>
 <ul>
 <li>
-<code><a href="reference/wavefront.html">wavefront()</a></code> - Expanding radius accumulation (invasion modeling)</li>
+<strong><code><a href="reference/alphaDiversity.html">alphaDiversity()</a></code></strong>: Per-site Hill numbers (local diversity)</li>
 <li>
-<code><a href="reference/distanceDecay.html">distanceDecay()</a></code> - Species richness vs distance from focal points</li>
+<strong><code><a href="reference/gammaDiversity.html">gammaDiversity()</a></code></strong>: Pooled Hill numbers (regional diversity)</li>
 <li>
-<code><a href="reference/distances.html">distances()</a></code> - Pre-compute distance matrices (Euclidean or Haversine)</li>
+<strong><code><a href="reference/diversityPartition.html">diversityPartition()</a></code></strong>: Alpha-beta-gamma decomposition (Jost 2007)</li>
+<li>
+<strong><code><a href="reference/spaccMetrics.html">spaccMetrics()</a></code></strong>: Per-site accumulation metrics (slope, AUC, half-richness)</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="analytical-methods-no-simulation">Analytical Methods (No Simulation)<a class="anchor" aria-label="anchor" href="#analytical-methods-no-simulation"></a>
-</h3>
-<ul>
-<li>
-<code><a href="reference/coleman.html">coleman()</a></code> - Coleman expected accumulation</li>
-<li>
-<code><a href="reference/mao_tau.html">mao_tau()</a></code> - Mao Tau (exact) expected curve</li>
-<li>
-<code><a href="reference/spatialRarefaction.html">spatialRarefaction()</a></code> - Spatially-constrained rarefaction</li>
-</ul>
+<p>All diversity and accumulation functions support spatial mapping via <code>map = TRUE</code>, <code>plot(x, type = "map")</code>, and <code><a href="reference/as_sf.html">as_sf()</a></code> for sf/GIS integration.</p>
 </div>
 <div class="section level3">
 <h3 id="analysis">Analysis<a class="anchor" aria-label="anchor" href="#analysis"></a>
 </h3>
 <ul>
 <li>
-<code><a href="reference/extrapolate.html">extrapolate()</a></code> - Fit asymptotic models (Michaelis-Menten, Lomolino, etc.)</li>
+<strong><code><a href="reference/extrapolate.html">extrapolate()</a></code></strong>: Fit asymptotic models (5 options)</li>
 <li>
-<code><a href="reference/compare.html">compare()</a></code> - Statistical comparison between curves</li>
+<strong><code><a href="reference/compare.html">compare()</a></code></strong>: Statistical comparison between curves</li>
 <li>
-<code><a href="reference/rarefy.html">rarefy()</a></code> - Rarefaction to common sampling effort</li>
+<strong><code><a href="reference/rarefy.html">rarefy()</a></code></strong>: Rarefaction to common sampling effort</li>
 <li>
-<code><a href="reference/subsample.html">subsample()</a></code> - Spatial subsampling of sites</li>
+<strong><code><a href="reference/subsample.html">subsample()</a></code></strong>: Spatial subsampling of sites</li>
+<li>
+<strong><code><a href="reference/coleman.html">coleman()</a></code></strong>, <strong><code><a href="reference/mao_tau.html">mao_tau()</a></code></strong>, <strong><code><a href="reference/spatialRarefaction.html">spatialRarefaction()</a></code></strong>: Analytical (non-simulation) methods</li>
+<li>
+<strong><code><a href="reference/distances.html">distances()</a></code></strong>: Pre-compute distance matrices</li>
 </ul>
 </div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Development version:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"gcol33/spacc"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -178,95 +223,91 @@
 <h2 id="usage-examples">Usage Examples<a class="anchor" aria-label="anchor" href="#usage-examples"></a>
 </h2>
 <div class="section level3">
-<h3 id="basic-spatial-sac">Basic Spatial SAC<a class="anchor" aria-label="anchor" href="#basic-spatial-sac"></a>
-</h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Generate example data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
-<span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Compute spatial SAC with k-nearest neighbor method</span></span>
-<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="va">sac</span></span>
-<span><span class="co">#&gt; spacc: 100 sites, 50 species, 100 seeds (knn)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="compare-spatial-vs-random">Compare Spatial vs Random<a class="anchor" aria-label="anchor" href="#compare-spatial-vs-random"></a>
+<h3 id="spatial-accumulation">Spatial Accumulation<a class="anchor" aria-label="anchor" href="#spatial-accumulation"></a>
 </h3>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Spatial accumulation</span></span>
-<span><span class="va">sac_spatial</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Random accumulation (null model)</span></span>
+<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Compare spatial vs random</span></span>
 <span><span class="va">sac_random</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"random"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Statistical comparison</span></span>
-<span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac_spatial</span>, <span class="va">sac_random</span><span class="op">)</span></span>
+<span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">sac_random</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">comp</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="extrapolate-to-asymptote">Extrapolate to Asymptote<a class="anchor" aria-label="anchor" href="#extrapolate-to-asymptote"></a>
+<h3 id="diversity-partitioning">Diversity Partitioning<a class="anchor" aria-label="anchor" href="#diversity-partitioning"></a>
 </h3>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">2</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Fit asymptotic model</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="st">"michaelis-menten"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Asymptotic richness: 52.3 (95% CI: 48.1-56.5)</span></span>
+<span><span class="va">part</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/diversityPartition.html">diversityPartition</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">part</span></span>
+<span><span class="co">#&gt; Alpha-Beta-Gamma Diversity Partitioning</span></span>
+<span><span class="co">#&gt; 100 sites, 50 species</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt;  q alpha  beta gamma</span></span>
+<span><span class="co">#&gt;  0 12.45  4.01    50</span></span>
+<span><span class="co">#&gt;  1  8.23  3.12 25.68</span></span>
+<span><span class="co">#&gt;  2  6.54  2.87 18.77</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Per-site alpha with spatial mapping</span></span>
+<span><span class="va">alpha</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/alphaDiversity.html">alphaDiversity</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, coords <span class="op">=</span> <span class="va">coords</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">alpha</span>, type <span class="op">=</span> <span class="st">"map"</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="geographic-coordinates">Geographic Coordinates<a class="anchor" aria-label="anchor" href="#geographic-coordinates"></a>
+<h3 id="hill-number--beta-diversity-accumulation">Hill Number &amp; Beta Diversity Accumulation<a class="anchor" aria-label="anchor" href="#hill-number--beta-diversity-accumulation"></a>
 </h3>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Use Haversine distance for lat/lon data</span></span>
-<span><span class="va">coords_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span>, <span class="op">-</span><span class="fl">5</span>, <span class="fl">5</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">45</span>, <span class="fl">50</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords_geo</span>, distance <span class="op">=</span> <span class="st">"haversine"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">hill</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccHill.html">spaccHill</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, n_seeds <span class="op">=</span> <span class="fl">50</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span><span class="op">)</span>                         <span class="co"># Accumulation curves</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span>, type <span class="op">=</span> <span class="st">"map"</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>    <span class="co"># Spatial map</span></span>
+<span></span>
+<span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccBeta.html">spaccBeta</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, index <span class="op">=</span> <span class="st">"sorensen"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta</span>, partition <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta</span>, type <span class="op">=</span> <span class="st">"map"</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="coverage-based-rarefaction">Coverage-Based Rarefaction<a class="anchor" aria-label="anchor" href="#coverage-based-rarefaction"></a>
+</h3>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">50</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cov</span>, xaxis <span class="op">=</span> <span class="st">"coverage"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cov</span>, type <span class="op">=</span> <span class="st">"map"</span>, metric <span class="op">=</span> <span class="st">"final_coverage"</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level2">
-<h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
-</h2>
-<p>spacc uses a C++ backend via Rcpp and RcppParallel for high performance:</p>
-<table class="table">
-<thead><tr>
-<th>Sites</th>
-<th>Species</th>
-<th>Seeds</th>
-<th>Time (spacc)</th>
-<th>Time (R loop)</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>100</td>
-<td>50</td>
-<td>100</td>
-<td>0.02s</td>
-<td>2.1s</td>
-</tr>
-<tr>
-<td>500</td>
-<td>100</td>
-<td>100</td>
-<td>0.3s</td>
-<td>45s</td>
-</tr>
-<tr>
-<td>1000</td>
-<td>200</td>
-<td>100</td>
-<td>1.2s</td>
-<td>5+ min</td>
-</tr>
-</tbody>
-</table>
+<div class="section level3">
+<h3 id="phylogenetic--functional-diversity">Phylogenetic &amp; Functional Diversity<a class="anchor" aria-label="anchor" href="#phylogenetic--functional-diversity"></a>
+</h3>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/emmanuelparadis/ape" class="external-link">ape</a></span><span class="op">)</span></span>
+<span><span class="va">tree</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/ape/man/rtree.html" class="external-link">rtree</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">tree</span><span class="op">$</span><span class="va">tip.label</span></span>
+<span></span>
+<span><span class="va">phylo</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccPhylo.html">spaccPhylo</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, <span class="va">tree</span>,</span>
+<span>                    metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mpd"</span>, <span class="st">"mntd"</span><span class="op">)</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">phylo</span>, type <span class="op">=</span> <span class="st">"map"</span>, metric <span class="op">=</span> <span class="st">"mpd"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">traits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">50</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">traits</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">func</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccFunc.html">spaccFunc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, <span class="va">traits</span>,</span>
+<span>                  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fdis"</span>, <span class="st">"fric"</span><span class="op">)</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">func</span>, type <span class="op">=</span> <span class="st">"map"</span>, metric <span class="op">=</span> <span class="st">"fdis"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="spatial-mapping-with-sf">Spatial Mapping with sf<a class="anchor" aria-label="anchor" href="#spatial-mapping-with-sf"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Convert any diversity measure to sf for GIS integration</span></span>
+<span><span class="va">metrics</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccMetrics.html">spaccMetrics</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>,</span>
+<span>                        metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slope_10"</span>, <span class="st">"half_richness"</span>, <span class="st">"auc"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">metrics_sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_sf.html">as_sf</a></span><span class="op">(</span><span class="va">metrics</span>, crs <span class="op">=</span> <span class="fl">32631</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Works for all diversity types</span></span>
+<span><span class="va">hill_sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_sf.html">as_sf</a></span><span class="op">(</span><span class="va">hill</span>, crs <span class="op">=</span> <span class="fl">32631</span><span class="op">)</span></span>
+<span><span class="va">beta_sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_sf.html">as_sf</a></span><span class="op">(</span><span class="va">beta</span>, crs <span class="op">=</span> <span class="fl">32631</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
@@ -293,16 +334,14 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co">@software{spacc,</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">  title = {spacc: Fast Spatial Species Accumulation Curves},</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">  url = {https://CRAN.R-project.org/package=spacc},</span></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">  doi = {10.32614/CRAN.package.spacc}</span></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co">@software{spacc,</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">  title = {spacc: Fast Spatial Species Accumulation Curves},</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">  year = {2025},</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/spacc}</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 </div>
-
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
@@ -334,14 +373,7 @@
 </ul>
 </div>
 
-<div class="dev-status">
-<h2 data-toc-skip>Dev status</h2>
-<ul class="list-unstyled">
-<li><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a></li>
-<li><a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg" alt="codecov"></a></li>
-<li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></li>
-</ul>
-</div>
+
 
   </aside>
 </div>

@@ -67,6 +67,7 @@ with C++ backend for performance.</p>
 <span>  n_seeds <span class="op">=</span> <span class="fl">50L</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"kncn"</span>, <span class="st">"random"</span>, <span class="st">"radius"</span>, <span class="st">"gaussian"</span>, <span class="st">"cone"</span>, <span class="st">"collector"</span><span class="op">)</span>,</span>
 <span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
+<span>  backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"exact"</span>, <span class="st">"kdtree"</span><span class="op">)</span>,</span>
 <span>  support <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  include_halo <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  sigma <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -74,6 +75,7 @@ with C++ backend for performance.</p>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -110,6 +112,16 @@ quantification. Default 50.</p></dd>
 
 <dt id="arg-distance">distance<a class="anchor" aria-label="anchor" href="#arg-distance"></a></dt>
 <dd><p>Character. Distance method: <code>"euclidean"</code> or <code>"haversine"</code>.</p></dd>
+
+
+<dt id="arg-backend">backend<a class="anchor" aria-label="anchor" href="#arg-backend"></a></dt>
+<dd><p>Character. Nearest-neighbor backend for <code>knn</code> and <code>kncn</code>:</p><ul><li><p><code>"auto"</code> (default): Uses exact (brute-force) for ≤500 sites,
+spatial tree for &gt;500 sites.</p></li>
+<li><p><code>"exact"</code>: Always use brute-force with precomputed distance matrix.</p></li>
+<li><p><code>"kdtree"</code>: Always use spatial tree. Uses k-d tree (nanoflann) for
+Euclidean distances and ball tree for haversine distances. Faster for
+large datasets, no distance matrix needed.</p></li>
+</ul></dd>
 
 
 <dt id="arg-support">support<a class="anchor" aria-label="anchor" href="#arg-support"></a></dt>
@@ -149,13 +161,22 @@ Set to <code>FALSE</code> for political/hard boundary.</p></dd>
 <dd><p>Logical. Show progress bar? Default <code>TRUE</code>.</p></dd>
 
 
+<dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
+<dd><p>Optional. A factor, character, or integer vector of length
+<code>ncol(x)</code> assigning each species (column) to a group. When provided,
+separate accumulation curves are computed for each group using the
+<strong>same spatial site ordering</strong>, and a <code>spacc_multi</code> object is returned.
+Useful for comparing native vs alien species, families, or any
+categorical split. Default <code>NULL</code> (no grouping).</p></dd>
+
+
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer. Random seed for reproducibility. Default <code>NULL</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>spacc</code> containing:</p>
+    <p>When <code>groups = NULL</code>, an object of class <code>spacc</code> containing:</p>
 <dl><dt>curves</dt>
 <dd><p>Matrix of cumulative species counts (n_seeds x n_sites)</p></dd>
 
@@ -194,6 +215,11 @@ Set to <code>FALSE</code> for political/hard boundary.</p></dd>
 <span></span>
 <span><span class="co"># Hard boundary (France only, no halo)</span></span>
 <span><span class="va">sac_france_only</span> <span class="op">&lt;-</span> <span class="fu">spacc</span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, support <span class="op">=</span> <span class="st">"France"</span>, include_halo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Grouped accumulation (e.g., native vs alien)</span></span>
+<span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"alien"</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>, <span class="st">"alien"</span>, <span class="st">"native"</span><span class="op">)</span></span>
+<span><span class="va">sac_grouped</span> <span class="op">&lt;-</span> <span class="fu">spacc</span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, groups <span class="op">=</span> <span class="va">status</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac_grouped</span><span class="op">)</span>  <span class="co"># Overlaid curves per group</span></span>
 <span><span class="op">}</span> <span class="co"># }</span></span>
 <span></span></code></pre></div>
     </div>

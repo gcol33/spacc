@@ -17,7 +17,8 @@ spaccBeta(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 ```
 
@@ -62,6 +63,13 @@ spaccBeta(
 - seed:
 
   Integer. Random seed.
+
+- map:
+
+  Logical. If `TRUE`, run accumulation from every site as seed and store
+  per-site final beta values for spatial mapping. Enables
+  [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
+  `plot(type = "map")`. Default `FALSE`.
 
 ## Value
 
@@ -109,7 +117,8 @@ of beta diversity. Global Ecology and Biogeography, 19, 134-143.
 
 ## See also
 
-`betapart::beta.pair()` for pairwise beta diversity
+[`betapart::beta.pair()`](https://rdrr.io/pkg/betapart/man/beta.pair.html)
+for pairwise beta diversity
 
 ## Examples
 

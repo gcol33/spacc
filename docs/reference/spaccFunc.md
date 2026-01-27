@@ -17,7 +17,8 @@ spaccFunc(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 ```
 
@@ -72,6 +73,13 @@ spaccFunc(
 
   Integer. Random seed.
 
+- map:
+
+  Logical. If `TRUE`, run accumulation from every site as seed and store
+  per-site final values for spatial mapping. Enables
+  [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
+  `plot(type = "map")`. Default `FALSE`.
+
 ## Value
 
 An object of class `spacc_func` containing:
@@ -107,7 +115,8 @@ measuring functional diversity from multiple traits. Ecology, 91,
 
 ## See also
 
-`FD::dbFD()` for comprehensive functional diversity analysis
+[`FD::dbFD()`](https://rdrr.io/pkg/FD/man/dbFD.html) for comprehensive
+functional diversity analysis
 
 ## Examples
 

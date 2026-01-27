@@ -69,7 +69,8 @@
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -122,6 +123,12 @@
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer. Random seed.</p></dd>
 
+
+<dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, run accumulation from every site as seed
+and store per-site final values for spatial mapping. Enables
+<code><a href="as_sf.html">as_sf()</a></code> and <code>plot(type = "map")</code>. Default <code>FALSE</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -150,7 +157,7 @@ functional diversity from multiple traits. Ecology, 91, 299-305.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code>FD::dbFD()</code> for comprehensive functional diversity analysis</p></div>
+    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/FD/man/dbFD.html" class="external-link">FD::dbFD()</a></code> for comprehensive functional diversity analysis</p></div>
     </div>
 
     <div class="section level2">

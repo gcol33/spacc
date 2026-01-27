@@ -17,7 +17,8 @@ spaccPhylo(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 ```
 
@@ -75,6 +76,13 @@ spaccPhylo(
 
   Integer. Random seed.
 
+- map:
+
+  Logical. If `TRUE`, run accumulation from every site as seed and store
+  per-site final values for spatial mapping. Enables
+  [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
+  `plot(type = "map")`. Default `FALSE`.
+
 ## Value
 
 An object of class `spacc_phylo` containing:
@@ -115,7 +123,9 @@ communities: an example for rain forest trees. American Naturalist, 156,
 
 ## See also
 
-`picante::mpd()`, `picante::mntd()`, `picante::pd()`
+[`picante::mpd()`](https://rdrr.io/pkg/picante/man/mpd.html),
+[`picante::mntd()`](https://rdrr.io/pkg/picante/man/mntd.html),
+[`picante::pd()`](https://rdrr.io/pkg/picante/man/pd.html)
 
 ## Examples
 

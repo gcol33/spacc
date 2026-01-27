@@ -18,7 +18,8 @@ spaccHill(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 ```
 
@@ -73,6 +74,13 @@ spaccHill(
 
   Integer. Random seed for reproducibility.
 
+- map:
+
+  Logical. If `TRUE`, run accumulation from every site as seed and store
+  per-site final Hill numbers for spatial mapping. Enables
+  [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
+  `plot(type = "map")`. Default `FALSE`.
+
 ## Value
 
 An object of class `spacc_hill` containing:
@@ -125,8 +133,9 @@ studies. Ecological Monographs, 84, 45-67.
 ## See also
 
 [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) for
-richness-only accumulation, `iNEXT::iNEXT()` for non-spatial Hill number
-rarefaction
+richness-only accumulation,
+[`iNEXT::iNEXT()`](https://rdrr.io/pkg/iNEXT/man/iNEXT.html) for
+non-spatial Hill number rarefaction
 
 ## Examples
 

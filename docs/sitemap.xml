@@ -9,6 +9,7 @@
 <url><loc>https://gillescolling.com/spacc/LICENSE.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/news/index.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/PLAN.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/alphaDiversity.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/analytical.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/as_sf.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/c.spacc.html</loc></url>
@@ -55,7 +56,9 @@
 <url><loc>https://gillescolling.com/spacc/reference/cpp_wavefront_single.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/distanceDecay.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/distances.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/diversityPartition.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/extrapolate.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/gammaDiversity.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/index.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/interpolateCoverage.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/interpolate_at_coverage.html</loc></url>

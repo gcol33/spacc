@@ -733,9 +733,7 @@ calc_fdis <- function(traits, species_present, abundances = NULL) {
 
 ### Phase 3: Coverage-Based Rarefaction (Week 3)
 
-1.  Implement
-    [`calc_coverage()`](https://gillescolling.com/spacc/reference/calc_coverage.md)
-    in C++
+1.  Implement `calc_coverage()` in C++
 2.  Add coverage tracking to existing methods
 3.  Create interpolation function
 4.  Update spacc() or create spaccCoverage()

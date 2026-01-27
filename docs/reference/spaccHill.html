@@ -74,7 +74,8 @@ measures: q=0 is richness, q=1 is exponential Shannon, q=2 is inverse Simpson.</
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -126,6 +127,12 @@ or a <code>spacc_dist</code> object from <code><a href="distances.html">distance
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer. Random seed for reproducibility.</p></dd>
 
+
+<dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, run accumulation from every site as seed
+and store per-site final Hill numbers for spatial mapping. Enables
+<code><a href="as_sf.html">as_sf()</a></code> and <code>plot(type = "map")</code>. Default <code>FALSE</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -169,7 +176,7 @@ Ecological Monographs, 84, 45-67.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="spacc.html">spacc()</a></code> for richness-only accumulation, <code>iNEXT::iNEXT()</code> for
+    <div class="dont-index"><p><code><a href="spacc.html">spacc()</a></code> for richness-only accumulation, <code><a href="https://rdrr.io/pkg/iNEXT/man/iNEXT.html" class="external-link">iNEXT::iNEXT()</a></code> for
 non-spatial Hill number rarefaction</p></div>
     </div>
 
