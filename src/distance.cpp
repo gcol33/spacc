@@ -35,15 +35,6 @@ inline double euclidean_dist(double x1, double y1, double x2, double y2) {
 }
 
 
-//' Fast Distance Matrix
-//'
-//' Compute pairwise distances between points using Euclidean or Haversine formula.
-//'
-//' @param x Numeric vector of x coordinates (or longitude for haversine)
-//' @param y Numeric vector of y coordinates (or latitude for haversine)
-//' @param method Distance method: "euclidean" or "haversine"
-//' @return Symmetric n x n distance matrix
-//'
 // [[Rcpp::export]]
 NumericMatrix cpp_distance_matrix(NumericVector x, NumericVector y, std::string method = "euclidean") {
  int n = x.size();

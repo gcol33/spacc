@@ -14,10 +14,6 @@ using namespace RcppParallel;
 // COLLECTOR METHOD - sites in data order
 // ============================================================================
 
-//' Collector Accumulation (data order)
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @return Integer vector of cumulative species counts
 // [[Rcpp::export]]
 IntegerVector cpp_collector_single(IntegerMatrix species_pa) {
   int n_sites = species_pa.nrow();
@@ -43,16 +39,6 @@ IntegerVector cpp_collector_single(IntegerMatrix species_pa) {
 // GAUSSIAN-WEIGHTED SELECTION
 // ============================================================================
 
-//' Single Gaussian-weighted Accumulation
-//'
-//' Probabilistically select next site weighted by distance (Gaussian decay).
-//' Small sigma approximates kNN, large sigma approximates random.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @param sigma Gaussian bandwidth parameter
-//' @return Integer vector of cumulative species counts
 // [[Rcpp::export]]
 IntegerVector cpp_gaussian_single(IntegerMatrix species_pa,
                                   NumericMatrix dist_mat,
@@ -181,15 +167,6 @@ struct GaussianWorker : public Worker {
 };
 
 
-//' Parallel Gaussian-weighted Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param n_seeds Number of random starting points
-//' @param sigma Gaussian bandwidth parameter
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return Integer matrix of accumulation curves
 // [[Rcpp::export]]
 IntegerMatrix cpp_gaussian_parallel(IntegerMatrix species_pa,
                                     NumericMatrix dist_mat,
@@ -219,18 +196,6 @@ IntegerMatrix cpp_gaussian_parallel(IntegerMatrix species_pa,
 // EXPANDING RADIUS (WAVEFRONT) METHOD
 // ============================================================================
 
-//' Single Wavefront Accumulation
-//'
-//' Accumulate sites within expanding radius: r = r0 + step * dr
-//' Models invasion spread from introduction point.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @param r0 Initial radius
-//' @param dr Radius increment per step
-//' @param n_steps Number of expansion steps
-//' @return List with: species (counts), radius (values), n_sites (included)
 // [[Rcpp::export]]
 List cpp_wavefront_single(IntegerMatrix species_pa,
                           NumericMatrix dist_mat,
@@ -273,17 +238,6 @@ List cpp_wavefront_single(IntegerMatrix species_pa,
 }
 
 
-//' Parallel Wavefront Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Distance matrix
-//' @param n_seeds Number of random starting points
-//' @param r0 Initial radius
-//' @param dr Radius increment per step
-//' @param n_steps Number of expansion steps
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return List with curves matrix and radius vector
 // [[Rcpp::export]]
 List cpp_wavefront_parallel(IntegerMatrix species_pa,
                             NumericMatrix dist_mat,
@@ -323,14 +277,6 @@ List cpp_wavefront_parallel(IntegerMatrix species_pa,
 // SIMPLE RADIUS EXPANSION (by distance order)
 // ============================================================================
 
-//' Single Radius-Order Accumulation
-//'
-//' Accumulate sites in order of distance from seed (simpler version).
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @return Integer vector of cumulative species counts
 // [[Rcpp::export]]
 IntegerVector cpp_radius_single(IntegerMatrix species_pa,
                                 NumericMatrix dist_mat,
@@ -401,14 +347,6 @@ struct RadiusWorker : public Worker {
 };
 
 
-//' Parallel Radius-Order Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param n_seeds Number of random starting points
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return Integer matrix of accumulation curves
 // [[Rcpp::export]]
 IntegerMatrix cpp_radius_parallel(IntegerMatrix species_pa,
                                   NumericMatrix dist_mat,
@@ -437,17 +375,6 @@ IntegerMatrix cpp_radius_parallel(IntegerMatrix species_pa,
 // DIRECTIONAL CONE METHOD
 // ============================================================================
 
-//' Single Directional Cone Accumulation
-//'
-//' Expand in a direction with angular constraint.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param x Numeric vector of x coordinates
-//' @param y Numeric vector of y coordinates
-//' @param seed Starting site index (0-based)
-//' @param angle Direction angle in radians (0 = east, pi/2 = north)
-//' @param width Cone half-width in radians
-//' @return Integer vector of cumulative species counts
 // [[Rcpp::export]]
 IntegerVector cpp_cone_single(IntegerMatrix species_pa,
                               NumericVector x, NumericVector y,
@@ -520,16 +447,6 @@ IntegerVector cpp_cone_single(IntegerMatrix species_pa,
 }
 
 
-//' Parallel Directional Cone Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param x Numeric vector of x coordinates
-//' @param y Numeric vector of y coordinates
-//' @param n_seeds Number of random starting points
-//' @param width Cone half-width in radians (default pi/4)
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return Integer matrix of accumulation curves
 // [[Rcpp::export]]
 IntegerMatrix cpp_cone_parallel(IntegerMatrix species_pa,
                                 NumericVector x, NumericVector y,
@@ -558,15 +475,6 @@ IntegerMatrix cpp_cone_parallel(IntegerMatrix species_pa,
 // DISTANCE-DECAY METHOD
 // ============================================================================
 
-//' Distance-Decay Accumulation
-//'
-//' Returns species count at each distance threshold from seed.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Distance matrix
-//' @param seed Starting site
-//' @param breaks Distance thresholds
-//' @return Integer vector of cumulative species at each threshold
 // [[Rcpp::export]]
 IntegerVector cpp_distance_decay_single(IntegerMatrix species_pa,
                                         NumericMatrix dist_mat,
@@ -596,15 +504,6 @@ IntegerVector cpp_distance_decay_single(IntegerMatrix species_pa,
 }
 
 
-//' Parallel Distance-Decay Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param n_seeds Number of random starting points
-//' @param breaks Distance thresholds
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return Integer matrix of species counts
 // [[Rcpp::export]]
 IntegerMatrix cpp_distance_decay_parallel(IntegerMatrix species_pa,
                                           NumericMatrix dist_mat,

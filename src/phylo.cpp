@@ -12,15 +12,6 @@ using namespace RcppParallel;
 // PHYLOGENETIC DIVERSITY CALCULATIONS
 // ============================================================================
 
-//' Calculate Mean Pairwise Distance (MPD)
-//'
-//' Mean phylogenetic or functional distance between species in a sample.
-//'
-//' @param dist_mat Pairwise distance matrix (species x species)
-//' @param species_present Logical vector indicating which species are present
-//' @param abundance_weighted If true, weight by abundances
-//' @param abundances Vector of abundances (used if abundance_weighted = true)
-//' @return MPD value
 // [[Rcpp::export]]
 double calc_mpd(NumericMatrix dist_mat,
                 LogicalVector species_present,
@@ -67,15 +58,6 @@ double calc_mpd(NumericMatrix dist_mat,
 }
 
 
-//' Calculate Mean Nearest Taxon Distance (MNTD)
-//'
-//' Mean distance to nearest relative for each species in sample.
-//'
-//' @param dist_mat Pairwise distance matrix (species x species)
-//' @param species_present Logical vector indicating which species are present
-//' @param abundance_weighted If true, weight by abundances
-//' @param abundances Vector of abundances
-//' @return MNTD value
 // [[Rcpp::export]]
 double calc_mntd(NumericMatrix dist_mat,
                  LogicalVector species_present,
@@ -121,16 +103,6 @@ double calc_mntd(NumericMatrix dist_mat,
 }
 
 
-//' Calculate Faith's PD from branch lengths
-//'
-//' Sum of branch lengths connecting species in sample to root.
-//' Requires edge matrix and edge lengths from ape::phylo object.
-//'
-//' @param edge Integer matrix (n_edges x 2) of tree edges
-//' @param edge_length Numeric vector of edge lengths
-//' @param n_tips Number of tips in tree
-//' @param species_present Logical vector indicating which tips are present
-//' @return Faith's PD
 // [[Rcpp::export]]
 double calc_faith_pd(IntegerMatrix edge,
                      NumericVector edge_length,
@@ -177,14 +149,6 @@ double calc_faith_pd(IntegerMatrix edge,
 }
 
 
-//' Single kNN Phylogenetic Diversity Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param site_dist_mat Site distance matrix
-//' @param phylo_dist_mat Phylogenetic/functional distance matrix (species x species)
-//' @param seed Starting site
-//' @param metrics Character vector of metrics: "mpd", "mntd"
-//' @return List with accumulation curves for each metric
 // [[Rcpp::export]]
 List cpp_phylo_knn_single(IntegerMatrix species_pa,
                           NumericMatrix site_dist_mat,
@@ -271,16 +235,6 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
 }
 
 
-//' Parallel Phylogenetic Diversity Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param site_dist_mat Site distance matrix
-//' @param phylo_dist_mat Phylogenetic distance matrix
-//' @param n_seeds Number of starting points
-//' @param metrics Metrics to compute
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return List with matrices for each metric
 // [[Rcpp::export]]
 List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
                             NumericMatrix site_dist_mat,
@@ -324,14 +278,6 @@ List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
 // FUNCTIONAL DIVERSITY CALCULATIONS
 // ============================================================================
 
-//' Calculate Functional Dispersion (FDis)
-//'
-//' Mean distance to abundance-weighted centroid in trait space.
-//'
-//' @param traits Numeric matrix (species x traits)
-//' @param species_present Logical vector of present species
-//' @param abundances Abundance vector
-//' @return FDis value
 // [[Rcpp::export]]
 double calc_fdis(NumericMatrix traits,
                  LogicalVector species_present,
@@ -378,14 +324,6 @@ double calc_fdis(NumericMatrix traits,
 }
 
 
-//' Calculate Functional Richness (convex hull volume approximation)
-//'
-//' Uses simplified volume estimation based on trait ranges.
-//' For true FRic, use R's geometry::convhulln.
-//'
-//' @param traits Numeric matrix (species x traits)
-//' @param species_present Logical vector
-//' @return Approximate functional volume
 // [[Rcpp::export]]
 double calc_fric_approx(NumericMatrix traits,
                         LogicalVector species_present) {
@@ -426,14 +364,6 @@ double calc_fric_approx(NumericMatrix traits,
 }
 
 
-//' Single kNN Functional Diversity Accumulation
-//'
-//' @param species_mat Integer matrix (sites x species) abundances
-//' @param site_dist_mat Site distance matrix
-//' @param traits Trait matrix (species x traits)
-//' @param seed Starting site
-//' @param metrics Metrics: "fdis", "fric"
-//' @return List with curves for each metric
 // [[Rcpp::export]]
 List cpp_func_knn_single(IntegerMatrix species_mat,
                          NumericMatrix site_dist_mat,
@@ -516,16 +446,6 @@ List cpp_func_knn_single(IntegerMatrix species_mat,
 }
 
 
-//' Parallel Functional Diversity Accumulation
-//'
-//' @param species_mat Integer matrix (sites x species) abundances
-//' @param site_dist_mat Site distance matrix
-//' @param traits Trait matrix (species x traits)
-//' @param n_seeds Number of random starting points
-//' @param metrics Character vector of metrics to compute
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return List with matrices for each metric
 // [[Rcpp::export]]
 List cpp_func_knn_parallel(IntegerMatrix species_mat,
                            NumericMatrix site_dist_mat,

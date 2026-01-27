@@ -86,16 +86,6 @@ void count_abc(const std::set<int>& set1, const std::set<int>& set2,
 }
 
 
-//' Single kNN Beta Diversity Accumulation
-//'
-//' Track how beta diversity (total, turnover, nestedness) changes as sites
-//' are accumulated spatially using kNN method.
-//'
-//' @param species_pa Integer matrix (sites x species) presence/absence
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @param use_jaccard If true, use Jaccard; otherwise Sorensen
-//' @return List with beta_total, beta_turnover, beta_nestedness, distance vectors
 // [[Rcpp::export]]
 List cpp_beta_knn_single(IntegerMatrix species_pa,
                          NumericMatrix dist_mat,
@@ -276,15 +266,6 @@ struct BetaKnnWorker : public Worker {
 };
 
 
-//' Parallel kNN Beta Diversity Accumulation
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Distance matrix
-//' @param n_seeds Number of starting points
-//' @param use_jaccard Use Jaccard instead of Sorensen
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return List with matrices for each beta component
 // [[Rcpp::export]]
 List cpp_beta_knn_parallel(IntegerMatrix species_pa,
                            NumericMatrix dist_mat,

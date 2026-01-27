@@ -11,13 +11,6 @@ using namespace RcppParallel;
 // COVERAGE CALCULATIONS (Chao & Jost 2012)
 // ============================================================================
 
-//' Calculate Good-Turing Coverage Estimate
-//'
-//' Coverage = proportion of community represented by observed species.
-//' Uses Chao & Jost (2012) estimator.
-//'
-//' @param abundances Vector of species abundances
-//' @return Coverage estimate (0 to 1)
 // [[Rcpp::export]]
 double calc_coverage(NumericVector abundances) {
   int n = 0;   // total individuals
@@ -80,12 +73,6 @@ double calc_coverage_internal(const std::vector<int>& abundances) {
 }
 
 
-//' Single kNN Accumulation with Coverage Tracking
-//'
-//' @param species_mat Integer matrix (sites x species) with abundances
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @return List with richness, individuals, coverage vectors
 // [[Rcpp::export]]
 List cpp_knn_coverage_single(IntegerMatrix species_mat,
                               NumericMatrix dist_mat,
@@ -219,14 +206,6 @@ struct CoverageKnnWorker : public Worker {
 };
 
 
-//' Parallel kNN Accumulation with Coverage
-//'
-//' @param species_mat Integer matrix (sites x species)
-//' @param dist_mat Distance matrix
-//' @param n_seeds Number of starting points
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return List with richness, individuals, coverage matrices
 // [[Rcpp::export]]
 List cpp_knn_coverage_parallel(IntegerMatrix species_mat,
                                 NumericMatrix dist_mat,
@@ -268,12 +247,6 @@ List cpp_knn_coverage_parallel(IntegerMatrix species_mat,
 }
 
 
-//' Interpolate Richness at Target Coverage Levels
-//'
-//' @param richness Vector of cumulative richness
-//' @param coverage Vector of coverage values
-//' @param targets Target coverage levels to interpolate
-//' @return Vector of interpolated richness values
 // [[Rcpp::export]]
 NumericVector interpolate_at_coverage(NumericVector richness,
                                        NumericVector coverage,

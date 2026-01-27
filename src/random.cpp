@@ -8,14 +8,6 @@ using namespace Rcpp;
 using namespace RcppParallel;
 
 
-//' Single Random Accumulation Curve
-//'
-//' Visit sites in random order (null model for comparison).
-//'
-//' @param species_pa Integer matrix (sites x species), presence/absence
-//' @param order Integer vector giving the order to visit sites (0-based)
-//' @return Integer vector of cumulative species counts
-//'
 // [[Rcpp::export]]
 IntegerVector cpp_random_single(IntegerMatrix species_pa, IntegerVector order) {
   int n_sites = species_pa.nrow();
@@ -79,16 +71,6 @@ struct RandomWorker : public Worker {
 };
 
 
-//' Parallel Random Accumulation
-//'
-//' Run random-order accumulation multiple times (null model).
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param n_seeds Number of random permutations
-//' @param n_cores Number of cores to use
-//' @param progress Show progress (currently ignored)
-//' @return Integer matrix (n_seeds x n_sites) of accumulation curves
-//'
 // [[Rcpp::export]]
 IntegerMatrix cpp_random_parallel(IntegerMatrix species_pa,
                                   int n_seeds,

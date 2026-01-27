@@ -71,17 +71,6 @@ struct KnnMetricsWorker : public Worker {
 };
 
 
-//' Parallel kNN Metrics Accumulation
-//'
-//' Run kNN accumulation from each site as its own starting point.
-//' Returns one curve per site for extracting per-site metrics.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param n_cores Number of cores to use
-//' @param progress Show progress (currently ignored in C++)
-//' @return Integer matrix (n_sites x n_sites) of accumulation curves
-//'
 // [[Rcpp::export]]
 IntegerMatrix cpp_knn_metrics_parallel(IntegerMatrix species_pa,
                                         NumericMatrix dist_mat,
@@ -183,17 +172,6 @@ struct KncnMetricsWorker : public Worker {
 };
 
 
-//' Parallel kNCN Metrics Accumulation
-//'
-//' Run kNCN accumulation from each site as its own starting point.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param x_coords Numeric vector of x coordinates
-//' @param y_coords Numeric vector of y coordinates
-//' @param n_cores Number of cores to use
-//' @param progress Show progress (currently ignored in C++)
-//' @return Integer matrix (n_sites x n_sites) of accumulation curves
-//'
 // [[Rcpp::export]]
 IntegerMatrix cpp_kncn_metrics_parallel(IntegerMatrix species_pa,
                                          NumericVector x_coords,

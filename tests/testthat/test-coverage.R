@@ -2,11 +2,11 @@ test_that("Coverage calculation is correct", {
   # Simple case: 10 species, each with abundance 10
   # No singletons, no doubletons -> coverage should be 1
   abundances <- rep(10, 10)
-  expect_equal(calc_coverage(abundances), 1)
+  expect_equal(spacc:::calc_coverage(abundances), 1)
 
   # All singletons: coverage should be low
   abundances_single <- rep(1, 10)
-  cov <- calc_coverage(abundances_single)
+  cov <- spacc:::calc_coverage(abundances_single)
   expect_true(cov < 1)
   expect_true(cov > 0)
 })

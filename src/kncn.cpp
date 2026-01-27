@@ -8,17 +8,6 @@ using namespace Rcpp;
 using namespace RcppParallel;
 
 
-//' Single kNCN Accumulation Curve
-//'
-//' k-Nearest Centroid Neighbor: after each step, recalculate the centroid
-//' of all visited sites, then find the unvisited site nearest to that centroid.
-//'
-//' @param species_pa Integer matrix (sites x species), presence/absence
-//' @param x Numeric vector of x coordinates
-//' @param y Numeric vector of y coordinates
-//' @param seed Starting site index (0-based)
-//' @return Integer vector of cumulative species counts
-//'
 // [[Rcpp::export]]
 IntegerVector cpp_kncn_single(IntegerMatrix species_pa,
                               NumericVector x, NumericVector y,
@@ -175,18 +164,6 @@ struct KncnWorker : public Worker {
 };
 
 
-//' Parallel kNCN Accumulation
-//'
-//' Run kNCN accumulation from multiple random starting points in parallel.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param x Numeric vector of x coordinates
-//' @param y Numeric vector of y coordinates
-//' @param n_seeds Number of random starting points
-//' @param n_cores Number of cores to use
-//' @param progress Show progress (currently ignored)
-//' @return Integer matrix (n_seeds x n_sites) of accumulation curves
-//'
 // [[Rcpp::export]]
 IntegerMatrix cpp_kncn_parallel(IntegerMatrix species_pa,
                                 NumericVector x, NumericVector y,

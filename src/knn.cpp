@@ -7,16 +7,6 @@ using namespace Rcpp;
 using namespace RcppParallel;
 
 
-//' Single kNN Accumulation Curve
-//'
-//' Traverse sites in nearest-neighbor order from a starting seed,
-//' accumulating species counts.
-//'
-//' @param species_pa Integer matrix (sites x species), presence/absence
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @return Integer vector of cumulative species counts
-//'
 // [[Rcpp::export]]
 IntegerVector cpp_knn_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed) {
   int n_sites = species_pa.nrow();
@@ -134,17 +124,6 @@ struct KnnWorker : public Worker {
 };
 
 
-//' Parallel kNN Accumulation
-//'
-//' Run kNN accumulation from multiple random starting points in parallel.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param n_seeds Number of random starting points
-//' @param n_cores Number of cores to use
-//' @param progress Show progress (currently ignored in C++)
-//' @return Integer matrix (n_seeds x n_sites) of accumulation curves
-//'
 // [[Rcpp::export]]
 IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa,
                                NumericMatrix dist_mat,
@@ -174,17 +153,6 @@ IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa,
 }
 
 
-//' Parallel kNN Accumulation with Explicit Seeds
-//'
-//' Run kNN accumulation from specified starting points in parallel.
-//'
-//' @param species_pa Integer matrix (sites x species)
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seeds Integer vector of starting point indices (0-based)
-//' @param n_cores Number of cores to use
-//' @param progress Show progress (currently ignored in C++)
-//' @return Integer matrix (n_seeds x n_sites) of accumulation curves
-//'
 // [[Rcpp::export]]
 IntegerMatrix cpp_knn_parallel_seeds(IntegerMatrix species_pa,
                                       NumericMatrix dist_mat,

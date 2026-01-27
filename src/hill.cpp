@@ -12,11 +12,6 @@ using namespace RcppParallel;
 // HILL NUMBER CALCULATIONS
 // ============================================================================
 
-//' Calculate Hill Number for a vector of abundances
-//'
-//' @param abundances Vector of species abundances
-//' @param q Order of diversity (0 = richness, 1 = Shannon, 2 = Simpson)
-//' @return Hill number (effective number of species)
 // [[Rcpp::export]]
 double calc_hill_number(NumericVector abundances, double q) {
   double N = 0.0;
@@ -96,13 +91,6 @@ double calc_hill_internal(const std::vector<double>& abundances, double q) {
 }
 
 
-//' Single kNN Accumulation with Hill Numbers
-//'
-//' @param species_mat Integer matrix (sites x species) with abundances
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param seed Starting site index (0-based)
-//' @param q_values Vector of Hill number orders to compute
-//' @return Numeric matrix (length(q) x n_sites) of Hill numbers
 // [[Rcpp::export]]
 NumericMatrix cpp_knn_hill_single(IntegerMatrix species_mat,
                                    NumericMatrix dist_mat,
@@ -218,15 +206,6 @@ struct HillKnnWorker : public Worker {
 };
 
 
-//' Parallel kNN Accumulation with Hill Numbers
-//'
-//' @param species_mat Integer matrix (sites x species) with abundances
-//' @param dist_mat Numeric matrix of pairwise distances
-//' @param n_seeds Number of random starting points
-//' @param q_values Vector of Hill number orders
-//' @param n_cores Number of cores
-//' @param progress Show progress
-//' @return List with curves for each q value
 // [[Rcpp::export]]
 List cpp_knn_hill_parallel(IntegerMatrix species_mat,
                            NumericMatrix dist_mat,
