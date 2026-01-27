@@ -1,6 +1,7 @@
 # Plot Spatial SAC
 
-Create a ggplot2 visualization of species accumulation curves.
+Create a ggplot2 visualization of species accumulation curves. For
+grouped `spacc` objects, curves are overlaid with different colors.
 
 ## Usage
 
@@ -14,6 +15,7 @@ plot(
   show_seeds = FALSE,
   saturation = FALSE,
   saturation_level = 0.9,
+  facet = FALSE,
   ...
 )
 ```
@@ -22,7 +24,7 @@ plot(
 
 - x:
 
-  A `spacc`, `summary.spacc`, or `spacc_multi` object.
+  A `spacc` or `summary.spacc` object.
 
 - ci:
 
@@ -38,15 +40,22 @@ plot(
 
 - show_seeds:
 
-  Logical. Show individual seed curves? Default `FALSE`.
+  Logical. Show individual seed curves? Default `FALSE`. Only available
+  for ungrouped objects.
 
 - saturation:
 
-  Logical. Mark saturation point? Default `FALSE`.
+  Logical. Mark saturation point? Default `FALSE`. Only available for
+  ungrouped objects.
 
 - saturation_level:
 
   Numeric. Proportion for saturation. Default 0.9.
+
+- facet:
+
+  Logical. Use faceted panels for grouped objects? Default `FALSE`
+  (overlay with colors). Ignored for ungrouped objects.
 
 - ...:
 
@@ -63,8 +72,9 @@ if (FALSE) { # \dontrun{
 sac <- spacc(species, coords)
 plot(sac)
 
-# Customize
-plot(sac, ci_alpha = 0.5, saturation = TRUE) +
-  ggplot2::theme_dark()
+# Grouped
+sac_grouped <- spacc(species, coords, groups = status)
+plot(sac_grouped)
+plot(sac_grouped, facet = TRUE)
 } # }
 ```

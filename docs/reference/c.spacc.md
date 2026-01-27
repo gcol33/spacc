@@ -13,8 +13,8 @@ c(...)
 
 - ...:
 
-  Named `spacc` objects to combine.
+  Named `spacc` objects to combine into a grouped `spacc`.
 
 ## Value
 
-A `spacc_multi` object for comparison plotting.
+A grouped `spacc` object with per-group curves.

@@ -1,15 +1,45 @@
+# Helper to detect grouped spacc objects
+is_grouped <- function(x) {
+  is.list(x$curves) && !is.matrix(x$curves)
+}
+
+
 #' @export
 print.spacc <- function(x, ...) {
-  cat(sprintf(
-    "spacc: %d sites, %d species, %d seeds (%s)\n",
-    x$n_sites, x$n_species, x$n_seeds, x$method
-  ))
+  if (is_grouped(x)) {
+    cat(sprintf("spacc: %d groups (%s)\n", length(x$group_names), x$method))
+    for (i in seq_along(x$group_names)) {
+      cat(sprintf("  %s: %d sites, %d species\n",
+                  x$group_names[i],
+                  x$n_sites,
+                  x$n_species[[i]]))
+    }
+  } else {
+    cat(sprintf(
+      "spacc: %d sites, %d species, %d seeds (%s)\n",
+      x$n_sites, x$n_species, x$n_seeds, x$method
+    ))
+  }
   invisible(x)
 }
 
 
 #' @export
 summary.spacc <- function(object, saturation_threshold = 0.9, ci_level = 0.95, ...) {
+
+  if (is_grouped(object)) {
+    # Summarize each group
+    summaries <- lapply(seq_along(object$group_names), function(i) {
+      # Create a temporary ungrouped spacc for summary
+      tmp <- object
+      tmp$curves <- object$curves[[i]]
+      tmp$n_species <- object$n_species[[i]]
+      class(tmp) <- "spacc"
+      summary(tmp, saturation_threshold = saturation_threshold, ci_level = ci_level, ...)
+    })
+    names(summaries) <- object$group_names
+    return(summaries)
+  }
 
   curves <- object$curves
   n_sites <- object$n_sites
@@ -74,6 +104,21 @@ print.summary.spacc <- function(x, ...) {
 
 #' @export
 as.data.frame.spacc <- function(x, row.names = NULL, optional = FALSE, ...) {
+  if (is_grouped(x)) {
+    summaries <- summary(x)
+    df_list <- lapply(names(summaries), function(g) {
+      s <- summaries[[g]]
+      data.frame(
+        sites = s$sites,
+        mean = s$mean,
+        lower = s$lower,
+        upper = s$upper,
+        sd = s$sd,
+        group = g
+      )
+    })
+    return(do.call(rbind, df_list))
+  }
   summ <- summary(x)
   data.frame(
     sites = summ$sites,
@@ -87,16 +132,21 @@ as.data.frame.spacc <- function(x, row.names = NULL, optional = FALSE, ...) {
 
 #' @export
 `[.spacc` <- function(x, i, ...) {
-  x$curves <- x$curves[i, , drop = FALSE]
-  x$n_seeds <- nrow(x$curves)
+  if (is_grouped(x)) {
+    x$curves <- lapply(x$curves, function(m) m[i, , drop = FALSE])
+    x$n_seeds <- nrow(x$curves[[1]])
+  } else {
+    x$curves <- x$curves[i, , drop = FALSE]
+    x$n_seeds <- nrow(x$curves)
+  }
   x
 }
 
 
 #' Combine spacc Objects
 #'
-#' @param ... Named `spacc` objects to combine.
-#' @return A `spacc_multi` object for comparison plotting.
+#' @param ... Named `spacc` objects to combine into a grouped `spacc`.
+#' @return A grouped `spacc` object with per-group curves.
 #' @export
 c.spacc <- function(...) {
   objects <- list(...)
@@ -107,24 +157,28 @@ c.spacc <- function(...) {
     nms <- paste0("group_", seq_along(objects))
   }
 
+  # Use first object as template
+  base <- objects[[1]]
+
   structure(
     list(
-      objects = objects,
-      names = nms
+      curves = stats::setNames(lapply(objects, `[[`, "curves"), nms),
+      group_names = nms,
+      coords = base$coords,
+      n_seeds = base$n_seeds,
+      n_sites = base$n_sites,
+      n_species = stats::setNames(lapply(objects, `[[`, "n_species"), nms),
+      method = base$method,
+      distance = base$distance,
+      backend = base$backend,
+      sigma = base$sigma,
+      cone_width = base$cone_width,
+      time = base$time,
+      w_space = base$w_space,
+      w_time = base$w_time,
+      support = base$support,
+      call = match.call()
     ),
-    class = "spacc_multi"
+    class = "spacc"
   )
-}
-
-
-#' @export
-print.spacc_multi <- function(x, ...) {
-  cat(sprintf("spacc_multi: %d groups\n", length(x$objects)))
-  for (i in seq_along(x$objects)) {
-    cat(sprintf("  %s: %d sites, %d species\n",
-                x$names[i],
-                x$objects[[i]]$n_sites,
-                x$objects[[i]]$n_species))
-  }
-  invisible(x)
 }

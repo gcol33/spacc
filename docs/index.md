@@ -74,7 +74,8 @@ sac <- spacc(species, coords, backend = "kdtree", n_seeds = 50)
 
 - **[`spacc()`](https://gillescolling.com/spacc/reference/spacc.md)**:
   Spatial accumulation with 7 methods (`knn`, `kncn`, `random`,
-  `radius`, `gaussian`, `cone`, `collector`)
+  `radius`, `gaussian`, `cone`, `collector`), grouped accumulation
+  (`groups`), and spatiotemporal distance (`time`, `w_space`, `w_time`)
 - **[`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md)**:
   Hill number accumulation (q = 0, 1, 2)
 - **[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)**:
@@ -147,6 +148,36 @@ plot(sac)
 sac_random <- spacc(species, coords, method = "random", n_seeds = 100)
 comp <- compare(sac, sac_random)
 plot(comp)
+```
+
+### Grouped Accumulation
+
+``` r
+
+# Compare native vs alien species (same spatial ordering)
+status <- ifelse(grepl("alien", colnames(species)), "alien", "native")
+sac_grouped <- spacc(species, coords, groups = status, seed = 42)
+plot(sac_grouped)                # Overlaid curves per group
+plot(sac_grouped, facet = TRUE)  # Faceted panels
+
+# Manual grouping with c()
+sac_a <- spacc(species_a, coords, seed = 42)
+sac_b <- spacc(species_b, coords, seed = 42)
+plot(c(native = sac_a, alien = sac_b))
+```
+
+### Spatiotemporal Accumulation
+
+``` r
+
+# Sites sampled across years — weighted space-time distance
+sac_st <- spacc(species, coords, method = "knn",
+                time = site_years, w_space = 1, w_time = 0.5)
+plot(sac_st)
+
+# Emphasize temporal proximity over spatial
+sac_st2 <- spacc(species, coords, method = "knn",
+                 time = site_years, w_space = 0.2, w_time = 1)
 ```
 
 ### Diversity Partitioning

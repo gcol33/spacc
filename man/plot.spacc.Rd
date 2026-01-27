@@ -12,11 +12,12 @@
   show_seeds = FALSE,
   saturation = FALSE,
   saturation_level = 0.9,
+  facet = FALSE,
   ...
 )
 }
 \arguments{
-\item{x}{A \code{spacc}, \code{summary.spacc}, or \code{spacc_multi} object.}
+\item{x}{A \code{spacc} or \code{summary.spacc} object.}
 
 \item{ci}{Logical. Show confidence interval ribbon? Default \code{TRUE}.}
 
@@ -24,11 +25,16 @@
 
 \item{ci_alpha}{Numeric. Transparency of CI ribbon. Default 0.3.}
 
-\item{show_seeds}{Logical. Show individual seed curves? Default \code{FALSE}.}
+\item{show_seeds}{Logical. Show individual seed curves? Default \code{FALSE}.
+Only available for ungrouped objects.}
 
-\item{saturation}{Logical. Mark saturation point? Default \code{FALSE}.}
+\item{saturation}{Logical. Mark saturation point? Default \code{FALSE}.
+Only available for ungrouped objects.}
 
 \item{saturation_level}{Numeric. Proportion for saturation. Default 0.9.}
+
+\item{facet}{Logical. Use faceted panels for grouped objects? Default \code{FALSE}
+(overlay with colors). Ignored for ungrouped objects.}
 
 \item{...}{Additional arguments (ignored).}
 }
@@ -37,15 +43,17 @@ A ggplot2 object.
 }
 \description{
 Create a ggplot2 visualization of species accumulation curves.
+For grouped \code{spacc} objects, curves are overlaid with different colors.
 }
 \examples{
 \dontrun{
 sac <- spacc(species, coords)
 plot(sac)
 
-# Customize
-plot(sac, ci_alpha = 0.5, saturation = TRUE) +
-  ggplot2::theme_dark()
+# Grouped
+sac_grouped <- spacc(species, coords, groups = status)
+plot(sac_grouped)
+plot(sac_grouped, facet = TRUE)
 }
 
 }

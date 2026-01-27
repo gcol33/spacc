@@ -150,11 +150,12 @@ summary.spacc_comp <- function(object, ...) {
 plot.spacc_comp <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
   check_suggests("ggplot2")
 
-  multi <- c(x$x, x$y)
-  names(multi$objects) <- c(x$x_name, x$y_name)
-  multi$names <- c(x$x_name, x$y_name)
+  grouped <- c(x$x, x$y)
+  grouped$group_names <- c(x$x_name, x$y_name)
+  names(grouped$curves) <- grouped$group_names
+  names(grouped$n_species) <- grouped$group_names
 
-  p <- plot.spacc_multi(multi, ci = ci, ci_alpha = ci_alpha, ...)
+  p <- plot(grouped, ci = ci, ci_alpha = ci_alpha, ...)
 
   # Add significance annotation
   if (!is.na(x$p_value)) {

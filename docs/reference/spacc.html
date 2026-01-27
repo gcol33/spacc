@@ -76,6 +76,9 @@ with C++ backend for performance.</p>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  time <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  w_space <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  w_time <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -165,9 +168,28 @@ Set to <code>FALSE</code> for political/hard boundary.</p></dd>
 <dd><p>Optional. A factor, character, or integer vector of length
 <code>ncol(x)</code> assigning each species (column) to a group. When provided,
 separate accumulation curves are computed for each group using the
-<strong>same spatial site ordering</strong>, and a <code>spacc_multi</code> object is returned.
+<strong>same spatial site ordering</strong>, and a grouped <code>spacc</code> object is returned.
 Useful for comparing native vs alien species, families, or any
 categorical split. Default <code>NULL</code> (no grouping).</p></dd>
+
+
+<dt id="arg-time">time<a class="anchor" aria-label="anchor" href="#arg-time"></a></dt>
+<dd><p>Optional. Numeric vector of length <code>nrow(x)</code> giving a temporal
+coordinate for each site. When provided, a combined spatiotemporal distance
+matrix is computed as <code>w_space * d_spatial + w_time * d_temporal</code> and used
+for accumulation. Forces exact (brute-force) backend since spatial trees
+cannot handle composite distances. Only supported for methods that use a
+distance matrix: <code>"knn"</code>, <code>"radius"</code>, <code>"gaussian"</code>.</p></dd>
+
+
+<dt id="arg-w-space">w_space<a class="anchor" aria-label="anchor" href="#arg-w-space"></a></dt>
+<dd><p>Numeric. Weight for spatial distance when <code>time</code> is provided.
+Default 1.</p></dd>
+
+
+<dt id="arg-w-time">w_time<a class="anchor" aria-label="anchor" href="#arg-w-time"></a></dt>
+<dd><p>Numeric. Weight for temporal distance when <code>time</code> is provided.
+Default 1.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>

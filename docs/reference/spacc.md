@@ -21,6 +21,9 @@ spacc(
   n_cores = NULL,
   progress = TRUE,
   groups = NULL,
+  time = NULL,
+  w_space = 1,
+  w_time = 1,
   seed = NULL
 )
 ```
@@ -125,9 +128,29 @@ spacc(
   Optional. A factor, character, or integer vector of length `ncol(x)`
   assigning each species (column) to a group. When provided, separate
   accumulation curves are computed for each group using the **same
-  spatial site ordering**, and a `spacc_multi` object is returned.
+  spatial site ordering**, and a grouped `spacc` object is returned.
   Useful for comparing native vs alien species, families, or any
   categorical split. Default `NULL` (no grouping).
+
+- time:
+
+  Optional. Numeric vector of length `nrow(x)` giving a temporal
+  coordinate for each site. When provided, a combined spatiotemporal
+  distance matrix is computed as
+  `w_space * d_spatial + w_time * d_temporal` and used for accumulation.
+  Forces exact (brute-force) backend since spatial trees cannot handle
+  composite distances. Only supported for methods that use a distance
+  matrix: `"knn"`, `"radius"`, `"gaussian"`.
+
+- w_space:
+
+  Numeric. Weight for spatial distance when `time` is provided. Default
+  1.
+
+- w_time:
+
+  Numeric. Weight for temporal distance when `time` is provided. Default
+  1.
 
 - seed:
 

@@ -7,10 +7,10 @@
 \method{c}{spacc}(...)
 }
 \arguments{
-\item{...}{Named \code{spacc} objects to combine.}
+\item{...}{Named \code{spacc} objects to combine into a grouped \code{spacc}.}
 }
 \value{
-A \code{spacc_multi} object for comparison plotting.
+A grouped \code{spacc} object with per-group curves.
 }
 \description{
 Combine spacc Objects

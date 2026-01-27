@@ -44,9 +44,19 @@
 #' @param groups Optional. A factor, character, or integer vector of length
 #'   `ncol(x)` assigning each species (column) to a group. When provided,
 #'   separate accumulation curves are computed for each group using the
-#'   **same spatial site ordering**, and a `spacc_multi` object is returned.
+#'   **same spatial site ordering**, and a grouped `spacc` object is returned.
 #'   Useful for comparing native vs alien species, families, or any
 #'   categorical split. Default `NULL` (no grouping).
+#' @param time Optional. Numeric vector of length `nrow(x)` giving a temporal
+#'   coordinate for each site. When provided, a combined spatiotemporal distance
+#'   matrix is computed as `w_space * d_spatial + w_time * d_temporal` and used
+#'   for accumulation. Forces exact (brute-force) backend since spatial trees
+#'   cannot handle composite distances. Only supported for methods that use a
+#'   distance matrix: `"knn"`, `"radius"`, `"gaussian"`.
+#' @param w_space Numeric. Weight for spatial distance when `time` is provided.
+#'   Default 1.
+#' @param w_time Numeric. Weight for temporal distance when `time` is provided.
+#'   Default 1.
 #' @param seed Integer. Random seed for reproducibility. Default `NULL`.
 #'
 #' @return When `groups = NULL`, an object of class `spacc` containing:
@@ -98,6 +108,9 @@ spacc <- function(x,
                   n_cores = NULL,
                   progress = TRUE,
                   groups = NULL,
+                  time = NULL,
+                  w_space = 1,
+                  w_time = 1,
                   seed = NULL) {
 
   method <- match.arg(method)
@@ -146,10 +159,35 @@ spacc <- function(x,
             backend = backend, support = support, include_halo = include_halo,
             sigma = sigma, cone_width = cone_width,
             parallel = parallel, n_cores = n_cores,
-            progress = FALSE, groups = NULL, seed = seed)
+            progress = FALSE, groups = NULL,
+            time = time, w_space = w_space, w_time = w_time,
+            seed = seed)
     })
     names(objects) <- group_levels
-    return(do.call(c, objects))
+
+    # Build grouped spacc directly
+    base <- objects[[1]]
+    return(structure(
+      list(
+        curves = stats::setNames(lapply(objects, `[[`, "curves"), group_levels),
+        group_names = group_levels,
+        coords = base$coords,
+        n_seeds = base$n_seeds,
+        n_sites = base$n_sites,
+        n_species = stats::setNames(lapply(objects, `[[`, "n_species"), group_levels),
+        method = base$method,
+        distance = base$distance,
+        backend = base$backend,
+        sigma = base$sigma,
+        cone_width = base$cone_width,
+        time = base$time,
+        w_space = base$w_space,
+        w_time = base$w_time,
+        support = base$support,
+        call = match.call()
+      ),
+      class = "spacc"
+    ))
   }
 
   # Handle areaOfEffect support
@@ -224,6 +262,24 @@ spacc <- function(x,
   n_sites <- nrow(x)
   n_species_total <- ncol(x)
 
+  # Handle spatiotemporal distance
+  if (!is.null(time)) {
+    stopifnot(
+      "time must have length equal to nrow(x)" = length(time) == n_sites,
+      "time must be numeric" = is.numeric(time),
+      "w_space must be a positive number" = is.numeric(w_space) && length(w_space) == 1 && w_space > 0,
+      "w_time must be a positive number" = is.numeric(w_time) && length(w_time) == 1 && w_time > 0
+    )
+    if (!method %in% c("knn", "radius", "gaussian")) {
+      stop(sprintf("Spatiotemporal accumulation (time argument) is only supported for methods 'knn', 'radius', and 'gaussian', not '%s'.", method),
+           call. = FALSE)
+    }
+    if (progress) cli_info("Computing spatiotemporal distance matrix")
+    d_space <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
+    d_time <- abs(outer(time, time, `-`))
+    dist_mat <- w_space * d_space + w_time * d_time
+  }
+
   # Convert to presence/absence if abundance
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
@@ -231,7 +287,10 @@ spacc <- function(x,
   # Resolve backend for knn/kncn
   use_kdtree <- FALSE
   if (method %in% c("knn", "kncn")) {
-    if (backend == "auto") {
+    if (!is.null(time)) {
+      # Spatiotemporal: force exact backend (kdtree can't handle composite distances)
+      use_kdtree <- FALSE
+    } else if (backend == "auto") {
       use_kdtree <- n_sites > 500L
     } else {
       use_kdtree <- backend == "kdtree"
@@ -320,6 +379,9 @@ spacc <- function(x,
       backend = backend_label,
       sigma = sigma,
       cone_width = if (method == "cone") cone_width else NULL,
+      time = time,
+      w_space = if (!is.null(time)) w_space else NULL,
+      w_time = if (!is.null(time)) w_time else NULL,
       support = if (!is.null(support)) list(
         aoe_result = aoe_result,
         include_halo = include_halo,
