@@ -48,10 +48,11 @@ quantification. Default 50.}
 \item{backend}{Character. Nearest-neighbor backend for \code{knn} and \code{kncn}:
 \itemize{
 \item \code{"auto"} (default): Uses exact (brute-force) for ≤500 sites,
-k-d tree for >500 sites.
+spatial tree for >500 sites.
 \item \code{"exact"}: Always use brute-force with precomputed distance matrix.
-\item \code{"kdtree"}: Always use k-d tree (nanoflann). Faster for large datasets,
-uses Euclidean distances only (ignores \code{distance} argument).
+\item \code{"kdtree"}: Always use spatial tree. Uses k-d tree (nanoflann) for
+Euclidean distances and ball tree for haversine distances. Faster for
+large datasets, no distance matrix needed.
 }}
 
 \item{support}{Optional. Spatial support for core/halo classification via

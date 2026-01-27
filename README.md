@@ -34,6 +34,26 @@ Species accumulation curves are fundamental tools for understanding sampling com
 - invasion modeling with wavefront and directional methods,
 - conservation planning to identify high-diversity areas.
 
+## Performance
+
+`spacc` automatically selects the fastest backend for nearest-neighbor queries:
+
+| Backend | Distance | Method | When |
+|---------|----------|--------|------|
+| **k-d tree** ([nanoflann](https://github.com/jlblancoc/nanoflann)) | Euclidean | O(log n) per query | >500 sites (auto) |
+| **Ball tree** (custom) | Haversine | O(log n) per query | >500 sites + `distance = "haversine"` |
+| **Exact** (brute-force) | Any | O(n) per query | ≤500 sites (auto) |
+
+Override with `backend = "kdtree"` or `backend = "exact"`. The ball tree uses haversine distance natively — no coordinate projection needed for geographic data.
+
+```r
+# Geographic coordinates with haversine distance
+sac <- spacc(species, coords_lonlat, distance = "haversine", n_seeds = 50)
+
+# Force tree backend for smaller datasets
+sac <- spacc(species, coords, backend = "kdtree", n_seeds = 50)
+```
+
 ## Features
 
 ### Accumulation Curves
