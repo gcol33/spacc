@@ -222,6 +222,38 @@ summary.spacc_metrics <- function(object, ...) {
 }
 
 
+#' Internal spatial heatmap plotting helper
+#' @noRd
+plot_spatial_map <- function(df, value_col, title, subtitle = NULL,
+                             point_size = 3, palette = "viridis") {
+  check_suggests("ggplot2")
+
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[["x"]], y = .data[["y"]], color = .data[[value_col]])) +
+    ggplot2::geom_point(size = point_size) +
+    ggplot2::scale_color_viridis_c(option = substr(palette, 1, 1)) +
+    ggplot2::labs(
+      x = "X coordinate",
+      y = "Y coordinate",
+      color = value_col,
+      title = title,
+      subtitle = subtitle
+    ) +
+    ggplot2::coord_equal() +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(legend.position = "right")
+
+  p
+}
+
+
+#' Internal as_sf conversion helper
+#' @noRd
+as_sf_from_df <- function(df, crs = NULL) {
+  check_suggests("sf")
+  sf::st_as_sf(df, coords = c("x", "y"), crs = crs)
+}
+
+
 #' Plot spacc_metrics
 #'
 #' Create visualizations of per-site accumulation metrics.
@@ -272,19 +304,10 @@ plot.spacc_metrics <- function(x, metric = NULL, type = c("heatmap", "points", "
   df <- x$metrics
 
   if (type %in% c("heatmap", "points")) {
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, color = .data[[metric]])) +
-      ggplot2::geom_point(size = point_size) +
-      ggplot2::scale_color_viridis_c(option = substr(palette, 1, 1)) +
-      ggplot2::labs(
-        x = "X coordinate",
-        y = "Y coordinate",
-        color = metric,
-        title = sprintf("Spatial pattern: %s", metric),
-        subtitle = sprintf("%d sites, %s method", x$n_sites, x$method)
-      ) +
-      ggplot2::coord_equal() +
-      ggplot2::theme_minimal(base_size = 12) +
-      ggplot2::theme(legend.position = "right")
+    p <- plot_spatial_map(df, metric,
+                          title = sprintf("Spatial pattern: %s", metric),
+                          subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                          point_size = point_size, palette = palette)
 
   } else if (type == "histogram") {
     p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[metric]])) +

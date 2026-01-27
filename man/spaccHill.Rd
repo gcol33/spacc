@@ -14,7 +14,8 @@ spaccHill(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 }
 \arguments{
@@ -44,6 +45,10 @@ or a \code{spacc_dist} object from \code{\link[=distances]{distances()}}.}
 \item{progress}{Logical. Show progress bar? Default \code{TRUE}.}
 
 \item{seed}{Integer. Random seed for reproducibility.}
+
+\item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
+and store per-site final Hill numbers for spatial mapping. Enables
+\code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
 }
 \value{
 An object of class \code{spacc_hill} containing:

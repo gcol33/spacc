@@ -4,7 +4,7 @@
 \alias{diversityPartition}
 \title{Alpha-Beta-Gamma Diversity Partitioning}
 \usage{
-diversityPartition(x, q = c(0, 1, 2), weights = "equal")
+diversityPartition(x, q = c(0, 1, 2), weights = "equal", coords = NULL)
 }
 \arguments{
 \item{x}{A site-by-species matrix (abundance data).}
@@ -17,6 +17,9 @@ diversityPartition(x, q = c(0, 1, 2), weights = "equal")
 \item \code{"proportional"}: Weights proportional to site abundance
 \item Numeric vector of custom weights
 }}
+
+\item{coords}{Optional data.frame with columns \code{x} and \code{y} for spatial mapping.
+When provided, enables \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}.}
 }
 \value{
 An object of class \code{spacc_partition} containing:

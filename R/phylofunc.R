@@ -17,6 +17,9 @@
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param map Logical. If `TRUE`, run accumulation from every site as seed
+#'   and store per-site final values for spatial mapping. Enables
+#'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
 #'
 #' @return An object of class `spacc_phylo` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
@@ -70,7 +73,8 @@ spaccPhylo <- function(x,
                        parallel = TRUE,
                        n_cores = NULL,
                        progress = TRUE,
-                       seed = NULL) {
+                       seed = NULL,
+                       map = FALSE) {
 
   distance <- match.arg(distance)
   metric <- match.arg(metric, c("mpd", "mntd", "pd"), several.ok = TRUE)
@@ -147,11 +151,30 @@ spaccPhylo <- function(x,
 
   if (progress) cli_success("Done")
 
+  # Compute per-site map values if requested
+  site_values <- NULL
+  if (map && length(cpp_metrics) > 0) {
+    if (progress) cli_info("Computing per-site phylo map values (all sites as seeds)")
+    map_result <- cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat,
+                                          n_sites, cpp_metrics, n_cores, progress)
+
+    site_values <- data.frame(
+      site_id = seq_len(n_sites),
+      x = coord_data$x,
+      y = coord_data$y
+    )
+    for (i in seq_along(cpp_metrics)) {
+      site_values[[cpp_metrics[i]]] <- map_result[[i]][cbind(seq_len(n_sites), n_sites)]
+    }
+    if (progress) cli_success("Map values computed")
+  }
+
   structure(
     list(
       curves = result,
       metric = cpp_metrics,
       coords = coord_data,
+      site_values = site_values,
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species,
@@ -181,6 +204,9 @@ spaccPhylo <- function(x,
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param map Logical. If `TRUE`, run accumulation from every site as seed
+#'   and store per-site final values for spatial mapping. Enables
+#'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
 #'
 #' @return An object of class `spacc_func` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
@@ -227,7 +253,8 @@ spaccFunc <- function(x,
                       parallel = TRUE,
                       n_cores = NULL,
                       progress = TRUE,
-                      seed = NULL) {
+                      seed = NULL,
+                      map = FALSE) {
 
   distance <- match.arg(distance)
   metric <- match.arg(metric, c("fdis", "fric"), several.ok = TRUE)
@@ -277,12 +304,31 @@ spaccFunc <- function(x,
 
   if (progress) cli_success("Done")
 
+  # Compute per-site map values if requested
+  site_values <- NULL
+  if (map) {
+    if (progress) cli_info("Computing per-site functional map values (all sites as seeds)")
+    map_result <- cpp_func_knn_parallel(x, site_dist_mat, traits,
+                                         n_sites, metric, n_cores, progress)
+
+    site_values <- data.frame(
+      site_id = seq_len(n_sites),
+      x = coord_data$x,
+      y = coord_data$y
+    )
+    for (i in seq_along(metric)) {
+      site_values[[metric[i]]] <- map_result[[i]][cbind(seq_len(n_sites), n_sites)]
+    }
+    if (progress) cli_success("Map values computed")
+  }
+
   structure(
     list(
       curves = result,
       metric = metric,
       traits = traits,
       coords = coord_data,
+      site_values = site_values,
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species,
@@ -329,7 +375,20 @@ summary.spacc_phylo <- function(object, ci_level = 0.95, ...) {
 
 
 #' @export
-plot.spacc_phylo <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
+plot.spacc_phylo <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0.2,
+                              metric = NULL, point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (type == "map") {
+    if (is.null(x$site_values)) stop("No map data. Rerun spaccPhylo() with map = TRUE.")
+    if (is.null(metric)) metric <- x$metric[1]
+    stopifnot("metric not found" = metric %in% names(x$site_values))
+    return(plot_spatial_map(x$site_values, metric,
+                            title = sprintf("Phylogenetic diversity map: %s", toupper(metric)),
+                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                            point_size = point_size, palette = palette))
+  }
+
   check_suggests("ggplot2")
 
   summ <- summary(x)
@@ -355,6 +414,13 @@ plot.spacc_phylo <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
     ) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
+}
+
+
+#' @export
+as_sf.spacc_phylo <- function(x, crs = NULL) {
+  if (is.null(x$site_values)) stop("No map data. Rerun spaccPhylo() with map = TRUE.")
+  as_sf_from_df(x$site_values, crs = crs)
 }
 
 
@@ -391,7 +457,20 @@ summary.spacc_func <- function(object, ci_level = 0.95, ...) {
 
 
 #' @export
-plot.spacc_func <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
+plot.spacc_func <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0.2,
+                             metric = NULL, point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (type == "map") {
+    if (is.null(x$site_values)) stop("No map data. Rerun spaccFunc() with map = TRUE.")
+    if (is.null(metric)) metric <- x$metric[1]
+    stopifnot("metric not found" = metric %in% names(x$site_values))
+    return(plot_spatial_map(x$site_values, metric,
+                            title = sprintf("Functional diversity map: %s", toupper(metric)),
+                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                            point_size = point_size, palette = palette))
+  }
+
   check_suggests("ggplot2")
 
   summ <- summary(x)
@@ -417,4 +496,11 @@ plot.spacc_func <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
     ) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
+}
+
+
+#' @export
+as_sf.spacc_func <- function(x, crs = NULL) {
+  if (is.null(x$site_values)) stop("No map data. Rerun spaccFunc() with map = TRUE.")
+  as_sf_from_df(x$site_values, crs = crs)
 }

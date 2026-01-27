@@ -19,6 +19,9 @@
 #' @param n_cores Integer. Number of cores. Default `NULL` uses `detectCores() - 1`.
 #' @param progress Logical. Show progress bar? Default `TRUE`.
 #' @param seed Integer. Random seed for reproducibility.
+#' @param map Logical. If `TRUE`, run accumulation from every site as seed
+#'   and store per-site final Hill numbers for spatial mapping. Enables
+#'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
 #'
 #' @return An object of class `spacc_hill` containing:
 #'   \item{curves}{Named list of matrices, one per q value (n_seeds x n_sites)}
@@ -69,7 +72,8 @@ spaccHill <- function(x,
                       parallel = TRUE,
                       n_cores = NULL,
                       progress = TRUE,
-                      seed = NULL) {
+                      seed = NULL,
+                      map = FALSE) {
 
   distance <- match.arg(distance)
 
@@ -115,11 +119,30 @@ spaccHill <- function(x,
 
   if (progress) cli_success("Done")
 
+  # Compute per-site map values if requested
+  site_values <- NULL
+  if (map) {
+    if (progress) cli_info("Computing per-site Hill map values (all sites as seeds)")
+    map_curves <- cpp_knn_hill_parallel(x, dist_mat, n_sites, q, n_cores, progress)
+
+    site_values <- data.frame(
+      site_id = seq_len(n_sites),
+      x = coord_data$x,
+      y = coord_data$y
+    )
+    for (i in seq_along(q)) {
+      # Each site's final Hill number when used as seed
+      site_values[[paste0("q", q[i])]] <- map_curves[[i]][cbind(seq_len(n_sites), n_sites)]
+    }
+    if (progress) cli_success("Map values computed")
+  }
+
   structure(
     list(
       curves = curves,
       q = q,
       coords = coord_data,
+      site_values = site_values,
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species,
@@ -169,12 +192,27 @@ summary.spacc_hill <- function(object, ci_level = 0.95, ...) {
 
 
 #' @export
-plot.spacc_hill <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
-  check_suggests("ggplot2")
+plot.spacc_hill <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0.2,
+                             q = NULL, point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
 
+  if (type == "map") {
+    if (is.null(x$site_values)) stop("No map data. Rerun spaccHill() with map = TRUE.")
+    if (is.null(q)) q <- x$q[1]
+    q_col <- paste0("q", q)
+    stopifnot("q value not found" = q_col %in% names(x$site_values))
+
+    return(plot_spatial_map(x$site_values, q_col,
+                            title = sprintf("Hill number map (q = %s)", q),
+                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                            point_size = point_size, palette = palette))
+  }
+
+  # Default curve plot
+  check_suggests("ggplot2")
   summ <- summary(x)
   summ$q_label <- factor(paste0("q = ", summ$q),
-                         levels = paste0("q = ", sort(unique(summ$q))))
+                          levels = paste0("q = ", sort(unique(summ$q))))
 
   p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean, color = q_label))
 
@@ -196,4 +234,11 @@ plot.spacc_hill <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
     ) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
+}
+
+
+#' @export
+as_sf.spacc_hill <- function(x, crs = NULL) {
+  if (is.null(x$site_values)) stop("No map data. Rerun spaccHill() with map = TRUE.")
+  as_sf_from_df(x$site_values, crs = crs)
 }

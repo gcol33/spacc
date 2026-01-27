@@ -14,6 +14,9 @@
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param map Logical. If `TRUE`, run accumulation from every site as seed
+#'   and store per-site final beta values for spatial mapping. Enables
+#'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
 #'
 #' @return An object of class `spacc_beta` containing:
 #'   \item{beta_total}{Matrix of total beta diversity (n_seeds x n_sites-1)}
@@ -61,7 +64,8 @@ spaccBeta <- function(x,
                       parallel = TRUE,
                       n_cores = NULL,
                       progress = TRUE,
-                      seed = NULL) {
+                      seed = NULL,
+                      map = FALSE) {
 
   index <- match.arg(index)
   distance <- match.arg(distance)
@@ -103,6 +107,25 @@ spaccBeta <- function(x,
 
   if (progress) cli_success("Done")
 
+  # Compute per-site map values if requested
+  site_values <- NULL
+  if (map) {
+    if (progress) cli_info("Computing per-site beta map values (all sites as seeds)")
+    map_result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_sites,
+                                         use_jaccard, n_cores, progress)
+
+    n_steps <- ncol(map_result$beta_total)
+    site_values <- data.frame(
+      site_id = seq_len(n_sites),
+      x = coord_data$x,
+      y = coord_data$y,
+      beta_total = map_result$beta_total[, n_steps],
+      beta_turnover = map_result$beta_turnover[, n_steps],
+      beta_nestedness = map_result$beta_nestedness[, n_steps]
+    )
+    if (progress) cli_success("Map values computed")
+  }
+
   structure(
     list(
       beta_total = result$beta_total,
@@ -110,6 +133,7 @@ spaccBeta <- function(x,
       beta_nestedness = result$beta_nestedness,
       distance = result$distance,
       coords = coord_data,
+      site_values = site_values,
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species,
@@ -157,8 +181,22 @@ summary.spacc_beta <- function(object, ci_level = 0.95, ...) {
 
 
 #' @export
-plot.spacc_beta <- function(x, partition = TRUE, xaxis = c("sites", "distance"),
-                            ci = TRUE, ci_alpha = 0.2, ...) {
+plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
+                            xaxis = c("sites", "distance"),
+                            ci = TRUE, ci_alpha = 0.2,
+                            component = c("beta_total", "beta_turnover", "beta_nestedness"),
+                            point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (type == "map") {
+    if (is.null(x$site_values)) stop("No map data. Rerun spaccBeta() with map = TRUE.")
+    component <- match.arg(component)
+    return(plot_spatial_map(x$site_values, component,
+                            title = sprintf("Beta diversity map: %s", component),
+                            subtitle = sprintf("%d sites, %s (%s)", x$n_sites, x$index, x$method),
+                            point_size = point_size, palette = palette))
+  }
+
   check_suggests("ggplot2")
 
   xaxis <- match.arg(xaxis)
@@ -209,4 +247,11 @@ plot.spacc_beta <- function(x, partition = TRUE, xaxis = c("sites", "distance"),
     ) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
+}
+
+
+#' @export
+as_sf.spacc_beta <- function(x, crs = NULL) {
+  if (is.null(x$site_values)) stop("No map data. Rerun spaccBeta() with map = TRUE.")
+  as_sf_from_df(x$site_values, crs = crs)
 }

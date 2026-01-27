@@ -15,7 +15,8 @@ spaccPhylo(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  map = FALSE
 )
 }
 \arguments{
@@ -46,6 +47,10 @@ a pairwise phylogenetic distance matrix.}
 \item{progress}{Logical. Show progress? Default \code{TRUE}.}
 
 \item{seed}{Integer. Random seed.}
+
+\item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
+and store per-site final values for spatial mapping. Enables
+\code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
 }
 \value{
 An object of class \code{spacc_phylo} containing:

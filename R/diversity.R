@@ -4,8 +4,12 @@
 #'
 #' @param x A site-by-species matrix (abundance data).
 #' @param q Numeric vector. Orders of diversity. Default `c(0, 1, 2)`.
+#' @param coords Optional data.frame with columns `x` and `y` for spatial mapping.
+#'   When provided, returns a `spacc_alpha` object with [as_sf()] and
+#'   `plot(type = "map")` support.
 #'
-#' @return A data.frame with columns for each q value, one row per site.
+#' @return If `coords` is `NULL`, a data.frame with columns for each q value.
+#'   If `coords` is provided, a `spacc_alpha` object.
 #'
 #' @details
 #' Alpha diversity represents local (within-site) diversity. For Hill numbers:
@@ -29,18 +33,37 @@
 #' colMeans(alpha)
 #'
 #' @export
-alphaDiversity <- function(x, q = c(0, 1, 2)) {
+alphaDiversity <- function(x, q = c(0, 1, 2), coords = NULL) {
   x <- as.matrix(x)
   n_sites <- nrow(x)
   result <- matrix(NA, nrow = n_sites, ncol = length(q))
   colnames(result) <- paste0("q", q)
- for (i in seq_len(n_sites)) {
+  for (i in seq_len(n_sites)) {
     abundances <- as.numeric(x[i, ])
     for (j in seq_along(q)) {
       result[i, j] <- calc_hill_number(abundances, q[j])
     }
   }
-  as.data.frame(result)
+  result_df <- as.data.frame(result)
+
+  if (is.null(coords)) return(result_df)
+
+  stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+  stopifnot("x and coords must have same number of rows" = nrow(x) == nrow(coords))
+
+  result_df$x <- coords$x
+  result_df$y <- coords$y
+
+  structure(
+    list(
+      values = result_df,
+      q = q,
+      coords = coords,
+      n_sites = n_sites,
+      n_species = ncol(x)
+    ),
+    class = "spacc_alpha"
+  )
 }
 #' Gamma Diversity (Regional)
 #'
@@ -87,6 +110,8 @@ gammaDiversity <- function(x, q = c(0, 1, 2)) {
 #'   - `"equal"`: Equal weights (default)
 #'   - `"proportional"`: Weights proportional to site abundance
 #'   - Numeric vector of custom weights
+#' @param coords Optional data.frame with columns `x` and `y` for spatial mapping.
+#'   When provided, enables [as_sf()] and `plot(type = "map")`.
 #'
 #' @return An object of class `spacc_partition` containing:
 #'   \item{alpha}{Mean alpha diversity (effective number of species per site)}
@@ -135,10 +160,16 @@ gammaDiversity <- function(x, q = c(0, 1, 2)) {
 #' # Beta near n_sites = heterogeneous region
 #'
 #' @export
-diversityPartition <- function(x, q = c(0, 1, 2), weights = "equal") {
+diversityPartition <- function(x, q = c(0, 1, 2), weights = "equal", coords = NULL) {
   x <- as.matrix(x)
   n_sites <- nrow(x)
   n_species <- ncol(x)
+
+  if (!is.null(coords)) {
+    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+    stopifnot("x and coords must have same number of rows" = nrow(x) == nrow(coords))
+  }
+
   # Compute per-site alpha
   alpha_per_site <- alphaDiversity(x, q)
   # Handle weights
@@ -177,6 +208,7 @@ diversityPartition <- function(x, q = c(0, 1, 2), weights = "equal") {
       alpha_per_site = alpha_per_site,
       q = q,
       weights = w,
+      coords = coords,
       n_sites = n_sites,
       n_species = n_species,
       call = match.call()
@@ -211,4 +243,114 @@ summary.spacc_partition <- function(object, ...) {
     n_sites = object$n_sites,
     beta_normalized = (object$beta - 1) / (object$n_sites - 1)
   )
+}
+
+
+# spacc_alpha S3 methods ---------------------------------------------------
+
+#' @export
+print.spacc_alpha <- function(x, ...) {
+  cat(sprintf("spacc alpha diversity: %d sites, %d species\n",
+              x$n_sites, x$n_species))
+  cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
+  if (!is.null(x$coords)) cat("Coordinates: available\n")
+  invisible(x)
+}
+
+
+#' @export
+summary.spacc_alpha <- function(object, ...) {
+  q_cols <- paste0("q", object$q)
+  vals <- object$values[, q_cols, drop = FALSE]
+
+  data.frame(
+    q = object$q,
+    mean = colMeans(vals),
+    sd = apply(vals, 2, stats::sd),
+    min = apply(vals, 2, min),
+    max = apply(vals, 2, max)
+  )
+}
+
+
+#' @export
+plot.spacc_alpha <- function(x, type = c("map", "histogram"), q = NULL,
+                              point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (is.null(q)) q <- x$q[1]
+  q_col <- paste0("q", q)
+  stopifnot("q value not found" = q_col %in% names(x$values))
+
+  if (type == "map") {
+    if (is.null(x$coords)) stop("No coordinates available. Rerun alphaDiversity() with coords.")
+    plot_spatial_map(x$values, q_col,
+                     title = sprintf("Alpha diversity (q = %s)", q),
+                     subtitle = sprintf("%d sites", x$n_sites),
+                     point_size = point_size, palette = palette)
+  } else {
+    check_suggests("ggplot2")
+    ggplot2::ggplot(x$values, ggplot2::aes(x = .data[[q_col]])) +
+      ggplot2::geom_histogram(bins = 30, fill = "#4CAF50", color = "white", alpha = 0.8) +
+      ggplot2::labs(x = sprintf("Alpha diversity (q = %s)", q), y = "Count",
+                    title = sprintf("Distribution: alpha diversity (q = %s)", q)) +
+      ggplot2::theme_minimal(base_size = 12)
+  }
+}
+
+
+#' @export
+as_sf.spacc_alpha <- function(x, crs = NULL) {
+  if (is.null(x$coords)) stop("No coordinates available. Rerun alphaDiversity() with coords.")
+  as_sf_from_df(x$values, crs = crs)
+}
+
+
+# spacc_partition spatial methods ------------------------------------------
+
+#' @export
+plot.spacc_partition <- function(x, type = c("map", "bar"), q = NULL,
+                                  point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (type == "map") {
+    if (is.null(x$coords)) stop("No coordinates available. Rerun diversityPartition() with coords.")
+    if (is.null(q)) q <- x$q[1]
+    q_col <- paste0("q", q)
+    stopifnot("q value not found" = q_col %in% names(x$alpha_per_site))
+
+    df <- x$alpha_per_site
+    df$x <- x$coords$x
+    df$y <- x$coords$y
+
+    plot_spatial_map(df, q_col,
+                     title = sprintf("Per-site alpha diversity (q = %s)", q),
+                     subtitle = sprintf("%d sites", x$n_sites),
+                     point_size = point_size, palette = palette)
+  } else {
+    check_suggests("ggplot2")
+    summ <- summary(x)
+    df <- data.frame(
+      q = rep(paste0("q=", summ$q), 3),
+      component = rep(c("Alpha", "Beta", "Gamma"), each = nrow(summ)),
+      value = c(summ$alpha, summ$beta, summ$gamma)
+    )
+    df$component <- factor(df$component, levels = c("Gamma", "Alpha", "Beta"))
+
+    ggplot2::ggplot(df, ggplot2::aes(x = q, y = value, fill = component)) +
+      ggplot2::geom_col(position = "dodge") +
+      ggplot2::labs(x = "Diversity order", y = "Effective species", fill = "Component",
+                    title = "Diversity Partitioning") +
+      ggplot2::theme_minimal(base_size = 12)
+  }
+}
+
+
+#' @export
+as_sf.spacc_partition <- function(x, crs = NULL) {
+  if (is.null(x$coords)) stop("No coordinates available. Rerun diversityPartition() with coords.")
+  df <- x$alpha_per_site
+  df$x <- x$coords$x
+  df$y <- x$coords$y
+  as_sf_from_df(df, crs = crs)
 }

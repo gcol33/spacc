@@ -4,15 +4,20 @@
 \alias{alphaDiversity}
 \title{Alpha Diversity (Per-Site)}
 \usage{
-alphaDiversity(x, q = c(0, 1, 2))
+alphaDiversity(x, q = c(0, 1, 2), coords = NULL)
 }
 \arguments{
 \item{x}{A site-by-species matrix (abundance data).}
 
 \item{q}{Numeric vector. Orders of diversity. Default \code{c(0, 1, 2)}.}
+
+\item{coords}{Optional data.frame with columns \code{x} and \code{y} for spatial mapping.
+When provided, returns a \code{spacc_alpha} object with \code{\link[=as_sf]{as_sf()}} and
+\code{plot(type = "map")} support.}
 }
 \value{
-A data.frame with columns for each q value, one row per site.
+If \code{coords} is \code{NULL}, a data.frame with columns for each q value.
+If \code{coords} is provided, a \code{spacc_alpha} object.
 }
 \description{
 Compute Hill numbers for each site individually.
