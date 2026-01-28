@@ -11,7 +11,7 @@ else
   TEST_EXE_COV = run_tests_cov
 endif
 
-CXXFLAGS = -std=c++17 -Wall -Wextra -I../core -I.
+CXXFLAGS = -std=c++17 -Wall -Wextra -I../core -I.. -I.
 
 # Coverage flags
 COV_FLAGS = --coverage -fprofile-arcs -ftest-coverage -O0 -g
@@ -22,7 +22,8 @@ TEST_SOURCES = test_main.cpp \
                test_beta.cpp \
                test_hill.cpp \
                test_coverage.cpp \
-               test_accumulation.cpp
+               test_accumulation.cpp \
+               test_balltree.cpp
 
 # Default: build and run tests
 all: $(TEST_EXE)
@@ -58,6 +59,9 @@ test-coverage: $(TEST_EXE)
 test-accumulation: $(TEST_EXE)
 	./$(TEST_EXE) "[accumulation]"
 
+test-balltree: $(TEST_EXE)
+	./$(TEST_EXE) "[balltree]"
+
 # Verbose output
 verbose: $(TEST_EXE)
 	./$(TEST_EXE) -s
@@ -80,4 +84,4 @@ clean:
 	rm -f coverage.info
 	rm -rf coverage_html
 
-.PHONY: all coverage test-distance test-beta test-hill test-coverage test-accumulation verbose list lcov clean
+.PHONY: all coverage test-distance test-beta test-hill test-coverage test-accumulation test-balltree verbose list lcov clean
