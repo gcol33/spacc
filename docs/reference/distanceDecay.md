@@ -49,3 +49,11 @@ distanceDecay(
 ## Value
 
 An object of class `spacc_decay` with distance-species relationships.
+
+## References
+
+Nekola, J.C. & White, P.S. (1999). The distance decay of similarity in
+biogeography and ecology. Journal of Biogeography, 26, 867-878.
+
+Soininen, J., McDonald, R. & Hillebrand, H. (2007). The distance decay
+of similarity in ecological communities. Ecography, 30, 3-12.

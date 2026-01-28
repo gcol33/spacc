@@ -49,6 +49,8 @@ plot.spacc <- function(x,
 
     df_list <- lapply(names(summaries), function(g) {
       s <- summaries[[g]]
+      # Skip empty groups (0 sites)
+      if (length(s$sites) == 0) return(NULL)
       data.frame(
         sites = s$sites,
         mean = s$mean,
@@ -57,6 +59,8 @@ plot.spacc <- function(x,
         group = g
       )
     })
+    # Remove NULL entries from empty groups
+    df_list <- df_list[!vapply(df_list, is.null, logical(1))]
 
     df <- do.call(rbind, df_list)
     df$group <- factor(df$group, levels = x$group_names)

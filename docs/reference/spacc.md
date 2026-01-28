@@ -37,9 +37,14 @@ spacc(
 
 - coords:
 
-  A data.frame with columns `x` and `y` containing site coordinates, or
-  a `spacc_dist` object from
-  [`distances()`](https://gillescolling.com/spacc/reference/distances.md).
+  Site coordinates. Can be:
+
+  - A data.frame with columns `x` and `y`
+
+  - An `sf` object with point geometries (CRS is preserved)
+
+  - A `spacc_dist` object from
+    [`distances()`](https://gillescolling.com/spacc/reference/distances.md)
 
 - n_seeds:
 
@@ -86,6 +91,9 @@ spacc(
   Optional. Spatial support for core/halo classification via
   [`areaOfEffect::aoe()`](https://gcol33.github.io/areaOfEffect/reference/aoe.html).
   Can be:
+
+  - `"auto"`: Auto-detect countries and run per-country accumulation,
+    returning a grouped `spacc` object with one curve per country
 
   - Country name or ISO code: `"France"`, `"FR"`, `"FRA"`
 
@@ -179,6 +187,17 @@ When `groups = NULL`, an object of class `spacc` containing:
 - n_species:
 
   Total species in dataset
+
+## References
+
+Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
+
+Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
+and Biogeography, 12, 441-447.
+
+Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
+in using species diversity for assessing biodiversity. Philosophical
+Transactions of the Royal Society B, 366, 2426-2437.
 
 ## Examples
 

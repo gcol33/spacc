@@ -9,9 +9,11 @@ print.spacc <- function(x, ...) {
   if (is_grouped(x)) {
     cat(sprintf("spacc: %d groups (%s)\n", length(x$group_names), x$method))
     for (i in seq_along(x$group_names)) {
+      # Get n_sites from curves matrix (groups may have different site counts)
+      group_n_sites <- ncol(x$curves[[i]])
       cat(sprintf("  %s: %d sites, %d species\n",
                   x$group_names[i],
-                  x$n_sites,
+                  group_n_sites,
                   x$n_species[[i]]))
     }
   } else {
@@ -34,6 +36,8 @@ summary.spacc <- function(object, saturation_threshold = 0.9, ci_level = 0.95, .
       tmp <- object
       tmp$curves <- object$curves[[i]]
       tmp$n_species <- object$n_species[[i]]
+      # Get n_sites from the curves matrix (groups may have different site counts)
+      tmp$n_sites <- ncol(tmp$curves)
       class(tmp) <- "spacc"
       summary(tmp, saturation_threshold = saturation_threshold, ci_level = ci_level, ...)
     })
@@ -131,6 +135,207 @@ as.data.frame.spacc <- function(x, row.names = NULL, optional = FALSE, ...) {
 
 
 #' @export
+as.data.frame.spacc_fit <- function(x, row.names = NULL, optional = FALSE, ...) {
+  # x$data has columns x (sites) and y (observed mean)
+  data.frame(
+    sites = x$data$x,
+    observed = x$data$y,
+    predicted = stats::predict(x$fit, newdata = data.frame(x = x$data$x)),
+    asymptote = x$asymptote,
+    model = x$model
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_hill <- function(x, row.names = NULL, optional = FALSE, ...) {
+  # curves is a list of matrices, one per q value
+  df_list <- lapply(seq_along(x$q), function(i) {
+    curves <- x$curves[[i]]
+    data.frame(
+      sites = seq_len(ncol(curves)),
+      q = x$q[i],
+      mean = colMeans(curves),
+      lower = apply(curves, 2, stats::quantile, probs = 0.025),
+      upper = apply(curves, 2, stats::quantile, probs = 0.975),
+      sd = apply(curves, 2, stats::sd)
+    )
+  })
+  do.call(rbind, df_list)
+}
+
+
+#' @export
+as.data.frame.spacc_beta <- function(x, row.names = NULL, optional = FALSE, ...) {
+  # beta_total, beta_turnover, beta_nestedness are matrices (seeds x sites)
+  data.frame(
+    sites = seq_len(ncol(x$beta_total)),
+    beta_total = colMeans(x$beta_total),
+    beta_turnover = colMeans(x$beta_turnover),
+    beta_nestedness = colMeans(x$beta_nestedness),
+    beta_total_sd = apply(x$beta_total, 2, stats::sd),
+    beta_turnover_sd = apply(x$beta_turnover, 2, stats::sd),
+    beta_nestedness_sd = apply(x$beta_nestedness, 2, stats::sd)
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_coverage <- function(x, row.names = NULL, optional = FALSE, ...) {
+  # richness, individuals, coverage are matrices (seeds x sites)
+  data.frame(
+    sites = seq_len(ncol(x$richness)),
+    richness = colMeans(x$richness),
+    individuals = colMeans(x$individuals),
+    coverage = colMeans(x$coverage),
+    richness_sd = apply(x$richness, 2, stats::sd),
+    coverage_sd = apply(x$coverage, 2, stats::sd)
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_wavefront <- function(x, row.names = NULL, optional = FALSE, ...) {
+  # curves is a matrix (seeds x steps), radius is a vector per step
+  # sites_included is a matrix (seeds x steps) - take mean per step
+  curves <- x$curves
+  n_steps <- ncol(curves)
+
+  # sites_included may be a matrix or need reshaping
+  if (is.matrix(x$sites_included)) {
+    sites_mean <- colMeans(x$sites_included)
+  } else {
+    # Reshape vector to matrix if needed
+    sites_mean <- colMeans(matrix(x$sites_included, nrow = nrow(curves), ncol = n_steps))
+  }
+
+  data.frame(
+    step = seq_len(n_steps),
+    radius = x$radius,
+    sites = sites_mean,
+    mean = colMeans(curves),
+    lower = apply(curves, 2, stats::quantile, probs = 0.025),
+    upper = apply(curves, 2, stats::quantile, probs = 0.975),
+    sd = apply(curves, 2, stats::sd)
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_decay <- function(x, row.names = NULL, optional = FALSE, ...) {
+  curves <- x$curves
+  data.frame(
+    distance = x$breaks,
+    mean = colMeans(curves),
+    lower = apply(curves, 2, stats::quantile, probs = 0.025),
+    upper = apply(curves, 2, stats::quantile, probs = 0.975),
+    sd = apply(curves, 2, stats::sd)
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_comp <- function(x, row.names = NULL, optional = FALSE, ...) {
+  data.frame(
+    comparison = paste(x$x_name, "vs", x$y_name),
+    auc_x = x$auc_x,
+    auc_y = x$auc_y,
+    auc_diff = x$auc_diff,
+    saturation_x = x$saturation_x,
+    saturation_y = x$saturation_y,
+    saturation_diff = x$saturation_diff,
+    p_value = x$p_value,
+    method = x$method
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_phylo <- function(x, row.names = NULL, optional = FALSE, ...) {
+  curves <- x$curves
+  data.frame(
+    sites = seq_len(ncol(curves)),
+    mean = colMeans(curves),
+    lower = apply(curves, 2, stats::quantile, probs = 0.025),
+    upper = apply(curves, 2, stats::quantile, probs = 0.975),
+    sd = apply(curves, 2, stats::sd),
+    metric = x$metric
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_func <- function(x, row.names = NULL, optional = FALSE, ...) {
+  curves <- x$curves
+  data.frame(
+    sites = seq_len(ncol(curves)),
+    mean = colMeans(curves),
+    lower = apply(curves, 2, stats::quantile, probs = 0.025),
+    upper = apply(curves, 2, stats::quantile, probs = 0.975),
+    sd = apply(curves, 2, stats::sd),
+    metric = x$metric
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_metrics <- function(x, row.names = NULL, optional = FALSE, ...) {
+  df <- x$metrics
+  if (!is.null(x$coords)) {
+    df$x <- x$coords$x
+    df$y <- x$coords$y
+  }
+  df
+}
+
+
+#' @export
+as.data.frame.spacc_dar <- function(x, row.names = NULL, optional = FALSE, ...) {
+  # DAR has Hill curves and area
+  df_list <- lapply(seq_along(x$q), function(i) {
+    data.frame(
+      area = x$area,
+      q = x$q[i],
+      diversity = x$diversity[[i]]
+    )
+  })
+  do.call(rbind, df_list)
+}
+
+
+#' @export
+as.data.frame.spacc_endemism <- function(x, row.names = NULL, optional = FALSE, ...) {
+  curves <- x$curves
+  data.frame(
+    sites = seq_len(ncol(curves)),
+    mean = colMeans(curves),
+    lower = apply(curves, 2, stats::quantile, probs = 0.025),
+    upper = apply(curves, 2, stats::quantile, probs = 0.975),
+    sd = apply(curves, 2, stats::sd),
+    type = x$type
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_partition <- function(x, row.names = NULL, optional = FALSE, ...) {
+  data.frame(
+    q = x$q,
+    alpha = x$alpha,
+    beta = x$beta,
+    gamma = x$gamma
+  )
+}
+
+
+#' @export
+as.data.frame.spacc_alpha <- function(x, row.names = NULL, optional = FALSE, ...) {
+  df <- x$values
+  df
+}
+
+
+#' @export
 `[.spacc` <- function(x, i, ...) {
   if (is_grouped(x)) {
     x$curves <- lapply(x$curves, function(m) m[i, , drop = FALSE])
@@ -181,4 +386,61 @@ c.spacc <- function(...) {
     ),
     class = "spacc"
   )
+}
+
+
+#' @export
+summary.spacc_decay <- function(object, ...) {
+  df <- as.data.frame(object)
+  structure(
+    list(
+      n_bins = length(object$breaks) - 1,
+      n_seeds = object$n_seeds,
+      distance_range = range(object$breaks),
+      mean_similarity = df$mean,
+      distance = df$distance
+    ),
+    class = "summary.spacc_decay"
+  )
+}
+
+
+#' @export
+print.summary.spacc_decay <- function(x, ...) {
+  cat("Distance-Decay Summary\n")
+  cat(strrep("-", 24), "\n")
+  cat("Distance bins: ", x$n_bins, "\n")
+  cat("Seeds:         ", x$n_seeds, "\n")
+  cat(sprintf("Distance range: %.2f - %.2f\n", x$distance_range[1], x$distance_range[2]))
+  cat(sprintf("Similarity range: %.3f - %.3f\n", min(x$mean_similarity), max(x$mean_similarity)))
+  invisible(x)
+}
+
+
+#' @export
+summary.spacc_rare <- function(object, ...) {
+  structure(
+    list(
+      n_individuals = object$n,
+      expected_richness = object$expected,
+      se = object$sd,
+      n_boot = object$n_boot
+    ),
+    class = "summary.spacc_rare"
+  )
+}
+
+
+#' @export
+print.summary.spacc_rare <- function(x, ...) {
+  cat("Rarefaction Summary\n")
+  cat(strrep("-", 20), "\n")
+  n <- length(x$n_individuals)
+  cat("Sample sizes: ", n, "\n")
+  if (n > 0) {
+    cat(sprintf("Range: %.0f - %.0f individuals\n", min(x$n_individuals), max(x$n_individuals)))
+    cat(sprintf("Expected richness: %.1f - %.1f species\n",
+                min(x$expected_richness), max(x$expected_richness)))
+  }
+  invisible(x)
 }

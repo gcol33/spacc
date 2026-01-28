@@ -13,6 +13,17 @@ Main spatial accumulation functions
 - [`distances()`](https://gillescolling.com/spacc/reference/distances.md)
   : Compute Distance Matrix
 
+## Diversity
+
+Alpha, beta, and gamma diversity partitioning
+
+- [`alphaDiversity()`](https://gillescolling.com/spacc/reference/alphaDiversity.md)
+  : Alpha Diversity (Per-Site)
+- [`gammaDiversity()`](https://gillescolling.com/spacc/reference/gammaDiversity.md)
+  : Gamma Diversity (Regional)
+- [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)
+  : Alpha-Beta-Gamma Diversity Partitioning
+
 ## Hill Numbers
 
 Diversity accumulation with Hill numbers (q=0,1,2)
@@ -26,15 +37,10 @@ Spatial beta diversity with turnover/nestedness partitioning
 
 - [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
   : Spatial Beta Diversity Accumulation
-
-## Coverage-Based Rarefaction
-
-Standardize by sample completeness
-
-- [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
-  : Coverage-Based Spatial Rarefaction
-- [`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
-  : Interpolate Richness at Target Coverage Levels
+- [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md)
+  : Functional Beta Diversity Accumulation
+- [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md)
+  : Phylogenetic Beta Diversity Accumulation
 
 ## Phylogenetic & Functional Diversity
 
@@ -45,16 +51,16 @@ Accumulation of PD and FD metrics
 - [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
   : Spatial Functional Diversity Accumulation
 
-## Diversity
+## Coverage-Based Rarefaction
 
-Alpha, beta, and gamma diversity partitioning
+Standardize by sample completeness
 
-- [`alphaDiversity()`](https://gillescolling.com/spacc/reference/alphaDiversity.md)
-  : Alpha Diversity (Per-Site)
-- [`gammaDiversity()`](https://gillescolling.com/spacc/reference/gammaDiversity.md)
-  : Gamma Diversity (Regional)
-- [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)
-  : Alpha-Beta-Gamma Diversity Partitioning
+- [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
+  : Coverage-Based Spatial Rarefaction
+- [`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
+  : Interpolate Richness at Target Coverage Levels
+- [`extrapolateCoverage()`](https://gillescolling.com/spacc/reference/extrapolateCoverage.md)
+  : Extrapolate Richness Beyond Observed Coverage
 
 ## Per-Site Metrics
 
@@ -77,6 +83,19 @@ Expected curves without simulation
   : Collector's Curve
 - [`spatialRarefaction()`](https://gillescolling.com/spacc/reference/spatialRarefaction.md)
   : Spatially-Constrained Rarefaction
+
+## Species-Area Relationships
+
+Diversity-area relationships, endemism, fragmentation
+
+- [`dar()`](https://gillescolling.com/spacc/reference/dar.md) :
+  Diversity-Area Relationship (DAR)
+- [`spaccEndemism()`](https://gillescolling.com/spacc/reference/spaccEndemism.md)
+  : Spatial Endemism Accumulation
+- [`sesars()`](https://gillescolling.com/spacc/reference/sesars.md) :
+  Sampling Effort Species-Area Relationship (SESARS)
+- [`sfar()`](https://gillescolling.com/spacc/reference/sfar.md) :
+  Species-Fragmented Area Relationship (SFAR)
 
 ## Analysis
 

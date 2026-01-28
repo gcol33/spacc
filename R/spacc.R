@@ -5,8 +5,10 @@
 #'
 #' @param x A site-by-species matrix (rows = sites, cols = species) with
 #'   presence/absence (0/1) or abundance data. Can also be a data.frame.
-#' @param coords A data.frame with columns `x` and `y` containing site coordinates,
-#'   or a `spacc_dist` object from [distances()].
+#' @param coords Site coordinates. Can be:
+#'   - A data.frame with columns `x` and `y`
+#'   - An `sf` object with point geometries (CRS is preserved)
+#'   - A `spacc_dist` object from [distances()]
 #' @param n_seeds Integer. Number of random starting points for uncertainty
 #'   quantification. Default 50.
 #' @param method Character. Accumulation method:
@@ -137,11 +139,21 @@ spacc <- function(x,
 
   # Input validation
   x <- as.matrix(x)
+  if (!is.numeric(x)) {
+    stop("Species matrix must be numeric (presence/absence or abundance data)")
+  }
 
-  # Handle coords: either data.frame or spacc_dist
+  # Handle coords: data.frame, sf, or spacc_dist
+  coords_crs <- NULL
   if (inherits(coords, "spacc_dist")) {
     dist_mat <- as.matrix(coords)
     coord_data <- attr(coords, "coords")
+  } else if (inherits(coords, "sf")) {
+    check_suggests("sf")
+    coords_crs <- sf::st_crs(coords)
+    coord_mat <- sf::st_coordinates(coords)
+    coord_data <- data.frame(x = coord_mat[, 1], y = coord_mat[, 2])
+    dist_mat <- NULL
   } else {
     stopifnot(
       "coords must have x and y columns" = all(c("x", "y") %in% names(coords))
@@ -177,8 +189,45 @@ spacc <- function(x,
     })
     names(objects) <- group_levels
 
-    # Build grouped spacc directly
+    # Check if recursive calls returned grouped objects (e.g., from support = "auto")
+    # If so, flatten to compound names: "country.group"
     base <- objects[[1]]
+    if (is_grouped(base)) {
+      # Flatten nested grouped objects into compound names
+      all_curves <- list()
+      all_n_species <- list()
+      for (gname in group_levels) {
+        obj <- objects[[gname]]
+        for (subname in obj$group_names) {
+          compound <- paste(subname, gname, sep = ".")
+          all_curves[[compound]] <- obj$curves[[subname]]
+          all_n_species[[compound]] <- obj$n_species[[subname]]
+        }
+      }
+      return(structure(
+        list(
+          curves = all_curves,
+          group_names = names(all_curves),
+          coords = base$coords,
+          n_seeds = base$n_seeds,
+          n_sites = base$n_sites,
+          n_species = all_n_species,
+          method = base$method,
+          distance = base$distance,
+          backend = base$backend,
+          sigma = base$sigma,
+          cone_width = base$cone_width,
+          time = base$time,
+          w_space = base$w_space,
+          w_time = base$w_time,
+          support = base$support,
+          call = match.call()
+        ),
+        class = "spacc"
+      ))
+    }
+
+    # Build grouped spacc directly (simple case: no nested grouping)
     return(structure(
       list(
         curves = stats::setNames(lapply(objects, `[[`, "curves"), group_levels),
@@ -291,8 +340,15 @@ spacc <- function(x,
 
     if (progress) cli_info("Processing spatial support via areaOfEffect")
 
-    # Convert coords to sf if needed
-    coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"))
+    # Convert coords to sf, preserving CRS if provided
+    # When using haversine distance, assume WGS84 (CRS 4326) if no CRS is set
+    if (!is.null(coords_crs) && !is.na(coords_crs)) {
+      coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"), crs = coords_crs)
+    } else if (distance == "haversine") {
+      coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"), crs = 4326)
+    } else {
+      coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"))
+    }
 
     # Get aoe classification
     if (inherits(support, "aoe_result")) {
@@ -783,6 +839,10 @@ resolve_cores <- function(n_cores, parallel) {
   if (is.null(n_cores)) {
     max(1L, parallel::detectCores() - 1L)
   } else {
-    as.integer(n_cores)
+    n_cores <- as.integer(n_cores)
+    if (n_cores < 1L) {
+      stop("n_cores must be a positive integer")
+    }
+    n_cores
   }
 }

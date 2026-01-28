@@ -29,8 +29,12 @@ spacc(
 \item{x}{A site-by-species matrix (rows = sites, cols = species) with
 presence/absence (0/1) or abundance data. Can also be a data.frame.}
 
-\item{coords}{A data.frame with columns \code{x} and \code{y} containing site coordinates,
-or a \code{spacc_dist} object from \code{\link[=distances]{distances()}}.}
+\item{coords}{Site coordinates. Can be:
+\itemize{
+\item A data.frame with columns \code{x} and \code{y}
+\item An \code{sf} object with point geometries (CRS is preserved)
+\item A \code{spacc_dist} object from \code{\link[=distances]{distances()}}
+}}
 
 \item{n_seeds}{Integer. Number of random starting points for uncertainty
 quantification. Default 50.}

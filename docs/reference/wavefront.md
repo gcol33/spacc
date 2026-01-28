@@ -73,6 +73,11 @@ An object of class `spacc_wavefront` containing:
 
   Matrix of sites included at each step
 
+## References
+
+Shigesada, N. & Kawasaki, K. (1997). Biological Invasions: Theory and
+Practice. Oxford University Press.
+
 ## Examples
 
 ``` r

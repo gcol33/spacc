@@ -45,6 +45,15 @@ An object of class `spacc_rare` containing:
 
   95% confidence bounds
 
+## References
+
+Hurlbert, S.H. (1971). The nonconcept of species diversity: a critique
+and alternative parameters. Ecology, 52, 577-586.
+
+Gotelli, N.J. & Colwell, R.K. (2001). Quantifying biodiversity:
+procedures and pitfalls in the measurement and comparison of species
+richness. Ecology Letters, 4, 379-391.
+
 ## Examples
 
 ``` r

@@ -40,6 +40,7 @@ Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
+    svglite,
     ggplot2,
     cli,
     sf,

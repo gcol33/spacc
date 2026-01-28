@@ -104,6 +104,12 @@ The metrics can be plotted as a heatmap using
 For more sophisticated spatial visualization with study area boundaries,
 see the `areaOfEffect` package.
 
+## References
+
+Soberon, J.M. & Llorente, J.B. (1993). The use of species accumulation
+functions for the prediction of species richness. Conservation Biology,
+7, 480-488.
+
 ## See also
 
 [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) for

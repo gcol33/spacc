@@ -14,9 +14,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 7,
-  fig.height = 5,
-  dev = "svglite",
-  fig.ext = "svg"
+  fig.height = 5
 )
 ```
 
@@ -84,25 +82,15 @@ where $S$ is species richness, $A$ is total area, $n$ is number of
 fragments, and $f$ is the fragmentation exponent.
 
 ```{r sfar}
-# Create fragmentation scenarios
+# First create a spacc object
+sac <- spacc(species, coords, n_seeds = 20, progress = FALSE)
+
+# Define patch assignments (e.g., from k-means clustering)
 set.seed(123)
-n_scenarios <- 30
-scenarios <- data.frame(
-  richness = numeric(n_scenarios),
-  area = numeric(n_scenarios),
-  n_fragments = integer(n_scenarios)
-)
+patches <- kmeans(coords, centers = 5)$cluster
 
-for (i in seq_len(n_scenarios)) {
-  n_frag <- sample(1:5, 1)
-  n_sub <- sample(20:n_sites, 1)
-  idx <- sample(n_sites, n_sub)
-  scenarios$richness[i] <- sum(colSums(species[idx, , drop = FALSE]) > 0)
-  scenarios$area[i] <- n_sub * 1.5  # proxy area
-  scenarios$n_fragments[i] <- n_frag
-}
-
-sfar_fit <- sfar(scenarios$richness, scenarios$area, scenarios$n_fragments)
+# Fit SFAR model
+sfar_fit <- sfar(sac, patches)
 sfar_fit
 ```
 
@@ -122,10 +110,11 @@ species-poor areas are also under-sampled:
 $$\log(S) = c + z \cdot \log(A) + e \cdot \log(E)$$
 
 ```{r sesars}
-# Simulate varying effort
-effort <- rpois(n_scenarios, 10) + 1
+# Simulate varying sampling effort per site
+effort <- rpois(n_sites, 10) + 1
 
-sesars_fit <- sesars(scenarios$richness, scenarios$area, effort)
+# Fit SESARS model using the spacc object from above
+sesars_fit <- sesars(sac, effort)
 sesars_fit
 ```
 

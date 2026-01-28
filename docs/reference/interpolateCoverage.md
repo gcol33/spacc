@@ -23,3 +23,9 @@ interpolateCoverage(x, target = c(0.9, 0.95, 0.99))
 
 A data.frame with columns for each target coverage level, showing
 interpolated richness for each seed.
+
+## References
+
+Chao, A. & Jost, L. (2012). Coverage-based rarefaction and
+extrapolation: standardizing samples by completeness rather than size.
+Ecology, 93, 2533-2547.

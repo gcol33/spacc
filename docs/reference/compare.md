@@ -61,6 +61,16 @@ An object of class `spacc_comp` containing:
 
   Comparison method used
 
+## References
+
+Colwell, R.K., Mao, C.X. & Chang, J. (2004). Interpolating,
+extrapolating, and comparing incidence-based species accumulation
+curves. Ecology, 85, 2717-2727.
+
+Gotelli, N.J. & Colwell, R.K. (2011). Estimating species richness. In:
+Biological Diversity: Frontiers in Measurement and Assessment, pp.
+39-54. Oxford University Press.
+
 ## Examples
 
 ``` r

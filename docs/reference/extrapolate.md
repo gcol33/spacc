@@ -8,7 +8,7 @@ observed sampling effort.
 ``` r
 extrapolate(
   object,
-  model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic"),
+  model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic", "evt"),
   ...
 )
 ```
@@ -22,7 +22,8 @@ extrapolate(
 - model:
 
   Character. Model to fit: `"michaelis-menten"` (default), `"lomolino"`,
-  `"asymptotic"`, `"weibull"`, or `"logistic"`.
+  `"asymptotic"`, `"weibull"`, `"logistic"`, or `"evt"` (Extreme Value
+  Theory, Borda-de-Agua et al. 2025).
 
 - ...:
 
@@ -52,6 +53,19 @@ An object of class `spacc_fit` containing:
 - aic:
 
   AIC of the model
+
+## References
+
+Lomolino, M.V. (2000). Ecology's most general, yet protean pattern: the
+species-area relationship. Journal of Biogeography, 27, 17-26.
+
+Flather, C.H. (1996). Fitting species-accumulation functions and
+assessing regional land use impacts on avian diversity. Journal of
+Biogeography, 23, 155-168.
+
+Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et al. (2025). Extreme
+value theory explains the topography and scaling of the species-area
+relationship. Nature Communications, 16, 5346.
 
 ## Examples
 

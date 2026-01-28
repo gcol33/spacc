@@ -104,8 +104,10 @@ presence/absence (0/1) or abundance data. Can also be a data.frame.</p></dd>
 
 
 <dt id="arg-coords">coords<a class="anchor" aria-label="anchor" href="#arg-coords"></a></dt>
-<dd><p>A data.frame with columns <code>x</code> and <code>y</code> containing site coordinates,
-or a <code>spacc_dist</code> object from <code><a href="distances.html">distances()</a></code>.</p></dd>
+<dd><p>Site coordinates. Can be:</p><ul><li><p>A data.frame with columns <code>x</code> and <code>y</code></p></li>
+<li><p>An <code>sf</code> object with point geometries (CRS is preserved)</p></li>
+<li><p>A <code>spacc_dist</code> object from <code><a href="distances.html">distances()</a></code></p></li>
+</ul></dd>
 
 
 <dt id="arg-n-seeds">n_seeds<a class="anchor" aria-label="anchor" href="#arg-n-seeds"></a></dt>
