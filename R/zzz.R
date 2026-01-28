@@ -11,7 +11,7 @@ NULL
 # Global variable declarations for ggplot2 NSE and C++ functions
 utils::globalVariables(c(
   # ggplot2 aesthetics
-  "sites", "species", "seed", "lower", "upper", "y", "mean",
+  "sites", "species", "seed", "lower", "upper", "y", "mean", "area",
   "value", "component", "beta_total", "beta_total_lower", "beta_total_upper",
   "mean_richness", "richness_lower", "richness_upper",
   "distance", "i", "j", "metric", "q_label", "group", "n", "expected",
