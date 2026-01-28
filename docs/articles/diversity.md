@@ -87,7 +87,7 @@ plot(hill)
 ```
 
 ![Hill number accumulation for q = 0, 1,
-2.](diversity_files/figure-html/plot-hill-1.png)
+2.](diversity_files/figure-html/plot-hill-1.svg)
 
 Hill number accumulation for q = 0, 1, 2.
 
@@ -112,7 +112,7 @@ plot(beta)
 ```
 
 ![Spatial beta diversity accumulation with
-turnover/nestedness.](diversity_files/figure-html/plot-beta-1.png)
+turnover/nestedness.](diversity_files/figure-html/plot-beta-1.svg)
 
 Spatial beta diversity accumulation with turnover/nestedness.
 
@@ -142,7 +142,7 @@ plot(beta_func)
 ```
 
 ![Functional beta diversity
-accumulation.](diversity_files/figure-html/plot-beta-func-1.png)
+accumulation.](diversity_files/figure-html/plot-beta-func-1.svg)
 
 Functional beta diversity accumulation.
 
@@ -165,7 +165,7 @@ plot(beta_phylo)
 ```
 
 ![Phylogenetic beta diversity
-accumulation.](diversity_files/figure-html/plot-beta-phylo-1.png)
+accumulation.](diversity_files/figure-html/plot-beta-phylo-1.svg)
 
 Phylogenetic beta diversity accumulation.
 
@@ -188,7 +188,7 @@ plot(phylo_acc)
 ```
 
 ![Phylogenetic diversity
-accumulation.](diversity_files/figure-html/plot-phylo-1.png)
+accumulation.](diversity_files/figure-html/plot-phylo-1.svg)
 
 Phylogenetic diversity accumulation.
 
@@ -210,7 +210,7 @@ plot(func_acc)
 ```
 
 ![Functional diversity
-accumulation.](diversity_files/figure-html/plot-func-1.png)
+accumulation.](diversity_files/figure-html/plot-func-1.svg)
 
 Functional diversity accumulation.
 
@@ -231,7 +231,7 @@ plot(cov)
 ```
 
 ![Coverage-based spatial
-rarefaction.](diversity_files/figure-html/plot-coverage-1.png)
+rarefaction.](diversity_files/figure-html/plot-coverage-1.svg)
 
 Coverage-based spatial rarefaction.
 

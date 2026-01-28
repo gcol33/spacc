@@ -56,7 +56,7 @@ plot(end)
 ```
 
 ![Endemism-area curve showing endemic species as area
-expands.](spatial-analysis_files/figure-html/plot-endemism-1.png)
+expands.](spatial-analysis_files/figure-html/plot-endemism-1.svg)
 
 Endemism-area curve showing endemic species as area expands.
 
@@ -105,7 +105,7 @@ plot(sfar_fit)
 ```
 
 ![Species-Fragmented Area
-Relationship.](spatial-analysis_files/figure-html/plot-sfar-1.png)
+Relationship.](spatial-analysis_files/figure-html/plot-sfar-1.svg)
 
 Species-Fragmented Area Relationship.
 
@@ -149,7 +149,7 @@ plot(sesars_fit)
 ```
 
 ![Sampling-effort corrected
-SAR.](spatial-analysis_files/figure-html/plot-sesars-1.png)
+SAR.](spatial-analysis_files/figure-html/plot-sesars-1.svg)
 
 Sampling-effort corrected SAR.
 
@@ -175,7 +175,7 @@ plot(met, metric = "slope_10", type = "heatmap")
 ```
 
 ![Spatial heatmap of initial accumulation
-slope.](spatial-analysis_files/figure-html/plot-metrics-1.png)
+slope.](spatial-analysis_files/figure-html/plot-metrics-1.svg)
 
 Spatial heatmap of initial accumulation slope.
 
@@ -207,7 +207,7 @@ plot(combined)
 ```
 
 ![Effect of spatial thinning on
-SAC.](spatial-analysis_files/figure-html/plot-subsample-1.png)
+SAC.](spatial-analysis_files/figure-html/plot-subsample-1.svg)
 
 Effect of spatial thinning on SAC.
 

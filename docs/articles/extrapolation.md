@@ -81,7 +81,7 @@ plot(best)
 ```
 
 ![Best-fitting asymptotic
-model.](extrapolation_files/figure-html/plot-best-1.png)
+model.](extrapolation_files/figure-html/plot-best-1.svg)
 
 Best-fitting asymptotic model.
 
@@ -141,7 +141,7 @@ plot(ext)
 ```
 
 ![Coverage-based extrapolation of species
-richness.](extrapolation_files/figure-html/plot-cov-extrap-1.png)
+richness.](extrapolation_files/figure-html/plot-cov-extrap-1.svg)
 
 Coverage-based extrapolation of species richness.
 
@@ -171,7 +171,7 @@ plot(dar_result)
 ```
 
 ![Diversity-area relationship for q = 0, 1,
-2.](extrapolation_files/figure-html/plot-dar-1.png)
+2.](extrapolation_files/figure-html/plot-dar-1.svg)
 
 Diversity-area relationship for q = 0, 1, 2.
 

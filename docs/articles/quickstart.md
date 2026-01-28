@@ -54,7 +54,7 @@ plot(sac)
 ```
 
 ![Spatial species accumulation curve with 95% confidence
-ribbon.](quickstart_files/figure-html/plot-sac-1.png)
+ribbon.](quickstart_files/figure-html/plot-sac-1.svg)
 
 Spatial species accumulation curve with 95% confidence ribbon.
 
@@ -87,7 +87,7 @@ plot(combined)
 ```
 
 ![Comparison of accumulation
-methods.](quickstart_files/figure-html/combine-1.png)
+methods.](quickstart_files/figure-html/combine-1.svg)
 
 Comparison of accumulation methods.
 
@@ -114,7 +114,7 @@ plot(fit)
 ```
 
 ![Fitted Lomolino curve with asymptote
-estimate.](quickstart_files/figure-html/plot-fit-1.png)
+estimate.](quickstart_files/figure-html/plot-fit-1.svg)
 
 Fitted Lomolino curve with asymptote estimate.
 

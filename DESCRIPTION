@@ -53,6 +53,7 @@ Suggests:
 Remotes:
     gcol33/areaOfEffect
 Config/testthat/edition: 3
+VignetteBuilder: knitr
 SystemRequirements: GNU make
 URL: https://gillescolling.com/spacc/, https://github.com/gcol33/spacc
 BugReports: https://github.com/gcol33/spacc/issues
