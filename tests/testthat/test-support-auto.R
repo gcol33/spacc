@@ -1,7 +1,6 @@
 test_that("support = 'auto' splits by country", {
   skip_if_not_installed("sf")
   skip_if_not_installed("areaOfEffect")
-
   set.seed(1)
   n <- 40
 
@@ -10,6 +9,17 @@ test_that("support = 'auto' splits by country", {
     x = c(runif(20, 0, 4), runif(20, 8, 12)),
     y = c(runif(20, 44, 48), runif(20, 48, 52))
   )
+
+  # Skip if areaOfEffect country detection doesn't work (e.g. missing internal data)
+  skip_if_not(
+    tryCatch({
+      pts <- sf::st_as_sf(coords, coords = c("x", "y"), crs = 4326)
+      areaOfEffect::aoe(pts)
+      TRUE
+    }, error = function(e) FALSE),
+    "areaOfEffect country detection not functional"
+  )
+
   species <- matrix(rbinom(n * 15, 1, 0.4), nrow = n)
 
   result <- spacc(species, coords, n_seeds = 3, method = "knn",
@@ -35,6 +45,16 @@ test_that("support = 'auto' with groups produces compound names", {
     x = c(runif(20, 0, 4), runif(20, 8, 12)),
     y = c(runif(20, 44, 48), runif(20, 48, 52))
   )
+
+  skip_if_not(
+    tryCatch({
+      pts <- sf::st_as_sf(coords, coords = c("x", "y"), crs = 4326)
+      areaOfEffect::aoe(pts)
+      TRUE
+    }, error = function(e) FALSE),
+    "areaOfEffect country detection not functional"
+  )
+
   species <- matrix(rbinom(n * 10, 1, 0.4), nrow = n)
   groups <- rep(c("birds", "mammals"), each = 5)
 
