@@ -252,29 +252,35 @@ as.data.frame.spacc_comp <- function(x, row.names = NULL, optional = FALSE, ...)
 
 #' @export
 as.data.frame.spacc_phylo <- function(x, row.names = NULL, optional = FALSE, ...) {
-  curves <- x$curves
-  data.frame(
-    sites = seq_len(ncol(curves)),
-    mean = colMeans(curves),
-    lower = apply(curves, 2, stats::quantile, probs = 0.025),
-    upper = apply(curves, 2, stats::quantile, probs = 0.975),
-    sd = apply(curves, 2, stats::sd),
-    metric = x$metric
-  )
+  df_list <- lapply(seq_along(x$metric), function(i) {
+    curves <- x$curves[[i]]
+    data.frame(
+      sites = seq_len(ncol(curves)),
+      metric = x$metric[i],
+      mean = colMeans(curves),
+      lower = apply(curves, 2, stats::quantile, probs = 0.025),
+      upper = apply(curves, 2, stats::quantile, probs = 0.975),
+      sd = apply(curves, 2, stats::sd)
+    )
+  })
+  do.call(rbind, df_list)
 }
 
 
 #' @export
 as.data.frame.spacc_func <- function(x, row.names = NULL, optional = FALSE, ...) {
-  curves <- x$curves
-  data.frame(
-    sites = seq_len(ncol(curves)),
-    mean = colMeans(curves),
-    lower = apply(curves, 2, stats::quantile, probs = 0.025),
-    upper = apply(curves, 2, stats::quantile, probs = 0.975),
-    sd = apply(curves, 2, stats::sd),
-    metric = x$metric
-  )
+  df_list <- lapply(seq_along(x$metric), function(i) {
+    curves <- x$curves[[i]]
+    data.frame(
+      sites = seq_len(ncol(curves)),
+      metric = x$metric[i],
+      mean = colMeans(curves),
+      lower = apply(curves, 2, stats::quantile, probs = 0.025),
+      upper = apply(curves, 2, stats::quantile, probs = 0.975),
+      sd = apply(curves, 2, stats::sd)
+    )
+  })
+  do.call(rbind, df_list)
 }
 
 
@@ -291,12 +297,16 @@ as.data.frame.spacc_metrics <- function(x, row.names = NULL, optional = FALSE, .
 
 #' @export
 as.data.frame.spacc_dar <- function(x, row.names = NULL, optional = FALSE, ...) {
-  # DAR has Hill curves and area
   df_list <- lapply(seq_along(x$q), function(i) {
+    mat <- x$hill$curves[[i]]
     data.frame(
-      area = x$area,
+      sites = seq_len(x$n_sites),
       q = x$q[i],
-      diversity = x$diversity[[i]]
+      mean_area = colMeans(x$area),
+      mean_diversity = colMeans(mat),
+      lower = apply(mat, 2, stats::quantile, probs = 0.025),
+      upper = apply(mat, 2, stats::quantile, probs = 0.975),
+      sd = apply(mat, 2, stats::sd)
     )
   })
   do.call(rbind, df_list)
@@ -305,14 +315,13 @@ as.data.frame.spacc_dar <- function(x, row.names = NULL, optional = FALSE, ...) 
 
 #' @export
 as.data.frame.spacc_endemism <- function(x, row.names = NULL, optional = FALSE, ...) {
-  curves <- x$curves
   data.frame(
-    sites = seq_len(ncol(curves)),
-    mean = colMeans(curves),
-    lower = apply(curves, 2, stats::quantile, probs = 0.025),
-    upper = apply(curves, 2, stats::quantile, probs = 0.975),
-    sd = apply(curves, 2, stats::sd),
-    type = x$type
+    sites = seq_len(x$n_sites),
+    mean_richness = colMeans(x$richness),
+    mean_endemism = colMeans(x$endemism),
+    endemism_lower = apply(x$endemism, 2, stats::quantile, probs = 0.025),
+    endemism_upper = apply(x$endemism, 2, stats::quantile, probs = 0.975),
+    endemism_sd = apply(x$endemism, 2, stats::sd)
   )
 }
 
