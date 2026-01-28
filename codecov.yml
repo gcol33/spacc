@@ -1,0 +1,9 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+
+ignore:
+  - "inst/include/**"
+  - "src/nanoflann.hpp"

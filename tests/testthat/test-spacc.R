@@ -168,3 +168,111 @@ test_that("spacc works with abundance data", {
 
   expect_s3_class(result, "spacc")
 })
+
+
+test_that("spacc works with radius method", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "radius",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$method, "radius")
+})
+
+
+test_that("spacc works with kdtree backend", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+                  backend = "kdtree",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$backend, "kdtree")
+})
+
+
+test_that("spacc works with exact backend", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+                  backend = "exact",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$backend, "exact")
+})
+
+
+test_that("spacc kncn with kdtree backend", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "kncn",
+                  backend = "kdtree",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+})
+
+
+test_that("spacc with custom sigma for gaussian", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "gaussian",
+                  sigma = 0.5,
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$sigma, 0.5)
+})
+
+
+test_that("spacc with custom cone_width", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "cone",
+                  cone_width = pi/6,
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$cone_width, pi/6)
+})
+
+
+test_that("spacc with data.frame input converts to matrix", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- data.frame(matrix(rbinom(15 * 8, 1, 0.4), nrow = 15))
+
+  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+})

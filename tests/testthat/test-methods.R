@@ -186,3 +186,72 @@ test_that("as.data.frame.spacc works for grouped", {
   expect_true("group" %in% names(df))
   expect_equal(nrow(df), 30)  # 15 sites x 2 groups
 })
+
+
+test_that("[.spacc works for grouped objects", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  sp1 <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+  sp2 <- matrix(rbinom(15 * 8, 1, 0.2), nrow = 15)
+
+  sac1 <- spacc(sp1, coords, n_seeds = 5, method = "knn",
+                parallel = FALSE, progress = FALSE, seed = 1)
+  sac2 <- spacc(sp2, coords, n_seeds = 5, method = "knn",
+                parallel = FALSE, progress = FALSE, seed = 1)
+
+  combined <- c(native = sac1, alien = sac2)
+  sub <- combined[1:3]
+
+  expect_s3_class(sub, "spacc")
+  expect_equal(sub$n_seeds, 3)
+  expect_true(spacc:::is_grouped(sub))
+})
+
+
+test_that("c.spacc without names assigns default names", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  sp1 <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  sac1 <- spacc(sp1, coords, n_seeds = 3, method = "knn",
+                parallel = FALSE, progress = FALSE, seed = 1)
+  sac2 <- spacc(sp1, coords, n_seeds = 3, method = "knn",
+                parallel = FALSE, progress = FALSE, seed = 2)
+
+  combined <- c(sac1, sac2)
+  expect_equal(combined$group_names, c("group_1", "group_2"))
+})
+
+
+test_that("summary.spacc_comp works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  sp1 <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+  sp2 <- matrix(rbinom(20 * 10, 1, 0.2), nrow = 20)
+
+  sac1 <- spacc(sp1, coords, n_seeds = 3, method = "knn",
+                parallel = FALSE, progress = FALSE, seed = 1)
+  sac2 <- spacc(sp2, coords, n_seeds = 3, method = "knn",
+                parallel = FALSE, progress = FALSE, seed = 1)
+
+  comp <- compare(sac1, sac2, n_perm = 19)
+
+  expect_output(summary(comp), "Comparison")
+})
+
+
+test_that("check_suggests errors on missing package", {
+  expect_error(spacc:::check_suggests("nonexistent_pkg_xyz"), "required")
+})
+
+
+test_that("cli_info and cli_success run without error", {
+  expect_no_error(spacc:::cli_info("test message"))
+  expect_no_error(spacc:::cli_success("done"))
+})

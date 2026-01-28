@@ -117,3 +117,198 @@ test_that("FDis increases with more species",
   }
   expect_true(increases >= 2)
 })
+
+
+test_that("spaccPhylo print works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  result <- spaccPhylo(species, coords, phylo_dist,
+                       metric = c("mpd", "mntd"), n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+
+  expect_output(print(result), "spacc phylogenetic diversity")
+})
+
+
+test_that("spaccPhylo summary returns data.frame", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  result <- spaccPhylo(species, coords, phylo_dist,
+                       metric = c("mpd", "mntd"), n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("metric" %in% names(summ))
+  expect_true("mean" %in% names(summ))
+})
+
+
+test_that("spaccPhylo with spacc_dist coords", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  d <- distances(coords)
+  result <- spaccPhylo(species, d, phylo_dist,
+                       metric = "mpd", n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_phylo")
+})
+
+
+test_that("spaccPhylo errors on bad tree", {
+  coords <- data.frame(x = runif(10), y = runif(10))
+  species <- matrix(rbinom(10 * 5, 1, 0.3), nrow = 10)
+
+  expect_error(
+    spaccPhylo(species, coords, "not_a_tree",
+               metric = "mpd", n_seeds = 1,
+               parallel = FALSE, progress = FALSE),
+    "tree must be"
+  )
+})
+
+
+test_that("spaccPhylo PD warning for distance matrix", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  expect_warning(
+    spaccPhylo(species, coords, phylo_dist,
+               metric = c("mpd", "pd"), n_seeds = 3,
+               parallel = FALSE, progress = FALSE),
+    "PD requires full tree"
+  )
+})
+
+
+test_that("spaccFunc print works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+  traits <- matrix(rnorm(8 * 3), nrow = 8)
+
+  result <- spaccFunc(species, coords, traits,
+                      metric = c("fdis", "fric"), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_output(print(result), "spacc functional diversity")
+})
+
+
+test_that("spaccFunc summary returns data.frame", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+  traits <- matrix(rnorm(8 * 3), nrow = 8)
+
+  result <- spaccFunc(species, coords, traits,
+                      metric = c("fdis", "fric"), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("metric" %in% names(summ))
+})
+
+
+test_that("spaccFunc errors on species not in traits", {
+  coords <- data.frame(x = runif(10), y = runif(10))
+  species <- matrix(rpois(10 * 5, 2), nrow = 10)
+  colnames(species) <- paste0("sp", 1:5)
+  traits <- matrix(rnorm(3 * 2), nrow = 3)
+  rownames(traits) <- paste0("sp", 1:3)
+
+  expect_error(
+    spaccFunc(species, coords, traits, metric = "fdis", n_seeds = 1,
+              parallel = FALSE, progress = FALSE),
+    "Some species"
+  )
+})
+
+
+test_that("spaccFunc with spacc_dist coords", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+  traits <- matrix(rnorm(8 * 3), nrow = 8)
+
+  d <- distances(coords)
+  result <- spaccFunc(species, d, traits,
+                      metric = "fdis", n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_func")
+})
+
+
+test_that("spaccPhylo as_sf errors without map data", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  result <- spaccPhylo(species, coords, phylo_dist,
+                       metric = "mpd", n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+
+  expect_error(as_sf(result), "No map data")
+})
+
+
+test_that("spaccFunc as_sf errors without map data", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+  traits <- matrix(rnorm(8 * 3), nrow = 8)
+
+  result <- spaccFunc(species, coords, traits,
+                      metric = "fdis", n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_error(as_sf(result), "No map data")
+})

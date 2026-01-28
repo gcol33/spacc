@@ -203,3 +203,87 @@ test_that("spaccEndemism print works", {
 
   expect_output(print(result), "spacc endemism")
 })
+
+
+test_that("spaccEndemism summary returns data.frame", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("mean_richness" %in% names(summ))
+  expect_true("mean_endemism" %in% names(summ))
+})
+
+
+test_that("sesars summary returns lm summary", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  effort <- rpois(20, 10) + 1
+
+  result <- sesars(sac, effort, model = "power")
+
+  summ <- summary(result)
+  expect_true(!is.null(summ))
+})
+
+
+test_that("sfar summary returns lm summary", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  patches <- rep(1:4, each = 5)
+
+  result <- sfar(sac, patches)
+
+  summ <- summary(result)
+  expect_true(!is.null(summ))
+})
+
+
+test_that("dar with spacc_dist coords", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+
+  d <- distances(coords)
+  result <- dar(species, d, q = 0, n_seeds = 3,
+                area_method = "count",
+                parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_dar")
+})
+
+
+test_that("spaccEndemism with spacc_dist coords", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  d <- distances(coords)
+  result <- spaccEndemism(species, d, n_seeds = 3,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_endemism")
+})

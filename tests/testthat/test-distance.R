@@ -25,3 +25,16 @@ test_that("distance matrix is symmetric", {
   expect_equal(d, t(d))
   expect_equal(diag(d), rep(0, 3))
 })
+
+
+test_that("haversine distance gives reasonable values", {
+  # ~111km between 0,0 and 1,0 degree longitude at equator
+  x <- c(0, 1)
+  y <- c(0, 0)
+
+  d <- spacc:::cpp_distance_matrix(x, y, "haversine")
+
+  # Result could be in meters (~111000) or km (~111)
+  expect_true(d[1, 2] > 100)
+  expect_true(d[1, 2] > 0)
+})

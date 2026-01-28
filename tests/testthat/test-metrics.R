@@ -105,3 +105,63 @@ test_that("print and summary methods work", {
   expect_output(print(result), "spacc_metrics")
   expect_output(summary(result), "Metric summary")
 })
+
+
+test_that("final_richness metric works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spaccMetrics(species, coords,
+                         metrics = c("final_richness"),
+                         parallel = FALSE, progress = FALSE)
+
+  expect_true(all(result$metrics$final_richness > 0))
+  expect_true(all(result$metrics$final_richness <= 8))
+})
+
+
+test_that("richness_75pct and richness_90pct work", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spaccMetrics(species, coords,
+                         metrics = c("richness_75pct", "richness_90pct"),
+                         parallel = FALSE, progress = FALSE)
+
+  expect_true(all(result$metrics$richness_75pct >= 1))
+  expect_true(all(result$metrics$richness_90pct >= result$metrics$richness_75pct))
+})
+
+
+test_that("spaccMetrics with spacc_dist coords", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  d <- distances(coords)
+  result <- spaccMetrics(species, d,
+                         metrics = c("slope_10", "auc"),
+                         parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_metrics")
+})
+
+
+test_that("spaccMetrics errors on unknown metric", {
+  coords <- data.frame(x = 1:5, y = 1:5)
+  species <- matrix(rbinom(5 * 3, 1, 0.5), nrow = 5)
+
+  expect_error(
+    spaccMetrics(species, coords, metrics = c("nonexistent"),
+                 parallel = FALSE, progress = FALSE),
+    "Unknown metric"
+  )
+})

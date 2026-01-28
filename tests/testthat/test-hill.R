@@ -87,3 +87,49 @@ test_that("Species richness (q=0) is monotonically non-decreasing", {
                 info = paste("q = 0, seed =", seed))
   }
 })
+
+
+test_that("spaccHill print works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 2), nrow = 20)
+
+  result <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_output(print(result), "spacc Hill")
+})
+
+
+test_that("spaccHill summary returns data.frame", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 2), nrow = 20)
+
+  result <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("q" %in% names(summ) || "q_label" %in% names(summ))
+  expect_true("mean" %in% names(summ))
+})
+
+
+test_that("spaccHill with spacc_dist coords", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+
+  d <- distances(coords)
+  result <- spaccHill(species, d, q = c(0, 1), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_hill")
+})

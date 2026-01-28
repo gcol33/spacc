@@ -129,3 +129,52 @@ test_that("print.spacc_fit works", {
 
   expect_output(print(fit), "Extrapolation")
 })
+
+
+test_that("summary.spacc_fit returns nls summary", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  fit <- extrapolate(sac, model = "michaelis-menten")
+
+  summ <- summary(fit)
+  expect_true(!is.null(summ))
+})
+
+
+test_that("confint.spacc_fit works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  fit <- extrapolate(sac, model = "michaelis-menten")
+
+  ci <- confint(fit)
+  expect_true(is.matrix(ci) || is.numeric(ci))
+})
+
+
+test_that("predict.spacc_fit extrapolates beyond observed", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  fit <- extrapolate(sac, model = "michaelis-menten")
+
+  preds <- predict(fit, n = c(50, 100, 200))
+  expect_length(preds, 3)
+  expect_true(all(diff(preds) >= 0))
+})

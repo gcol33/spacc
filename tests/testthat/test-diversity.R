@@ -115,3 +115,49 @@ test_that("diversityPartition beta >= 1", {
 
   expect_true(all(result$beta >= 1 - 1e-10))
 })
+
+
+test_that("diversityPartition print works", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityPartition(species, q = c(0, 1, 2))
+
+  expect_output(print(result), "Diversity Partition")
+})
+
+
+test_that("diversityPartition summary returns data.frame", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityPartition(species, q = c(0, 1, 2))
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("beta_normalized" %in% names(summ))
+})
+
+
+test_that("alphaDiversity spacc_alpha print works", {
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  result <- alphaDiversity(species, q = c(0, 1, 2), coords = coords)
+
+  expect_output(print(result), "spacc alpha diversity")
+})
+
+
+test_that("alphaDiversity spacc_alpha summary returns data.frame", {
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  result <- alphaDiversity(species, q = c(0, 1, 2), coords = coords)
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("mean" %in% names(summ))
+})
