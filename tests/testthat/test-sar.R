@@ -287,3 +287,91 @@ test_that("spaccEndemism with spacc_dist coords", {
 
   expect_s3_class(result, "spacc_endemism")
 })
+
+
+test_that("dar with convex_hull area_method works", {
+  skip_on_cran()
+  skip_if_not_installed("sf")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 2), nrow = 20)
+
+  result <- dar(species, coords, q = 0, n_seeds = 3,
+                area_method = "convex_hull",
+                parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_dar")
+  expect_equal(result$area_method, "convex_hull")
+})
+
+
+test_that("dar plot with log_scale works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 2), nrow = 20)
+
+  result <- dar(species, coords, q = c(0, 1), n_seeds = 3,
+                area_method = "count",
+                parallel = FALSE, progress = FALSE, seed = 1)
+
+  p <- plot(result, log_scale = TRUE)
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("sesars plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  effort <- rpois(20, 10) + 1
+
+  result <- sesars(sac, effort, model = "power")
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("sfar plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  patches <- rep(1:4, each = 5)
+
+  result <- sfar(sac, patches)
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("spaccEndemism plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.3), nrow = 20)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+})

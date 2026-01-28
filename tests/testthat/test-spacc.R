@@ -276,3 +276,293 @@ test_that("spacc with data.frame input converts to matrix", {
 
   expect_s3_class(result, "spacc")
 })
+
+
+test_that("spacc with groups argument works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+  groups <- rep(c("native", "alien"), c(4, 4))
+
+  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+                  groups = groups,
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_true(spacc:::is_grouped(result))
+  expect_equal(result$group_names, c("native", "alien"))
+})
+
+
+test_that("spacc with collector method works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "collector",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$n_seeds, 1L)
+})
+
+
+test_that("spacc with random method works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "random",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$method, "random")
+})
+
+
+test_that("spacc with kncn method works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "kncn",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$method, "kncn")
+})
+
+
+test_that("spacc with kncn kdtree backend works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "kncn",
+                  backend = "kdtree",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$backend, "kdtree")
+})
+
+
+test_that("spacc with knn exact backend works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+                  backend = "exact",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$backend, "exact")
+})
+
+
+test_that("spacc with gaussian method works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "gaussian",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$method, "gaussian")
+})
+
+
+test_that("spacc with spatiotemporal distance works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+  time <- runif(15, 0, 10)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+                  time = time, w_space = 1, w_time = 1,
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_true(!is.null(result$time))
+})
+
+
+test_that("spacc spatiotemporal errors for unsupported method", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+  time <- runif(15, 0, 10)
+
+  expect_error(
+    spacc(species, coords, n_seeds = 3, method = "cone",
+          time = time, w_space = 1, w_time = 1,
+          parallel = FALSE, progress = FALSE, seed = 1),
+    "Spatiotemporal"
+  )
+})
+
+
+test_that("spacc with kncn haversine distance works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15, -10, 10), y = runif(15, 40, 50))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spacc(species, coords, n_seeds = 3, method = "kncn",
+                  distance = "haversine", backend = "kdtree",
+                  parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc")
+  expect_equal(result$distance, "haversine")
+})
+
+
+test_that("wavefront with spacc_dist input works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  d <- distances(coords)
+  result <- wavefront(species, d, n_seeds = 3,
+                      progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_wavefront")
+})
+
+
+test_that("wavefront returns correct structure", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- wavefront(species, coords, n_seeds = 3,
+                      progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_wavefront")
+  expect_equal(result$n_sites, 20)
+  expect_equal(result$n_seeds, 3)
+  expect_true(length(result$radius) > 0)
+})
+
+
+test_that("wavefront print works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- wavefront(species, coords, n_seeds = 3,
+                      progress = FALSE, seed = 1)
+
+  expect_output(print(result), "wavefront")
+})
+
+
+test_that("wavefront summary returns data.frame", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- wavefront(species, coords, n_seeds = 3,
+                      progress = FALSE, seed = 1)
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("radius" %in% names(summ))
+  expect_true("mean_species" %in% names(summ))
+})
+
+
+test_that("wavefront plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- wavefront(species, coords, n_seeds = 3,
+                      progress = FALSE, seed = 1)
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+
+  p2 <- plot(result, xaxis = "sites", ci = FALSE)
+  expect_s3_class(p2, "ggplot")
+})
+
+
+test_that("distanceDecay returns correct structure", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- distanceDecay(species, coords, n_seeds = 3,
+                          progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_decay")
+  expect_true(length(result$breaks) > 0)
+})
+
+
+test_that("distanceDecay print works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- distanceDecay(species, coords, n_seeds = 3,
+                          progress = FALSE, seed = 1)
+
+  expect_output(print(result), "distance-decay")
+})
+
+
+test_that("distanceDecay plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
+
+  result <- distanceDecay(species, coords, n_seeds = 3,
+                          progress = FALSE, seed = 1)
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+
+  p2 <- plot(result, ci = FALSE)
+  expect_s3_class(p2, "ggplot")
+})

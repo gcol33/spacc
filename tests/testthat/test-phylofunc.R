@@ -312,3 +312,77 @@ test_that("spaccFunc as_sf errors without map data", {
 
   expect_error(as_sf(result), "No map data")
 })
+
+
+test_that("spaccPhylo with map=TRUE works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  result <- spaccPhylo(species, coords, phylo_dist,
+                       metric = "mpd", n_seeds = 3, map = TRUE,
+                       parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_phylo")
+  expect_true(!is.null(result$site_values))
+})
+
+
+test_that("spaccFunc with map=TRUE works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+  traits <- matrix(rnorm(8 * 3), nrow = 8)
+
+  result <- spaccFunc(species, coords, traits,
+                      metric = "fdis", n_seeds = 3, map = TRUE,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_func")
+  expect_true(!is.null(result$site_values))
+})
+
+
+test_that("plot.spacc_phylo map errors without map data", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  phylo_dist <- matrix(runif(8 * 8), nrow = 8)
+  phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
+  diag(phylo_dist) <- 0
+
+  result <- spaccPhylo(species, coords, phylo_dist,
+                       metric = "mpd", n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+
+  expect_error(plot(result, type = "map"), "map")
+})
+
+
+test_that("plot.spacc_func map errors without map data", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+  traits <- matrix(rnorm(8 * 3), nrow = 8)
+
+  result <- spaccFunc(species, coords, traits,
+                      metric = "fdis", n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_error(plot(result, type = "map"), "map")
+})

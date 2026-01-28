@@ -133,3 +133,64 @@ test_that("spaccHill with spacc_dist coords", {
 
   expect_s3_class(result, "spacc_hill")
 })
+
+
+test_that("spaccHill with map=TRUE works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+
+  result <- spaccHill(species, coords, q = c(0, 1), n_seeds = 3,
+                      map = TRUE,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_hill")
+  expect_true(!is.null(result$site_values))
+})
+
+
+test_that("plot.spacc_hill with curve type works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+
+  result <- spaccHill(species, coords, q = c(0, 1), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  p <- plot(result, ci = FALSE)
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("plot.spacc_hill map errors without map data", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+
+  result <- spaccHill(species, coords, q = c(0, 1), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_error(plot(result, type = "map"), "map")
+})
+
+
+test_that("as_sf.spacc_hill errors without map data", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 2), nrow = 15)
+
+  result <- spaccHill(species, coords, q = c(0, 1), n_seeds = 3,
+                      parallel = FALSE, progress = FALSE)
+
+  expect_error(as_sf(result), "map")
+})

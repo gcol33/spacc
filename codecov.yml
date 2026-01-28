@@ -7,3 +7,6 @@ coverage:
 ignore:
   - "inst/include/**"
   - "src/nanoflann.hpp"
+  - "src/RcppExports.cpp"
+  - "src/balltree.h"
+  - "src/kdtree_adapter.h"

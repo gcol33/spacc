@@ -161,3 +161,57 @@ test_that("alphaDiversity spacc_alpha summary returns data.frame", {
   expect_s3_class(summ, "data.frame")
   expect_true("mean" %in% names(summ))
 })
+
+
+test_that("plot.spacc_alpha histogram works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  result <- alphaDiversity(species, q = c(0, 1, 2), coords = coords)
+
+  p <- plot(result, type = "histogram")
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("plot.spacc_alpha map errors without coords", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  # No coords -> plain data.frame, not spacc_alpha
+  result <- alphaDiversity(species, q = c(0, 1))
+  expect_false(inherits(result, "spacc_alpha"))
+})
+
+
+test_that("diversityPartition with weights works", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityPartition(species, q = c(0, 1, 2), weights = "proportional")
+
+  expect_s3_class(result, "spacc_partition")
+  expect_true(all(result$beta >= 1 - 1e-10))
+})
+
+
+test_that("plot.spacc_partition works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityPartition(species, q = c(0, 1, 2), coords = coords)
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+})

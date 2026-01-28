@@ -1,0 +1,181 @@
+---
+title: "Spatial Analysis: Endemism, Fragmentation, and SAR"
+author: "Gilles Colling"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spatial Analysis: Endemism, Fragmentation, and SAR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  dev = "svglite",
+  fig.ext = "svg"
+)
+```
+
+## Overview
+
+spacc includes tools for conservation-oriented spatial analyses:
+endemism-area curves, fragmentation effects on species richness (SFAR),
+and sampling-effort correction for species-area relationships (SESARS).
+
+## Data Setup
+
+```{r simulate}
+library(spacc)
+
+set.seed(42)
+n_sites <- 80
+n_species <- 40
+
+coords <- data.frame(
+  x = runif(n_sites, 0, 100),
+  y = runif(n_sites, 0, 100)
+)
+
+# Species with varying range sizes (some endemic, some widespread)
+species <- matrix(0L, n_sites, n_species)
+for (sp in seq_len(n_species)) {
+  cx <- runif(1, 10, 90)
+  cy <- runif(1, 10, 90)
+  # First 10 species are narrow-ranged (endemics)
+  spread <- if (sp <= 10) 0.005 else 0.001
+  prob <- exp(-spread * ((coords$x - cx)^2 + (coords$y - cy)^2))
+  species[, sp] <- rbinom(n_sites, 1, prob)
+}
+colnames(species) <- paste0("sp", seq_len(n_species))
+```
+
+## Endemism-Area Curves
+
+`spaccEndemism()` tracks how many species are endemic (restricted) to the
+set of sites visited so far. As the sampled area expands, the number of
+endemic species initially rises then falls as widespread species are
+encountered:
+
+```{r endemism}
+end <- spaccEndemism(species, coords, n_seeds = 20, progress = FALSE)
+end
+```
+
+```{r plot-endemism, fig.cap = "Endemism-area curve showing endemic species as area expands."}
+plot(end)
+```
+
+The endemism curve is informative for identifying irreplaceable sites —
+areas where unique species would be lost if not protected.
+
+## Species-Fragmented Area Relationship (SFAR)
+
+`sfar()` fits the SFAR model (Hanski et al. 2013), which quantifies how
+habitat fragmentation (number of fragments) reduces species richness
+beyond what area loss alone predicts:
+
+$$\log(S) = c + z \cdot \log(A) + f \cdot \log(n)$$
+
+where $S$ is species richness, $A$ is total area, $n$ is number of
+fragments, and $f$ is the fragmentation exponent.
+
+```{r sfar}
+# Create fragmentation scenarios
+set.seed(123)
+n_scenarios <- 30
+scenarios <- data.frame(
+  richness = numeric(n_scenarios),
+  area = numeric(n_scenarios),
+  n_fragments = integer(n_scenarios)
+)
+
+for (i in seq_len(n_scenarios)) {
+  n_frag <- sample(1:5, 1)
+  n_sub <- sample(20:n_sites, 1)
+  idx <- sample(n_sites, n_sub)
+  scenarios$richness[i] <- sum(colSums(species[idx, , drop = FALSE]) > 0)
+  scenarios$area[i] <- n_sub * 1.5  # proxy area
+  scenarios$n_fragments[i] <- n_frag
+}
+
+sfar_fit <- sfar(scenarios$richness, scenarios$area, scenarios$n_fragments)
+sfar_fit
+```
+
+```{r plot-sfar, fig.cap = "Species-Fragmented Area Relationship."}
+plot(sfar_fit)
+```
+
+A negative fragmentation exponent $f$ indicates that splitting habitat
+into more fragments reduces species richness beyond the area effect.
+
+## Sampling-Effort Corrected SAR (SESARS)
+
+`sesars()` fits a species-area relationship corrected for variation in
+sampling effort across sites, avoiding the bias that arises when
+species-poor areas are also under-sampled:
+
+$$\log(S) = c + z \cdot \log(A) + e \cdot \log(E)$$
+
+```{r sesars}
+# Simulate varying effort
+effort <- rpois(n_scenarios, 10) + 1
+
+sesars_fit <- sesars(scenarios$richness, scenarios$area, effort)
+sesars_fit
+```
+
+```{r plot-sesars, fig.cap = "Sampling-effort corrected SAR."}
+plot(sesars_fit)
+```
+
+## Per-Site Metrics for Spatial Prioritisation
+
+`spaccMetrics()` computes accumulation metrics from every site as a
+starting point. This reveals spatial variation in diversity accumulation
+rates, useful for conservation planning:
+
+```{r metrics}
+met <- spaccMetrics(species, coords,
+                    metrics = c("slope_10", "half_richness", "auc"),
+                    progress = FALSE)
+```
+
+```{r plot-metrics, fig.cap = "Spatial heatmap of initial accumulation slope."}
+plot(met, metric = "slope_10", type = "heatmap")
+```
+
+Sites with steep initial slopes represent areas where many species are
+concentrated — potential biodiversity hotspots.
+
+## Spatial Subsampling
+
+`subsample()` reduces spatial autocorrelation when preparing data for
+macroecological analyses:
+
+```{r subsample}
+# Grid-based thinning
+keep <- subsample(coords, method = "grid", cell_size = 20)
+length(keep)
+
+# Compare thinned vs full SAC
+sac_full <- spacc(species, coords, n_seeds = 20, progress = FALSE)
+sac_thin <- spacc(species[keep, ], coords[keep, ], n_seeds = 20, progress = FALSE)
+combined <- c(full = sac_full, thinned = sac_thin)
+```
+
+```{r plot-subsample, fig.cap = "Effect of spatial thinning on SAC."}
+plot(combined)
+```
+
+## References
+
+- Hanski, I., Zurita, G.A., Bellocq, M.I. & Rybicki, J. (2013).
+  Species-fragmented area relationship. Proceedings of the National
+  Academy of Sciences, 110, 12715-12720.
+- Aiello-Lammens, M.E., Boria, R.A., Radosavljevic, A., et al. (2015).
+  spThin: an R package for spatial thinning. Ecography, 38, 541-545.

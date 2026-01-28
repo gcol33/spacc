@@ -178,3 +178,37 @@ test_that("predict.spacc_fit extrapolates beyond observed", {
   expect_length(preds, 3)
   expect_true(all(diff(preds) >= 0))
 })
+
+
+test_that("extrapolate with logistic model works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+
+  fit <- extrapolate(sac, model = "logistic")
+
+  expect_s3_class(fit, "spacc_fit")
+  expect_equal(fit$model, "logistic")
+})
+
+
+test_that("extrapolate plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
+
+  sac <- spacc(species, coords, n_seeds = 5, method = "knn",
+               parallel = FALSE, progress = FALSE, seed = 1)
+  fit <- extrapolate(sac, model = "michaelis-menten")
+
+  p <- plot(fit)
+  expect_s3_class(p, "ggplot")
+})

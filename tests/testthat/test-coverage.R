@@ -179,3 +179,156 @@ test_that("interpolateCoverage returns correct structure", {
   expect_equal(nrow(result), 3)
   expect_equal(names(result), c("C90", "C95"))
 })
+
+
+test_that("extrapolateCoverage returns correct structure", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99))
+
+  expect_s3_class(ext, "spacc_coverage_ext")
+  expect_equal(ext$target_coverage, c(0.95, 0.99))
+  expect_equal(nrow(ext$richness), 3)
+  expect_equal(ncol(ext$richness), 2)
+})
+
+
+test_that("extrapolateCoverage with q=1 works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  ext <- extrapolateCoverage(cov, target_coverage = c(0.99), q = 1)
+
+  expect_s3_class(ext, "spacc_coverage_ext")
+  expect_equal(ext$q, 1)
+})
+
+
+test_that("extrapolateCoverage with q=2 works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  ext <- extrapolateCoverage(cov, target_coverage = c(0.99), q = 2)
+
+  expect_s3_class(ext, "spacc_coverage_ext")
+  expect_equal(ext$q, 2)
+})
+
+
+test_that("extrapolateCoverage print works", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99))
+
+  expect_output(print(ext), "Coverage-based extrapolation")
+})
+
+
+test_that("extrapolateCoverage summary returns data.frame", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99))
+
+  summ <- summary(ext)
+  expect_s3_class(summ, "data.frame")
+  expect_true("mean_richness" %in% names(summ))
+})
+
+
+test_that("extrapolateCoverage plot returns ggplot", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99))
+
+  p <- plot(ext)
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("plot.spacc_coverage with different xaxis works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  p1 <- plot(cov, xaxis = "coverage")
+  expect_s3_class(p1, "ggplot")
+
+  p2 <- plot(cov, xaxis = "individuals")
+  expect_s3_class(p2, "ggplot")
+})
+
+
+test_that("plot.spacc_coverage map errors without map data", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_error(plot(cov, type = "map"), "map")
+})
+
+
+test_that("as_sf.spacc_coverage errors without map data", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  cov <- spaccCoverage(species, coords, n_seeds = 3,
+                        parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_error(as_sf(cov), "map")
+})

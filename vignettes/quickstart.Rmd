@@ -1,0 +1,129 @@
+---
+title: "Getting Started with spacc"
+author: "Gilles Colling"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with spacc}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  dev = "svglite",
+  fig.ext = "svg"
+)
+```
+
+## Overview
+
+**spacc** computes spatial species accumulation curves (SACs) using
+nearest-neighbour algorithms with a C++ backend for speed. Unlike
+classical random SACs, spatial SACs respect the geographic arrangement of
+sampling sites, revealing how species richness accumulates as you expand
+outward from a focal point.
+
+## Simulating Example Data
+
+```{r simulate}
+library(spacc)
+
+set.seed(42)
+n_sites <- 80
+n_species <- 40
+
+coords <- data.frame(
+  x = runif(n_sites, 0, 100),
+  y = runif(n_sites, 0, 100)
+)
+
+# Simulate presence/absence with spatial structure
+species <- matrix(0L, n_sites, n_species)
+for (sp in seq_len(n_species)) {
+  cx <- runif(1, 20, 80)
+  cy <- runif(1, 20, 80)
+  prob <- exp(-0.001 * ((coords$x - cx)^2 + (coords$y - cy)^2))
+  species[, sp] <- rbinom(n_sites, 1, prob)
+}
+colnames(species) <- paste0("sp", seq_len(n_species))
+```
+
+## Basic Spatial Accumulation Curve
+
+The core function `spacc()` computes kNN-based accumulation curves from
+multiple random starting sites (seeds):
+```{r basic-sac}
+sac <- spacc(species, coords, n_seeds = 30, method = "knn", progress = FALSE)
+sac
+```
+
+```{r plot-sac, fig.cap = "Spatial species accumulation curve with 95% confidence ribbon."}
+plot(sac)
+```
+
+The grey ribbon shows variability across starting points — wider ribbons
+indicate that species richness depends on *where* you start sampling.
+
+## Comparing Methods
+
+spacc supports several accumulation methods:
+
+- **knn**: k-Nearest Neighbour (default, fast)
+
+- **kncn**: k-Nearest Centroid Neighbour (geometrically centred expansion)
+
+- **random**: Classical random accumulation (no spatial structure)
+
+```{r compare-methods}
+sac_kncn <- spacc(species, coords, n_seeds = 30, method = "kncn", progress = FALSE)
+sac_rand <- spacc(species, coords, n_seeds = 30, method = "random", progress = FALSE)
+```
+
+Combine curves for comparison:
+```{r combine, fig.cap = "Comparison of accumulation methods."}
+combined <- c(knn = sac, kncn = sac_kncn, random = sac_rand)
+plot(combined)
+```
+
+## Extrapolation
+
+Fit an asymptotic model to estimate total species richness:
+```{r extrapolate}
+fit <- extrapolate(sac, model = "lomolino")
+fit
+```
+
+```{r plot-fit, fig.cap = "Fitted Lomolino curve with asymptote estimate."}
+plot(fit)
+```
+
+## Pre-computing Distances
+
+For repeated analyses on the same sites, pre-compute the distance matrix once:
+```{r distances}
+d <- distances(coords, method = "euclidean")
+
+sac1 <- spacc(species[, 1:20], d, n_seeds = 30, progress = FALSE)
+sac2 <- spacc(species[, 21:40], d, n_seeds = 30, progress = FALSE)
+```
+
+## Comparing Curves
+
+Test whether two accumulation curves differ significantly:
+```{r compare-test}
+comp <- compare(sac1, sac2, method = "permutation", n_perm = 199)
+comp
+```
+
+## Next Steps
+- [Diversity](diversity.html): Hill numbers, beta diversity, phylogenetic
+  and functional diversity accumulation
+- [Extrapolation](extrapolation.html): Coverage-based extrapolation, EVT
+  models, diversity-area relationships
+- [Spatial Analysis](spatial-analysis.html): Endemism curves, fragmentation
+  analysis, sampling-effort correction

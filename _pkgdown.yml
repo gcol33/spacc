@@ -12,6 +12,7 @@ navbar:
   structure:
     left:
     - intro
+    - articles
     - reference
     - news
     right:
@@ -22,6 +23,17 @@ navbar:
     github:
       icon: fab fa-github
       href: https://github.com/gcol33/spacc
+articles:
+- title: Getting Started
+  navbar: Getting Started
+  contents:
+  - quickstart
+- title: Practical Guides
+  navbar: Guides
+  contents:
+  - diversity
+  - extrapolation
+  - spatial-analysis
 reference:
 - title: Core Functions
   desc: Main spatial accumulation functions
@@ -30,28 +42,32 @@ reference:
   - wavefront
   - distanceDecay
   - distances
-- title: Hill Numbers
-  desc: Diversity accumulation with Hill numbers (q=0,1,2)
-  contents: spaccHill
-- title: Beta Diversity
-  desc: Spatial beta diversity with turnover/nestedness partitioning
-  contents: spaccBeta
-- title: Coverage-Based Rarefaction
-  desc: Standardize by sample completeness
-  contents:
-  - spaccCoverage
-  - interpolateCoverage
-- title: Phylogenetic & Functional Diversity
-  desc: Accumulation of PD and FD metrics
-  contents:
-  - spaccPhylo
-  - spaccFunc
 - title: Diversity
   desc: Alpha, beta, and gamma diversity partitioning
   contents:
   - alphaDiversity
   - gammaDiversity
   - diversityPartition
+- title: Hill Numbers
+  desc: Diversity accumulation with Hill numbers (q=0,1,2)
+  contents: spaccHill
+- title: Beta Diversity
+  desc: Spatial beta diversity with turnover/nestedness partitioning
+  contents:
+  - spaccBeta
+  - spaccBetaFunc
+  - spaccBetaPhylo
+- title: Phylogenetic & Functional Diversity
+  desc: Accumulation of PD and FD metrics
+  contents:
+  - spaccPhylo
+  - spaccFunc
+- title: Coverage-Based Rarefaction
+  desc: Standardize by sample completeness
+  contents:
+  - spaccCoverage
+  - interpolateCoverage
+  - extrapolateCoverage
 - title: Per-Site Metrics
   desc: Extract metrics per starting site for heatmap visualization
   contents:
@@ -64,6 +80,13 @@ reference:
   - mao_tau
   - collector
   - spatialRarefaction
+- title: Species-Area Relationships
+  desc: Diversity-area relationships, endemism, fragmentation
+  contents:
+  - dar
+  - spaccEndemism
+  - sesars
+  - sfar
 - title: Analysis
   desc: Post-hoc analysis of accumulation curves
   contents:

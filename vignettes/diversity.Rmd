@@ -1,0 +1,208 @@
+---
+title: "Diversity Accumulation"
+author: "Gilles Colling"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Diversity Accumulation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  dev = "svglite",
+  fig.ext = "svg"
+)
+```
+
+## Overview
+
+Beyond simple species richness (q=0), spacc supports accumulation curves
+for the full family of Hill numbers, beta diversity partitioning,
+phylogenetic diversity, and functional diversity. This vignette
+demonstrates each approach.
+
+## Simulating Data
+
+```{r simulate}
+library(spacc)
+
+set.seed(123)
+n_sites <- 60
+n_species <- 30
+
+coords <- data.frame(
+  x = runif(n_sites, 0, 100),
+  y = runif(n_sites, 0, 100)
+)
+
+# Abundance matrix with spatial clustering
+species <- matrix(0L, n_sites, n_species)
+for (sp in seq_len(n_species)) {
+  cx <- runif(1, 10, 90)
+  cy <- runif(1, 10, 90)
+  lambda <- 5 * exp(-0.001 * ((coords$x - cx)^2 + (coords$y - cy)^2))
+  species[, sp] <- rpois(n_sites, lambda)
+}
+colnames(species) <- paste0("sp", seq_len(n_species))
+```
+
+## Alpha, Beta, and Gamma Diversity
+
+spacc provides functions for the multiplicative decomposition of
+diversity into alpha (local), beta (turnover), and gamma (regional)
+components (Jost 2007):
+
+```{r abg}
+# Alpha diversity: per-site Hill numbers
+alpha <- alphaDiversity(species, q = c(0, 1, 2))
+colMeans(alpha)
+
+# Gamma diversity: pooled regional diversity
+gamma <- gammaDiversity(species, q = c(0, 1, 2))
+gamma
+
+# Full partition: gamma = alpha * beta
+partition <- diversityPartition(species, q = c(0, 1, 2))
+partition
+```
+
+## Hill Number Accumulation
+
+Hill numbers unify richness (q=0), Shannon diversity (exponential, q=1),
+and Simpson diversity (inverse, q=2) into a single framework
+(Jost 2007, Chao et al. 2014):
+
+```{r hill}
+hill <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-hill, fig.cap = "Hill number accumulation for q = 0, 1, 2."}
+plot(hill)
+```
+
+Higher-order q values emphasise dominant species, so diversity
+accumulates more slowly at q=2 compared to q=0.
+
+## Beta Diversity
+
+`spaccBeta()` partitions spatial beta diversity into turnover and
+nestedness components (Baselga 2010):
+
+```{r beta}
+pa <- (species > 0) * 1L
+beta <- spaccBeta(pa, coords, n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-beta, fig.cap = "Spatial beta diversity accumulation with turnover/nestedness."}
+plot(beta)
+```
+
+Turnover reflects species replacement along spatial gradients, while
+nestedness captures diversity loss at species-poor sites.
+
+### Functional Beta Diversity
+
+`spaccBetaFunc()` weights beta diversity by trait dissimilarity
+(Baselga 2012):
+
+```{r beta-func}
+# Simulate two continuous traits
+traits <- data.frame(
+  body_size = rnorm(n_species),
+  wing_length = rnorm(n_species)
+)
+rownames(traits) <- colnames(species)
+
+beta_func <- spaccBetaFunc(pa, coords, traits, n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-beta-func, fig.cap = "Functional beta diversity accumulation."}
+plot(beta_func)
+```
+
+### Phylogenetic Beta Diversity
+
+`spaccBetaPhylo()` uses phylogenetic distances to weight beta diversity
+(Chao et al. 2023):
+
+```{r beta-phylo, eval = requireNamespace("ape", quietly = TRUE)}
+library(ape)
+tree <- rcoal(n_species, tip.label = colnames(species))
+
+beta_phylo <- spaccBetaPhylo(pa, coords, tree, n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-beta-phylo, fig.cap = "Phylogenetic beta diversity accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
+plot(beta_phylo)
+```
+
+## Phylogenetic Diversity Accumulation
+
+`spaccPhylo()` tracks phylogenetic diversity metrics (MPD, MNTD,
+Faith's PD) as sites accumulate spatially:
+
+```{r phylo, eval = requireNamespace("ape", quietly = TRUE)}
+phylo_acc <- spaccPhylo(pa, coords, tree,
+                        metric = c("mpd", "mntd", "pd"),
+                        n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-phylo, fig.cap = "Phylogenetic diversity accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
+plot(phylo_acc)
+```
+
+## Functional Diversity Accumulation
+
+`spaccFunc()` tracks functional diversity metrics (FDis, FRic) as sites
+accumulate:
+
+```{r func}
+func_acc <- spaccFunc(species, coords, traits,
+                      metric = c("fdis"),
+                      n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-func, fig.cap = "Functional diversity accumulation."}
+plot(func_acc)
+```
+
+## Coverage-Based Rarefaction
+
+`spaccCoverage()` computes accumulation curves with sample coverage
+tracking (Chao & Jost 2012), enabling standardization by completeness:
+
+```{r coverage}
+cov <- spaccCoverage(species, coords, n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-coverage, fig.cap = "Coverage-based spatial rarefaction."}
+plot(cov)
+```
+
+Interpolate richness at specific coverage targets:
+```{r interpolate}
+interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
+summary(interp)
+```
+
+## References
+
+- Baselga, A. (2010). Partitioning the turnover and nestedness components
+  of beta diversity. Global Ecology and Biogeography, 19, 134-143.
+- Baselga, A. (2012). The relationship between species replacement,
+  dissimilarity derived from nestedness, and nestedness. Global Ecology
+  and Biogeography, 21, 1223-1232.
+- Chao, A. & Jost, L. (2012). Coverage-based rarefaction and
+  extrapolation. Ecology, 93, 2533-2547.
+- Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+  extrapolation with Hill numbers. Ecological Monographs, 84, 45-67.
+- Faith, D.P. (1992). Conservation evaluation and phylogenetic diversity.
+  Biological Conservation, 61, 1-10.
+- Jost, L. (2007). Partitioning diversity into independent alpha and beta
+  components. Ecology, 88, 2427-2439.

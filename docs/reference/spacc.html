@@ -30,7 +30,18 @@ with C++ backend for performance."></head><body><p>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="../articles/quickstart.html">Getting Started with spacc</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/diversity.html">Diversity Accumulation</a></li>
+    <li><a class="dropdown-item" href="../articles/extrapolation.html">Extrapolation and Species-Area Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-analysis.html">Spatial Analysis: Endemism, Fragmentation, and SAR</a></li>
+  </ul></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -129,7 +140,9 @@ large datasets, no distance matrix needed.</p></li>
 
 <dt id="arg-support">support<a class="anchor" aria-label="anchor" href="#arg-support"></a></dt>
 <dd><p>Optional. Spatial support for core/halo classification via
-<code><a href="https://gcol33.github.io/areaOfEffect/reference/aoe.html" class="external-link">areaOfEffect::aoe()</a></code>. Can be:</p><ul><li><p>Country name or ISO code: <code>"France"</code>, <code>"FR"</code>, <code>"FRA"</code></p></li>
+<code><a href="https://gcol33.github.io/areaOfEffect/reference/aoe.html" class="external-link">areaOfEffect::aoe()</a></code>. Can be:</p><ul><li><p><code>"auto"</code>: Auto-detect countries and run per-country accumulation,
+returning a grouped <code>spacc</code> object with one curve per country</p></li>
+<li><p>Country name or ISO code: <code>"France"</code>, <code>"FR"</code>, <code>"FRA"</code></p></li>
 <li><p>Vector of countries: <code>c("France", "Germany")</code></p></li>
 <li><p>An <code>sf</code> polygon object</p></li>
 <li><p>An <code>aoe_result</code> object (pre-computed)
@@ -215,6 +228,15 @@ Default 1.</p></dd>
 <dd><p>Total species in dataset</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
+    <p>Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.</p>
+<p>Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
+and Biogeography, 12, 441-447.</p>
+<p>Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
+in using species diversity for assessing biodiversity. Philosophical
+Transactions of the Royal Society B, 366, 2426-2437.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
