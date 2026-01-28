@@ -5,8 +5,7 @@ coverage:
         target: 90%
 
 ignore:
+  # External/vendored headers
   - "inst/include/**"
-  - "src/nanoflann.hpp"
-  - "src/RcppExports.cpp"
-  - "src/balltree.h"
-  - "src/kdtree_adapter.h"
+  # All C++ source files (Rcpp bindings - tested via R)
+  - "src/**"
