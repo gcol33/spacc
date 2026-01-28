@@ -154,10 +154,22 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
                           NumericMatrix site_dist_mat,
                           NumericMatrix phylo_dist_mat,
                           int seed,
-                          CharacterVector metrics) {
+                          CharacterVector metrics,
+                          Rcpp::Nullable<IntegerMatrix> tree_edge = R_NilValue,
+                          Rcpp::Nullable<NumericVector> tree_edge_length = R_NilValue,
+                          int tree_n_tips = 0) {
   int n_sites = species_pa.nrow();
   int n_species = species_pa.ncol();
   int n_metrics = metrics.size();
+
+  // Check if PD is requested and tree data is available
+  bool has_tree = tree_edge.isNotNull() && tree_edge_length.isNotNull();
+  IntegerMatrix edge_mat;
+  NumericVector edge_len;
+  if (has_tree) {
+    edge_mat = Rcpp::as<IntegerMatrix>(tree_edge);
+    edge_len = Rcpp::as<NumericVector>(tree_edge_length);
+  }
 
   // Output matrices: one row per metric
   NumericMatrix results(n_metrics, n_sites);
@@ -182,6 +194,8 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
       results(m, 0) = calc_mpd(phylo_dist_mat, species_present, false, NumericVector());
     } else if (metric == "mntd") {
       results(m, 0) = calc_mntd(phylo_dist_mat, species_present, false, NumericVector());
+    } else if (metric == "pd" && has_tree) {
+      results(m, 0) = calc_faith_pd(edge_mat, edge_len, tree_n_tips, species_present);
     } else {
       results(m, 0) = NA_REAL;
     }
@@ -214,6 +228,8 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
         results(m, step) = calc_mpd(phylo_dist_mat, species_present, false, NumericVector());
       } else if (metric == "mntd") {
         results(m, step) = calc_mntd(phylo_dist_mat, species_present, false, NumericVector());
+      } else if (metric == "pd" && has_tree) {
+        results(m, step) = calc_faith_pd(edge_mat, edge_len, tree_n_tips, species_present);
       } else {
         results(m, step) = NA_REAL;
       }
@@ -242,7 +258,10 @@ List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
                             int n_seeds,
                             CharacterVector metrics,
                             int n_cores = 1,
-                            bool progress = false) {
+                            bool progress = false,
+                            Rcpp::Nullable<IntegerMatrix> tree_edge = R_NilValue,
+                            Rcpp::Nullable<NumericVector> tree_edge_length = R_NilValue,
+                            int tree_n_tips = 0) {
   int n_sites = species_pa.nrow();
   int n_metrics = metrics.size();
 
@@ -258,7 +277,8 @@ List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
   // Sequential for now (parallelization would require more complex setup)
   for (int s = 0; s < n_seeds; s++) {
     List single = cpp_phylo_knn_single(species_pa, site_dist_mat,
-                                        phylo_dist_mat, seeds[s], metrics);
+                                        phylo_dist_mat, seeds[s], metrics,
+                                        tree_edge, tree_edge_length, tree_n_tips);
 
     for (int m = 0; m < n_metrics; m++) {
       NumericMatrix mat = out[m];

@@ -35,3 +35,10 @@ An object of class \code{spacc_decay} with distance-species relationships.
 \description{
 Analyze how species richness changes with distance from focal points.
 }
+\references{
+Nekola, J.C. & White, P.S. (1999). The distance decay of similarity in
+biogeography and ecology. Journal of Biogeography, 26, 867-878.
+
+Soininen, J., McDonald, R. & Hillebrand, H. (2007). The distance decay of
+similarity in ecological communities. Ecography, 30, 3-12.
+}

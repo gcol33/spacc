@@ -83,6 +83,11 @@ metrics$metrics$slope_10
 }
 
 }
+\references{
+Soberon, J.M. & Llorente, J.B. (1993). The use of species accumulation
+functions for the prediction of species richness. Conservation Biology,
+7, 480-488.
+}
 \seealso{
 \code{\link[=spacc]{spacc()}} for standard accumulation curves
 }

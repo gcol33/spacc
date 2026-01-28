@@ -6,7 +6,7 @@
 \usage{
 extrapolate(
   object,
-  model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic"),
+  model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic", "evt"),
   ...
 )
 }
@@ -14,7 +14,8 @@ extrapolate(
 \item{object}{A \code{spacc} object.}
 
 \item{model}{Character. Model to fit: \code{"michaelis-menten"} (default),
-\code{"lomolino"}, \code{"asymptotic"}, \code{"weibull"}, or \code{"logistic"}.}
+\code{"lomolino"}, \code{"asymptotic"}, \code{"weibull"}, \code{"logistic"}, or \code{"evt"}
+(Extreme Value Theory, Borda-de-Agua et al. 2025).}
 
 \item{...}{Additional arguments passed to \code{\link[stats:nls]{stats::nls()}}.}
 }
@@ -40,4 +41,16 @@ plot(fit)
 predict(fit, n = c(100, 500, 1000))
 }
 
+}
+\references{
+Lomolino, M.V. (2000). Ecology's most general, yet protean pattern: the
+species-area relationship. Journal of Biogeography, 27, 17-26.
+
+Flather, C.H. (1996). Fitting species-accumulation functions and assessing
+regional land use impacts on avian diversity. Journal of Biogeography,
+23, 155-168.
+
+Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et al. (2025). Extreme
+value theory explains the topography and scaling of the species-area
+relationship. Nature Communications, 16, 5346.
 }

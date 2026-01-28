@@ -52,3 +52,7 @@ plot(wf)
 }
 
 }
+\references{
+Shigesada, N. & Kawasaki, K. (1997). Biological Invasions: Theory and
+Practice. Oxford University Press.
+}

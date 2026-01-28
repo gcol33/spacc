@@ -539,8 +539,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_phylo_knn_single
-List cpp_phylo_knn_single(IntegerMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int seed, CharacterVector metrics);
-RcppExport SEXP _spacc_cpp_phylo_knn_single(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP seedSEXP, SEXP metricsSEXP) {
+List cpp_phylo_knn_single(IntegerMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int seed, CharacterVector metrics, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
+RcppExport SEXP _spacc_cpp_phylo_knn_single(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP seedSEXP, SEXP metricsSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -549,13 +549,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type phylo_dist_mat(phylo_dist_matSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_phylo_knn_single(species_pa, site_dist_mat, phylo_dist_mat, seed, metrics));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<IntegerMatrix> >::type tree_edge(tree_edgeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<NumericVector> >::type tree_edge_length(tree_edge_lengthSEXP);
+    Rcpp::traits::input_parameter< int >::type tree_n_tips(tree_n_tipsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_phylo_knn_single(species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge, tree_edge_length, tree_n_tips));
     return rcpp_result_gen;
 END_RCPP
 }
 // cpp_phylo_knn_parallel
-List cpp_phylo_knn_parallel(IntegerMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int n_seeds, CharacterVector metrics, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_phylo_knn_parallel(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP n_seedsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+List cpp_phylo_knn_parallel(IntegerMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int n_seeds, CharacterVector metrics, int n_cores, bool progress, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
+RcppExport SEXP _spacc_cpp_phylo_knn_parallel(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP n_seedsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -566,7 +569,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<IntegerMatrix> >::type tree_edge(tree_edgeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<NumericVector> >::type tree_edge_length(tree_edge_lengthSEXP);
+    Rcpp::traits::input_parameter< int >::type tree_n_tips(tree_n_tipsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress, tree_edge, tree_edge_length, tree_n_tips));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -691,8 +697,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_calc_mpd", (DL_FUNC) &_spacc_calc_mpd, 4},
     {"_spacc_calc_mntd", (DL_FUNC) &_spacc_calc_mntd, 4},
     {"_spacc_calc_faith_pd", (DL_FUNC) &_spacc_calc_faith_pd, 4},
-    {"_spacc_cpp_phylo_knn_single", (DL_FUNC) &_spacc_cpp_phylo_knn_single, 5},
-    {"_spacc_cpp_phylo_knn_parallel", (DL_FUNC) &_spacc_cpp_phylo_knn_parallel, 7},
+    {"_spacc_cpp_phylo_knn_single", (DL_FUNC) &_spacc_cpp_phylo_knn_single, 8},
+    {"_spacc_cpp_phylo_knn_parallel", (DL_FUNC) &_spacc_cpp_phylo_knn_parallel, 10},
     {"_spacc_calc_fdis", (DL_FUNC) &_spacc_calc_fdis, 3},
     {"_spacc_calc_fric_approx", (DL_FUNC) &_spacc_calc_fric_approx, 2},
     {"_spacc_cpp_func_knn_single", (DL_FUNC) &_spacc_cpp_func_knn_single, 5},

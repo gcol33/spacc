@@ -61,6 +61,8 @@ large datasets, no distance matrix needed.
 \item{support}{Optional. Spatial support for core/halo classification via
 \code{\link[areaOfEffect:aoe]{areaOfEffect::aoe()}}. Can be:
 \itemize{
+\item \code{"auto"}: Auto-detect countries and run per-country accumulation,
+returning a grouped \code{spacc} object with one curve per country
 \item Country name or ISO code: \code{"France"}, \code{"FR"}, \code{"FRA"}
 \item Vector of countries: \code{c("France", "Germany")}
 \item An \code{sf} polygon object
@@ -144,4 +146,14 @@ sac_grouped <- spacc(species, coords, groups = status, seed = 42)
 plot(sac_grouped)  # Overlaid curves per group
 }
 
+}
+\references{
+Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
+
+Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
+and Biogeography, 12, 441-447.
+
+Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
+in using species diversity for assessing biodiversity. Philosophical
+Transactions of the Royal Society B, 366, 2426-2437.
 }

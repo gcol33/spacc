@@ -55,3 +55,12 @@ keep <- subsample(coords, method = "thinning", min_dist = 5)
 }
 
 }
+\references{
+Aiello-Lammens, M.E., Boria, R.A., Radosavljevic, A., et al. (2015).
+spThin: an R package for spatial thinning of species occurrence records for
+use in ecological niche models. Ecography, 38, 541-545.
+
+Lennon, J.J., Koleff, P., Greenwood, J.J.D. & Gaston, K.J. (2004).
+Contribution of rarity and commonness to patterns of species richness.
+Ecology Letters, 7, 81-87.
+}

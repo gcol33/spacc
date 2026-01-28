@@ -145,12 +145,12 @@ calc_faith_pd <- function(edge, edge_length, n_tips, species_present) {
     .Call(`_spacc_calc_faith_pd`, edge, edge_length, n_tips, species_present)
 }
 
-cpp_phylo_knn_single <- function(species_pa, site_dist_mat, phylo_dist_mat, seed, metrics) {
-    .Call(`_spacc_cpp_phylo_knn_single`, species_pa, site_dist_mat, phylo_dist_mat, seed, metrics)
+cpp_phylo_knn_single <- function(species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L) {
+    .Call(`_spacc_cpp_phylo_knn_single`, species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge, tree_edge_length, tree_n_tips)
 }
 
-cpp_phylo_knn_parallel <- function(species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_phylo_knn_parallel`, species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress)
+cpp_phylo_knn_parallel <- function(species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores = 1L, progress = FALSE, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L) {
+    .Call(`_spacc_cpp_phylo_knn_parallel`, species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress, tree_edge, tree_edge_length, tree_n_tips)
 }
 
 calc_fdis <- function(traits, species_present, abundances) {

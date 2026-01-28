@@ -5,7 +5,8 @@
 #'
 #' @param object A `spacc` object.
 #' @param model Character. Model to fit: `"michaelis-menten"` (default),
-#'   `"lomolino"`, `"asymptotic"`, `"weibull"`, or `"logistic"`.
+#'   `"lomolino"`, `"asymptotic"`, `"weibull"`, `"logistic"`, or `"evt"`
+#'   (Extreme Value Theory, Borda-de-Agua et al. 2025).
 #' @param ... Additional arguments passed to [stats::nls()].
 #'
 #' @return An object of class `spacc_fit` containing:
@@ -14,6 +15,18 @@
 #'   \item{model}{Model name}
 #'   \item{fit}{The nls fit object}
 #'   \item{aic}{AIC of the model}
+#'
+#' @references
+#' Lomolino, M.V. (2000). Ecology's most general, yet protean pattern: the
+#' species-area relationship. Journal of Biogeography, 27, 17-26.
+#'
+#' Flather, C.H. (1996). Fitting species-accumulation functions and assessing
+#' regional land use impacts on avian diversity. Journal of Biogeography,
+#' 23, 155-168.
+#'
+#' Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et al. (2025). Extreme
+#' value theory explains the topography and scaling of the species-area
+#' relationship. Nature Communications, 16, 5346.
 #'
 #' @examples
 #' \dontrun{
@@ -26,7 +39,7 @@
 #' }
 #'
 #' @export
-extrapolate <- function(object, model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic"), ...) {
+extrapolate <- function(object, model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic", "evt"), ...) {
 
   model <- match.arg(model)
 
@@ -75,7 +88,35 @@ extrapolate <- function(object, model = c("michaelis-menten", "lomolino", "asymp
         data = df,
         start = list(a = y_max * 1.2, b = 0.1, c = x_half),
         ...
-      )
+      ),
+      "evt" = {
+        # EVT-inspired three-phase SAR model (Borda-de-Agua et al. 2025)
+        # Uses a mixture of two Weibull components to capture triphasic pattern
+        # S(x) = a * (w * (1 - exp(-(x/b1)^c1)) + (1-w) * (1 - exp(-(x/b2)^c2)))
+        if (nrow(df) < 10) {
+          warning("EVT model requires >= 10 data points; falling back to Weibull")
+          stats::nls(
+            y ~ a * (1 - exp(-(x/b)^c)),
+            data = df,
+            start = list(a = y_max * 1.2, b = x_half, c = 1),
+            control = stats::nls.control(maxiter = 200),
+            ...
+          )
+        } else {
+          stats::nls(
+            y ~ a * (w * (1 - exp(-(x/b1)^c1)) + (1 - w) * (1 - exp(-(x/b2)^c2))),
+            data = df,
+            start = list(a = y_max * 1.3, w = 0.7,
+                          b1 = max(1, x_half * 0.3), c1 = 1.5,
+                          b2 = max(1, x_half * 2), c2 = 0.5),
+            lower = c(y_max * 0.5, 0.01, 0.1, 0.1, 0.1, 0.1),
+            upper = c(y_max * 5, 0.99, x_half * 10, 10, x_half * 20, 10),
+            algorithm = "port",
+            control = stats::nls.control(maxiter = 500, warnOnly = TRUE),
+            ...
+          )
+        }
+      }
     )
   }, error = function(e) {
     warning("Model fitting failed: ", e$message)

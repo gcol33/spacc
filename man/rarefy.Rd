@@ -33,3 +33,11 @@ plot(rare)
 }
 
 }
+\references{
+Hurlbert, S.H. (1971). The nonconcept of species diversity: a critique
+and alternative parameters. Ecology, 52, 577-586.
+
+Gotelli, N.J. & Colwell, R.K. (2001). Quantifying biodiversity: procedures
+and pitfalls in the measurement and comparison of species richness. Ecology
+Letters, 4, 379-391.
+}

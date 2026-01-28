@@ -129,42 +129,45 @@ spaccPhylo <- function(x,
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Remove pd for now (would need tree edge structure)
-  cpp_metrics <- setdiff(metric, "pd")
-
   if (progress) cli_info(sprintf("Computing phylogenetic diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
 
-  if (length(cpp_metrics) > 0) {
-    result <- cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat,
-                                      n_seeds, cpp_metrics, n_cores, progress)
-  } else {
-    result <- list()
+  # Prepare tree edge data for PD if requested
+  tree_edge <- NULL
+  tree_edge_length <- NULL
+  tree_n_tips <- 0L
+
+  if ("pd" %in% metric && inherits(tree, "phylo")) {
+    tree_edge <- tree$edge
+    tree_edge_length <- tree$edge.length
+    tree_n_tips <- length(tree$tip.label)
   }
 
-  # Handle PD separately if requested (needs R-side calculation)
-  if ("pd" %in% metric && inherits(tree, "phylo")) {
-    # Would need to implement PD accumulation
-    # For now, skip or use picante
-    warning("PD accumulation not yet implemented; use MPD/MNTD")
+  if (length(metric) > 0) {
+    result <- cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat,
+                                      n_seeds, metric, n_cores, progress,
+                                      tree_edge, tree_edge_length, tree_n_tips)
+  } else {
+    result <- list()
   }
 
   if (progress) cli_success("Done")
 
   # Compute per-site map values if requested
   site_values <- NULL
-  if (map && length(cpp_metrics) > 0) {
+  if (map && length(metric) > 0) {
     if (progress) cli_info("Computing per-site phylo map values (all sites as seeds)")
     map_result <- cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat,
-                                          n_sites, cpp_metrics, n_cores, progress)
+                                          n_sites, metric, n_cores, progress,
+                                          tree_edge, tree_edge_length, tree_n_tips)
 
     site_values <- data.frame(
       site_id = seq_len(n_sites),
       x = coord_data$x,
       y = coord_data$y
     )
-    for (i in seq_along(cpp_metrics)) {
-      site_values[[cpp_metrics[i]]] <- map_result[[i]][cbind(seq_len(n_sites), n_sites)]
+    for (i in seq_along(metric)) {
+      site_values[[metric[i]]] <- map_result[[i]][cbind(seq_len(n_sites), n_sites)]
     }
     if (progress) cli_success("Map values computed")
   }
@@ -172,7 +175,7 @@ spaccPhylo <- function(x,
   structure(
     list(
       curves = result,
-      metric = cpp_metrics,
+      metric = metric,
       coords = coord_data,
       site_values = site_values,
       n_seeds = n_seeds,

@@ -35,7 +35,11 @@ utils::globalVariables(c(
   "cpp_radius_parallel", "cpp_radius_single",
   "cpp_random_parallel", "cpp_random_single",
   "cpp_wavefront_parallel", "cpp_wavefront_single",
-  "interpolate_at_coverage"
+  "interpolate_at_coverage",
+  # ggplot2 aesthetics for new features
+  "mean_area", "mean_diversity", "mean_endemism", "mean_richness",
+  "endemism_lower", "endemism_upper", "type", "predicted",
+  "coverage", "richness", "target_coverage", "q_label"
 ))
 
 

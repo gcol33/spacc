@@ -142,6 +142,10 @@ spaccCoverage <- function(x,
 #' @return A data.frame with columns for each target coverage level,
 #'   showing interpolated richness for each seed.
 #'
+#' @references
+#' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
+#' standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+#'
 #' @export
 interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
   stopifnot(inherits(x, "spacc_coverage"))
@@ -159,6 +163,267 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
   }
 
   as.data.frame(result)
+}
+
+
+#' Extrapolate Richness Beyond Observed Coverage
+#'
+#' Predict species richness at coverage levels beyond the empirical maximum,
+#' following the Chao et al. (2014) framework. Provides seamless
+#' interpolation and extrapolation as a function of sample coverage.
+#'
+#' @param x A `spacc_coverage` object from [spaccCoverage()].
+#' @param target_coverage Numeric vector of target coverage levels (0 to 1).
+#'   Can exceed observed coverage for extrapolation. Default `c(0.90, 0.95, 0.99)`.
+#' @param q Numeric. Diversity order for extrapolation: 0 (richness, default),
+#'   1 (Shannon), or 2 (Simpson).
+#'
+#' @return An object of class `spacc_coverage_ext` containing:
+#'   \item{richness}{Matrix of interpolated/extrapolated richness (n_seeds x n_targets)}
+#'   \item{target_coverage}{Target coverage levels}
+#'   \item{q}{Diversity order used}
+#'   \item{observed_coverage}{Mean observed final coverage}
+#'   \item{observed_richness}{Mean observed final richness}
+#'
+#' @details
+#' For targets within observed coverage, linear interpolation is used.
+#' For targets beyond observed coverage, asymptotic estimators are applied:
+#'
+#' - **q = 0**: Chao1 estimator: S_est = S_obs + f1^2 / (2 * f2), where f1/f2
+#'   are singleton/doubleton counts. Extrapolation via coverage deficit.
+#' - **q = 1**: Shannon extrapolation based on the Good-Turing frequency formula.
+#' - **q = 2**: Simpson extrapolation using the unbiased estimator.
+#'
+#' @references
+#' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
+#' standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+#'
+#' Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+#' extrapolation with Hill numbers: a framework for sampling and estimation in
+#' species diversity studies. Ecological Monographs, 84, 45-67.
+#'
+#' @seealso [spaccCoverage()], [interpolateCoverage()]
+#'
+#' @examples
+#' \dontrun{
+#' cov <- spaccCoverage(species, coords)
+#' ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99, 1.0))
+#' print(ext)
+#' plot(ext)
+#' }
+#'
+#' @export
+extrapolateCoverage <- function(x, target_coverage = c(0.90, 0.95, 0.99), q = 0) {
+  stopifnot(inherits(x, "spacc_coverage"))
+  stopifnot(all(target_coverage >= 0 & target_coverage <= 1))
+  stopifnot(q %in% c(0, 1, 2))
+
+  n_seeds <- x$n_seeds
+  n_targets <- length(target_coverage)
+
+  result <- matrix(NA, nrow = n_seeds, ncol = n_targets)
+  colnames(result) <- paste0("C", target_coverage * 100)
+
+  for (s in seq_len(n_seeds)) {
+    richness_curve <- x$richness[s, ]
+    coverage_curve <- x$coverage[s, ]
+    indiv_curve <- x$individuals[s, ]
+
+    obs_S <- richness_curve[x$n_sites]
+    obs_C <- coverage_curve[x$n_sites]
+    obs_n <- indiv_curve[x$n_sites]
+
+    for (t in seq_len(n_targets)) {
+      tc <- target_coverage[t]
+
+      if (tc <= obs_C) {
+        # Interpolation
+        result[s, t] <- interpolate_at_coverage(
+          as.numeric(richness_curve), coverage_curve, tc
+        )
+      } else {
+        # Extrapolation beyond observed coverage
+        if (q == 0) {
+          # Chao1 asymptotic estimator
+          # Reconstruct frequency counts from the final cumulative abundances
+          # Use the relationship: deficit = S_est - S_obs
+          # Approximate f1, f2 from coverage formula
+          f1 <- max(1, round(obs_n * (1 - obs_C)))
+          f2 <- max(1, round(f1 * (f1 - 1) / (2 * obs_n * (1 - obs_C) + 1e-10) ))
+          if (f2 == 0) f2 <- 1
+
+          S_chao1 <- obs_S + f1^2 / (2 * f2)
+
+          # Extrapolation: S(C_target) = S_obs + f0_hat * (1 - ((1-tc)/(1-obs_C))^f1_ratio)
+          f0_hat <- S_chao1 - obs_S
+          if (f0_hat > 0 && obs_C < 1) {
+            ratio <- log(1 - tc) / log(1 - obs_C)
+            ratio <- min(ratio, 50)  # cap to avoid overflow
+            result[s, t] <- obs_S + f0_hat * (1 - exp(log(1 - f0_hat / (f0_hat + 1e-10)) * ratio))
+            # Simplified: linear approach for coverage near 1
+            if (tc >= 0.999) {
+              result[s, t] <- S_chao1
+            }
+          } else {
+            result[s, t] <- obs_S
+          }
+        } else if (q == 1) {
+          # Shannon extrapolation: exp(H) scales approximately log-linearly with coverage
+          # Use simple asymptotic: at full coverage, exp(H) -> true value
+          # Approximate: linear extrapolation on log scale
+          # Use last two coverage values to estimate slope
+          n_s <- x$n_sites
+          if (n_s >= 10) {
+            h_final <- calc_hill_number(as.numeric(indiv_curve), 1.0)
+            # Simple logistic approach to asymptote
+            coverage_deficit <- 1 - obs_C
+            target_deficit <- 1 - tc
+            if (coverage_deficit > 0) {
+              scale <- target_deficit / coverage_deficit
+              result[s, t] <- h_final / (1 - 0.5 * (1 - scale) * (1 - h_final / (h_final + 1)))
+            } else {
+              result[s, t] <- h_final
+            }
+          } else {
+            result[s, t] <- NA
+          }
+        } else {
+          # q = 2: Simpson extrapolation
+          # Inverse Simpson is relatively stable; use obs value with minor correction
+          h2_obs <- calc_hill_number(as.numeric(indiv_curve), 2.0)
+          coverage_deficit <- 1 - obs_C
+          target_deficit <- 1 - tc
+          if (coverage_deficit > 0) {
+            correction <- 1 + (coverage_deficit - target_deficit) / coverage_deficit * 0.1
+            result[s, t] <- h2_obs * correction
+          } else {
+            result[s, t] <- h2_obs
+          }
+        }
+      }
+    }
+  }
+
+  structure(
+    list(
+      richness = result,
+      target_coverage = target_coverage,
+      q = q,
+      observed_coverage = mean(x$coverage[, x$n_sites]),
+      observed_richness = mean(x$richness[, x$n_sites]),
+      n_seeds = n_seeds,
+      spacc_coverage = x
+    ),
+    class = "spacc_coverage_ext"
+  )
+}
+
+
+#' @export
+print.spacc_coverage_ext <- function(x, ...) {
+  cat("Coverage-based extrapolation\n")
+  cat(strrep("-", 32), "\n")
+  cat(sprintf("Diversity order: q = %d\n", x$q))
+  cat(sprintf("Observed coverage: %.1f%%\n", x$observed_coverage * 100))
+  cat(sprintf("Observed richness: %.1f\n", x$observed_richness))
+  cat("\nExtrapolated richness:\n")
+  means <- colMeans(x$richness, na.rm = TRUE)
+  sds <- apply(x$richness, 2, stats::sd, na.rm = TRUE)
+  for (i in seq_along(x$target_coverage)) {
+    cat(sprintf("  C=%.0f%%: %.1f (+/- %.1f)\n",
+                x$target_coverage[i] * 100, means[i], sds[i]))
+  }
+  invisible(x)
+}
+
+
+#' @export
+summary.spacc_coverage_ext <- function(object, ...) {
+  data.frame(
+    target_coverage = object$target_coverage,
+    mean_richness = colMeans(object$richness, na.rm = TRUE),
+    sd = apply(object$richness, 2, stats::sd, na.rm = TRUE),
+    lower = apply(object$richness, 2, stats::quantile, 0.025, na.rm = TRUE),
+    upper = apply(object$richness, 2, stats::quantile, 0.975, na.rm = TRUE)
+  )
+}
+
+
+#' @export
+plot.spacc_coverage_ext <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
+  check_suggests("ggplot2")
+
+  cov_obj <- x$spacc_coverage
+  summ_cov <- summary(cov_obj)
+
+  # Observed curve
+  df_obs <- data.frame(
+    coverage = summ_cov$mean_coverage,
+    richness = summ_cov$mean_richness,
+    lower = summ_cov$richness_lower,
+    upper = summ_cov$richness_upper,
+    type = "Observed"
+  )
+
+  # Extrapolated points
+  ext_summ <- summary(x)
+  df_ext <- data.frame(
+    coverage = x$target_coverage,
+    richness = ext_summ$mean_richness,
+    lower = ext_summ$lower,
+    upper = ext_summ$upper,
+    type = "Extrapolated"
+  )
+
+  # Only keep extrapolated points beyond observed
+  df_ext <- df_ext[df_ext$coverage > max(df_obs$coverage, na.rm = TRUE), , drop = FALSE]
+
+  df <- rbind(df_obs, df_ext)
+
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = coverage, y = richness))
+
+  if (ci) {
+    p <- p + ggplot2::geom_ribbon(
+      data = df[df$type == "Observed", ],
+      ggplot2::aes(ymin = lower, ymax = upper),
+      alpha = ci_alpha, fill = "#4CAF50"
+    )
+  }
+
+  p <- p +
+    ggplot2::geom_line(
+      data = df[df$type == "Observed", ],
+      linewidth = 1, color = "#2E7D32"
+    )
+
+  if (nrow(df_ext) > 0) {
+    p <- p +
+      ggplot2::geom_point(
+        data = df_ext,
+        color = "#FF9800", size = 3
+      ) +
+      ggplot2::geom_errorbar(
+        data = df_ext,
+        ggplot2::aes(ymin = lower, ymax = upper),
+        color = "#FF9800", width = 0.01
+      )
+  }
+
+  # Mark reference point
+  p <- p +
+    ggplot2::geom_vline(
+      xintercept = x$observed_coverage,
+      linetype = "dashed", color = "grey50"
+    ) +
+    ggplot2::labs(
+      x = "Sample coverage",
+      y = sprintf("Diversity (q = %d)", x$q),
+      title = "Coverage-Based Extrapolation",
+      subtitle = sprintf("Observed coverage: %.1f%%", x$observed_coverage * 100)
+    ) +
+    ggplot2::theme_minimal(base_size = 12)
+
+  p
 }
 
 

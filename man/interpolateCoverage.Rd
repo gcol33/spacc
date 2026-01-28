@@ -19,3 +19,7 @@ showing interpolated richness for each seed.
 \description{
 Estimate species richness at specified coverage levels by interpolation.
 }
+\references{
+Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
+standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+}
