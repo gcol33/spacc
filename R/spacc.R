@@ -20,6 +20,8 @@
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param support Optional. Spatial support for core/halo classification via
 #'   [areaOfEffect::aoe()]. Can be:
+#'   - `"auto"`: Auto-detect countries and run per-country accumulation,
+#'     returning a grouped `spacc` object with one curve per country
 #'   - Country name or ISO code: `"France"`, `"FR"`, `"FRA"`
 #'   - Vector of countries: `c("France", "Germany")`
 #'   - An `sf` polygon object
@@ -184,6 +186,84 @@ spacc <- function(x,
         w_space = base$w_space,
         w_time = base$w_time,
         support = base$support,
+        call = match.call()
+      ),
+      class = "spacc"
+    ))
+  }
+
+  # Handle support = "auto": split by country
+  if (is.character(support) && length(support) == 1 && support == "auto") {
+    check_suggests("sf")
+    check_suggests("areaOfEffect")
+
+    if (progress) cli_info("Auto-detecting countries from coordinates")
+
+    coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"), crs = 4326)
+    aoe_result <- areaOfEffect::aoe(coords_sf)
+
+    # Map support_id back to country names
+    aoe_countries <- areaOfEffect::countries
+    sid_to_name <- stats::setNames(aoe_countries$name, rownames(aoe_countries))
+    unique_sids <- unique(aoe_result$support_id)
+    country_names <- sid_to_name[unique_sids]
+
+    if (progress) cli_info(sprintf("Found %d countries: %s",
+      length(country_names), paste(country_names, collapse = ", ")))
+
+    # Run spacc per country
+    objects <- lapply(seq_along(unique_sids), function(i) {
+      spacc(x, coords,
+            n_seeds = n_seeds, method = method, distance = distance,
+            backend = backend, support = country_names[i],
+            include_halo = include_halo,
+            sigma = sigma, cone_width = cone_width,
+            parallel = parallel, n_cores = n_cores,
+            progress = FALSE, groups = groups,
+            time = time, w_space = w_space, w_time = w_time,
+            seed = seed)
+    })
+    names(objects) <- country_names
+
+    # Handle compound grouping (countries x species groups)
+    has_groups <- !is.null(groups)
+    if (has_groups) {
+      # Flatten nested grouped objects into compound names
+      all_curves <- list()
+      all_n_species <- list()
+      for (cname in country_names) {
+        obj <- objects[[cname]]
+        for (gname in obj$group_names) {
+          compound <- paste(cname, gname, sep = ".")
+          all_curves[[compound]] <- obj$curves[[gname]]
+          all_n_species[[compound]] <- obj$n_species[[gname]]
+        }
+      }
+      group_labels <- names(all_curves)
+    } else {
+      all_curves <- stats::setNames(lapply(objects, `[[`, "curves"), country_names)
+      all_n_species <- stats::setNames(lapply(objects, `[[`, "n_species"), country_names)
+      group_labels <- country_names
+    }
+
+    base <- objects[[1]]
+    return(structure(
+      list(
+        curves = all_curves,
+        group_names = group_labels,
+        coords = coord_data,
+        n_seeds = n_seeds,
+        n_sites = nrow(x),
+        n_species = all_n_species,
+        method = base$method,
+        distance = base$distance,
+        backend = base$backend,
+        sigma = base$sigma,
+        cone_width = base$cone_width,
+        time = time,
+        w_space = if (!is.null(time)) w_space else NULL,
+        w_time = if (!is.null(time)) w_time else NULL,
+        support = list(auto = TRUE, countries = country_names, aoe_result = aoe_result),
         call = match.call()
       ),
       class = "spacc"
