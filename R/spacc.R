@@ -95,6 +95,16 @@
 #' plot(sac_grouped)  # Overlaid curves per group
 #' }
 #'
+#' @references
+#' Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
+#'
+#' Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
+#' and Biogeography, 12, 441-447.
+#'
+#' Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
+#' in using species diversity for assessing biodiversity. Philosophical
+#' Transactions of the Royal Society B, 366, 2426-2437.
+#'
 #' @export
 spacc <- function(x,
                   coords,
@@ -378,6 +388,7 @@ spacc <- function(x,
   }
 
   # Collector method: no simulation needed
+  backend_label <- NA_character_
   if (method == "collector") {
     curve <- cpp_collector_single(species_pa)
     curves <- matrix(curve, nrow = 1)
@@ -495,6 +506,10 @@ spacc <- function(x,
 #'   \item{curves}{Matrix of species counts (n_seeds x n_steps)}
 #'   \item{radius}{Vector of radius values}
 #'   \item{sites_included}{Matrix of sites included at each step}
+#'
+#' @references
+#' Shigesada, N. & Kawasaki, K. (1997). Biological Invasions: Theory and
+#' Practice. Oxford University Press.
 #'
 #' @examples
 #' \dontrun{
@@ -657,6 +672,13 @@ plot.spacc_wavefront <- function(x, ci = TRUE, ci_alpha = 0.3,
 #' @param seed Integer. Random seed.
 #'
 #' @return An object of class `spacc_decay` with distance-species relationships.
+#'
+#' @references
+#' Nekola, J.C. & White, P.S. (1999). The distance decay of similarity in
+#' biogeography and ecology. Journal of Biogeography, 26, 867-878.
+#'
+#' Soininen, J., McDonald, R. & Hillebrand, H. (2007). The distance decay of
+#' similarity in ecological communities. Ecography, 30, 3-12.
 #'
 #' @export
 distanceDecay <- function(x,

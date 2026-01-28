@@ -159,10 +159,12 @@ print.spacc_dist <- function(x, ...) {
   cat(sprintf("spacc distance matrix: %d x %d\n", n, n))
   cat(sprintf("Method: %s\n", method))
 
-  if (!is.null(crs) && !is.na(crs$epsg)) {
-    cat(sprintf("CRS: EPSG:%s\n", crs$epsg))
-  } else if (!is.null(crs) && !is.na(crs$input)) {
-    cat(sprintf("CRS: %s\n", substr(crs$input, 1, 50)))
+  if (!is.null(crs) && is.list(crs)) {
+    if (!is.na(crs$epsg)) {
+      cat(sprintf("CRS: EPSG:%s\n", crs$epsg))
+    } else if (!is.na(crs$input)) {
+      cat(sprintf("CRS: %s\n", substr(crs$input, 1, 50)))
+    }
   }
 
   # Distance summary
