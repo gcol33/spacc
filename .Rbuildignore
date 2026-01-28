@@ -18,3 +18,6 @@
 ^PLAN\.md$
 ^IMPLEMENTATION_PLAN\.md$
 ^FEATURES\.md$
+^src/tests$
+^src/core$
+^plan\.md$

@@ -1,0 +1,14 @@
+# Build artifacts
+*.exe
+*.o
+*.obj
+
+# Coverage artifacts
+*.gcno
+*.gcda
+*.gcov
+coverage.info
+coverage_html/
+
+# Catch2 header (fetched separately)
+catch.hpp

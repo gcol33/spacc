@@ -30,6 +30,26 @@ devtools::load_all()        # Recompile and load
 - All internal C++ wrapper functions must be listed in `utils::globalVariables()` in `R/zzz.R` — a partial list causes unlisted ones to fail R CMD check.
 - In tests, call internal C++ wrappers with `spacc:::func()`, not bare `func()`.
 
+### C++ Testing (Catch2)
+
+Pure C++ algorithms are in `src/core/` headers and can be tested independently of R:
+
+```bash
+cd src/tests
+./run_tests.bat          # Windows: compile and run tests
+make all                 # Unix: compile and run tests
+./run_coverage.bat       # Windows: run with gcov coverage
+make coverage            # Unix: run with gcov coverage
+```
+
+Core headers (`src/core/`):
+- `types.h` - Common type definitions
+- `distance_core.h` - Euclidean/Haversine distance
+- `beta_core.h` - Baselga beta diversity partitioning
+- `hill_core.h` - Hill numbers (q=0,1,2)
+- `coverage_core.h` - Chao sample coverage
+- `accumulation_core.h` - kNN/kNCN accumulation algorithms
+
 ## Architecture
 
 ### Pipeline Design
