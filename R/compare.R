@@ -6,6 +6,10 @@
 #' @param y A `spacc` object.
 #' @param method Character. Comparison method: `"permutation"` (default),
 #'   `"bootstrap"`, or `"auc"` (area under curve difference).
+#' @param normalize Logical. If `TRUE`, each seed's curve is divided by its
+#'   final value before computing AUC, so that curves are compared on a
+#'   \[0, 1\] scale (proportion of total species). This compares the **shape**
+#'   of accumulation rather than absolute species counts. Default `FALSE`.
 #' @param n_perm Integer. Number of permutations/bootstrap replicates. Default 999.
 #' @param ... Additional arguments passed to comparison methods.
 #'
@@ -15,15 +19,20 @@
 #'   \item{p_value}{P-value from permutation test}
 #'   \item{saturation_diff}{Difference in saturation points}
 #'   \item{method}{Comparison method used}
+#'   \item{normalized}{Whether curves were normalized before comparison}
 #'
 #' @examples
 #' \dontrun{
 #' sac_native <- spacc(native_species, coords)
 #' sac_alien <- spacc(alien_species, coords)
 #'
+#' # Compare absolute accumulation
 #' comp <- compare(sac_native, sac_alien)
-#' print(comp)
-#' plot(comp)
+#'
+#' # Compare curve shapes (normalized to [0, 1])
+#' comp_norm <- compare(sac_native, sac_alien, normalize = TRUE)
+#' print(comp_norm)
+#' plot(comp_norm)
 #' }
 #'
 #' @references
@@ -36,7 +45,8 @@
 #' Oxford University Press.
 #'
 #' @export
-compare <- function(x, y, method = c("permutation", "bootstrap", "auc"), n_perm = 999L, ...) {
+compare <- function(x, y, method = c("permutation", "bootstrap", "auc"),
+                    normalize = FALSE, n_perm = 999L, ...) {
 
   method <- match.arg(method)
 
@@ -50,23 +60,32 @@ compare <- function(x, y, method = c("permutation", "bootstrap", "auc"), n_perm 
   x_name <- deparse(substitute(x))
   y_name <- deparse(substitute(y))
 
-  # Compute summary stats
-  summ_x <- summary(x)
-  summ_y <- summary(y)
+  # Normalize: divide each seed's curve by its final value -> [0, 1]
+  curves_x <- x$curves
+  curves_y <- y$curves
+  if (normalize) {
+    row_max_x <- curves_x[, ncol(curves_x)]
+    row_max_y <- curves_y[, ncol(curves_y)]
+    row_max_x[row_max_x == 0] <- 1
+    row_max_y[row_max_y == 0] <- 1
+    curves_x <- curves_x / row_max_x
+    curves_y <- curves_y / row_max_y
+  }
 
   # Area under curve (sum of mean curve)
-  auc_x <- sum(summ_x$mean)
-  auc_y <- sum(summ_y$mean)
+  auc_x <- sum(colMeans(curves_x))
+  auc_y <- sum(colMeans(curves_y))
   auc_diff <- auc_x - auc_y
 
-  # Saturation difference
+  # Compute summary stats for saturation
+  summ_x <- summary(x)
+  summ_y <- summary(y)
   sat_diff <- summ_x$saturation_point - summ_y$saturation_point
 
   # Permutation test for AUC difference
   if (method == "permutation") {
-    # Pool all curves and permute group labels
-    all_curves <- rbind(x$curves, y$curves)
-    n_x <- nrow(x$curves)
+    all_curves <- rbind(curves_x, curves_y)
+    n_x <- nrow(curves_x)
     n_total <- nrow(all_curves)
 
     null_diffs <- vapply(seq_len(n_perm), function(i) {
@@ -78,15 +97,14 @@ compare <- function(x, y, method = c("permutation", "bootstrap", "auc"), n_perm 
 
     p_value <- mean(abs(null_diffs) >= abs(auc_diff))
   } else if (method == "bootstrap") {
-    # Bootstrap CIs for each, check overlap
     boot_x <- vapply(seq_len(n_perm), function(i) {
-      idx <- sample(nrow(x$curves), replace = TRUE)
-      sum(colMeans(x$curves[idx, , drop = FALSE]))
+      idx <- sample(nrow(curves_x), replace = TRUE)
+      sum(colMeans(curves_x[idx, , drop = FALSE]))
     }, numeric(1))
 
     boot_y <- vapply(seq_len(n_perm), function(i) {
-      idx <- sample(nrow(y$curves), replace = TRUE)
-      sum(colMeans(y$curves[idx, , drop = FALSE]))
+      idx <- sample(nrow(curves_y), replace = TRUE)
+      sum(colMeans(curves_y[idx, , drop = FALSE]))
     }, numeric(1))
 
     boot_diff <- boot_x - boot_y
@@ -111,7 +129,8 @@ compare <- function(x, y, method = c("permutation", "bootstrap", "auc"), n_perm 
       saturation_diff = sat_diff,
       p_value = p_value,
       n_perm = n_perm,
-      method = method
+      method = method,
+      normalized = normalize
     ),
     class = "spacc_comp"
   )
@@ -123,12 +142,14 @@ print.spacc_comp <- function(x, ...) {
   cat("Comparison:", x$x_name, "vs", x$y_name, "\n")
   cat(strrep("-", 40), "\n")
   cat(sprintf("Method: %s (n=%d)\n", x$method, x$n_perm))
+  if (isTRUE(x$normalized)) cat("Normalized: yes (shape comparison)\n")
   cat(sprintf("AUC difference: %.1f", x$auc_diff))
   if (!is.na(x$p_value)) {
     sig <- ifelse(x$p_value < 0.001, "***",
            ifelse(x$p_value < 0.01, "**",
            ifelse(x$p_value < 0.05, "*", "")))
-    cat(sprintf(" (p = %.3f%s)\n", x$p_value, sig))
+    p_str <- if (x$p_value < 0.001) "p < 0.001" else sprintf("p = %.3f", x$p_value)
+    cat(sprintf(" (%s%s)\n", p_str, sig))
   } else {
     cat("\n")
   }
@@ -168,7 +189,7 @@ plot.spacc_comp <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
 
   # Add significance annotation
   if (!is.na(x$p_value)) {
-    sig_text <- sprintf("p = %.3f", x$p_value)
+    sig_text <- if (x$p_value < 0.001) "p < 0.001" else sprintf("p = %.3f", x$p_value)
     p <- p + ggplot2::annotate(
       "text", x = x$x$n_sites * 0.8, y = max(x$x$n_species, x$y$n_species) * 0.1,
       label = sig_text, size = 4
