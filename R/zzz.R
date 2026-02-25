@@ -4,7 +4,7 @@
 #' @useDynLib spacc, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 #' @importFrom RcppParallel RcppParallelLibs
-#' @importFrom stats quantile sd coef confint predict nls nls.control AIC dist median runif lm
+#' @importFrom stats quantile sd coef confint predict nls nls.control AIC anova dist median runif lm
 #' @importFrom parallel detectCores
 NULL
 
@@ -36,6 +36,8 @@ utils::globalVariables(c(
   "cpp_random_parallel", "cpp_random_single",
   "cpp_wavefront_parallel", "cpp_wavefront_single",
   "interpolate_at_coverage",
+  "cpp_knn_hill_coverage_parallel",
+  "cpp_knn_hill_beta_parallel",
   # ggplot2 aesthetics for new features
   "mean_area", "mean_diversity", "mean_endemism", "mean_richness",
   "endemism_lower", "endemism_upper", "type", "predicted",
@@ -49,7 +51,14 @@ utils::globalVariables(c(
   "dissimilarity", "site_i", "site_j", "predicted_decay", "bin_mid", "bin",
   # Feature 5: Null models / SES
   "ses", "null_mean", "null_sd", "p_value", "position", "observed",
-  "significance"
+  "significance",
+  # Hill + coverage, Hill beta, MEM
+  "mean_hill", "hill_lower", "hill_upper", "mean_coverage",
+  "coverage_lower", "coverage_upper",
+  "mean_gamma", "mean_alpha", "mean_beta",
+  "gamma_lower", "gamma_upper", "alpha_lower", "alpha_upper",
+  "beta_lower", "beta_upper",
+  "eigenvalue", "moran_i", "vector", "r_squared", "score"
 ))
 
 

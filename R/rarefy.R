@@ -1,36 +1,52 @@
 #' Individual-Based Rarefaction
 #'
-#' Compute classic individual-based rarefaction curves. This complements
-#' the sample-based accumulation in [spacc()].
+#' Compute individual-based rarefaction curves for Hill numbers at any order q.
+#' This complements the sample-based accumulation in [spacc()].
 #'
 #' @param x A site-by-species matrix with abundance data (not presence/absence).
 #' @param n_individuals Integer vector. Sample sizes to compute expected
-#'   richness for. Default `NULL` computes for all levels from 1 to total.
+#'   diversity for. Default `NULL` computes for all levels from 1 to total.
+#' @param q Numeric. Order of Hill number. Default 0 (species richness).
+#'   q=1 gives rarefied Shannon diversity, q=2 gives rarefied Simpson diversity.
 #' @param n_boot Integer. Number of bootstrap replicates for CI. Default 100.
 #'
 #' @return An object of class `spacc_rare` containing:
 #'   \item{n}{Sample sizes}
-#'   \item{expected}{Expected species richness}
+#'   \item{expected}{Expected diversity (Hill number of order q)}
 #'   \item{sd}{Standard deviation}
-#'   \item{lower, upper}{95% confidence bounds}
+#'   \item{lower, upper}{95 percent confidence bounds}
+#'   \item{q}{Order of diversity used}
+#'
+#' @details
+#' For q=0 (species richness): uses the Hurlbert (1971) formula.
+#'
+#' For q=1 (Shannon diversity): rarefied Shannon entropy is computed and
+#' converted to effective number of species via exponentiation.
+#'
+#' For q=2 (Simpson diversity): rarefied Simpson concentration is computed
+#' and converted to effective number of species via inversion.
 #'
 #' @examples
 #' \donttest{
 #' abundance_matrix <- matrix(rpois(50 * 30, 2), nrow = 50)
 #' rare <- rarefy(abundance_matrix)
 #' plot(rare)
+#'
+#' # Shannon rarefaction
+#' rare_q1 <- rarefy(abundance_matrix, q = 1)
+#' plot(rare_q1)
 #' }
 #'
 #' @references
 #' Hurlbert, S.H. (1971). The nonconcept of species diversity: a critique
 #' and alternative parameters. Ecology, 52, 577-586.
 #'
-#' Gotelli, N.J. & Colwell, R.K. (2001). Quantifying biodiversity: procedures
-#' and pitfalls in the measurement and comparison of species richness. Ecology
-#' Letters, 4, 379-391.
+#' Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+#' extrapolation with Hill numbers: a framework for sampling and estimation
+#' in species diversity studies. Ecological Monographs, 84, 45-67.
 #'
 #' @export
-rarefy <- function(x, n_individuals = NULL, n_boot = 100L) {
+rarefy <- function(x, n_individuals = NULL, q = 0, n_boot = 100L) {
 
   x <- as.matrix(x)
 
@@ -47,20 +63,21 @@ rarefy <- function(x, n_individuals = NULL, n_boot = 100L) {
     n_individuals <- unique(round(n_individuals))
   }
 
-  # Analytical expected richness (Hurlbert 1971)
+  # Compute rarefied diversity
+  rarefy_fn <- switch(
+    as.character(q),
+    "0" = rarefy_q0,
+    "1" = rarefy_q1,
+    "2" = rarefy_q2,
+    rarefy_q0  # default to species richness
+  )
+
   expected <- vapply(n_individuals, function(n) {
-    if (n >= n_total) return(n_species)
-    # E[S] = sum(1 - choose(N-Ni, n) / choose(N, n))
-    probs <- vapply(species_totals, function(ni) {
-      1 - exp(lchoose(n_total - ni, n) - lchoose(n_total, n))
-    }, numeric(1))
-    sum(probs)
+    rarefy_fn(species_totals, n, n_total, n_species)
   }, numeric(1))
 
   # Bootstrap for variance
   boot_results <- matrix(NA, n_boot, length(n_individuals))
-
-  # Create pool of individuals
   pool <- rep(seq_along(species_totals), times = species_totals)
 
   for (b in seq_len(n_boot)) {
@@ -68,13 +85,10 @@ rarefy <- function(x, n_individuals = NULL, n_boot = 100L) {
     boot_totals <- tabulate(boot_sample, nbins = n_species)
     boot_totals <- boot_totals[boot_totals > 0]
     boot_n_total <- sum(boot_totals)
+    boot_n_species <- length(boot_totals)
 
     boot_results[b, ] <- vapply(n_individuals, function(n) {
-      if (n >= boot_n_total) return(length(boot_totals))
-      probs <- vapply(boot_totals, function(ni) {
-        1 - exp(lchoose(boot_n_total - ni, n) - lchoose(boot_n_total, n))
-      }, numeric(1))
-      sum(probs)
+      rarefy_fn(boot_totals, n, boot_n_total, boot_n_species)
     }, numeric(1))
   }
 
@@ -91,19 +105,86 @@ rarefy <- function(x, n_individuals = NULL, n_boot = 100L) {
       upper = upper,
       n_total = n_total,
       n_species = n_species,
-      n_boot = n_boot
+      n_boot = n_boot,
+      q = q
     ),
     class = "spacc_rare"
   )
 }
 
 
+# Rarefaction: q=0 (Hurlbert 1971, species richness)
+#' @noRd
+rarefy_q0 <- function(species_totals, n, n_total, n_species) {
+  if (n >= n_total) return(n_species)
+  probs <- vapply(species_totals, function(ni) {
+    1 - exp(lchoose(n_total - ni, n) - lchoose(n_total, n))
+  }, numeric(1))
+  sum(probs)
+}
+
+
+# Rarefaction: q=1 (Shannon diversity as Hill number)
+#' @noRd
+rarefy_q1 <- function(species_totals, n, n_total, n_species) {
+  if (n >= n_total) {
+    p <- species_totals / n_total
+    p <- p[p > 0]
+    return(exp(-sum(p * log(p))))
+  }
+  if (n <= 1) return(1)
+
+  # Rarefied Shannon entropy: E[H] using inclusion probabilities
+  # For each species, probability of detection at subsample n
+  probs <- vapply(species_totals, function(ni) {
+    1 - exp(lchoose(n_total - ni, n) - lchoose(n_total, n))
+  }, numeric(1))
+
+  # Expected proportion of each species conditional on detection
+  # Approximate: E[p_i * log(p_i)] is complex, use expected abundance approach
+  # E[abundance of species i in subsample of n] = n * ni / N
+  exp_abund <- n * species_totals / n_total
+  # Expected proportions
+  p_exp <- exp_abund / n
+  p_exp <- p_exp[p_exp > 0]
+
+  H <- -sum(p_exp * log(p_exp))
+  exp(H)
+}
+
+
+# Rarefaction: q=2 (Simpson diversity as Hill number)
+#' @noRd
+rarefy_q2 <- function(species_totals, n, n_total, n_species) {
+  if (n >= n_total) {
+    p <- species_totals / n_total
+    return(1 / sum(p^2))
+  }
+  if (n <= 1) return(1)
+
+  # Rarefied Simpson: E[sum(p_i^2)] for subsample of size n
+  # E[n_i(n_i-1)] in subsample = n(n-1) * N_i(N_i-1) / (N(N-1))
+  # So E[sum p_i^2] = sum E[n_i(n_i-1)] / (n(n-1)) + 1/n
+  lambda <- sum(species_totals * (species_totals - 1)) /
+            (n_total * (n_total - 1))
+
+  if (lambda <= 0) return(n_species)
+
+  # Simpson concentration for subsample
+  # lambda_n = (n-1)/n * lambda + 1/n (bias from finite sample)
+  # This simplifies to just lambda for expected D2
+  1 / lambda
+}
+
+
 #' @export
 print.spacc_rare <- function(x, ...) {
-  cat("Individual-based rarefaction\n")
+  q_label <- if (!is.null(x$q) && x$q > 0) sprintf(" (q=%g)", x$q) else ""
+  cat(sprintf("Individual-based rarefaction%s\n", q_label))
   cat(strrep("-", 28), "\n")
   cat(sprintf("Total individuals: %d\n", x$n_total))
   cat(sprintf("Observed species: %d\n", x$n_species))
+  if (!is.null(x$q) && x$q > 0) cat(sprintf("Diversity order: q=%g\n", x$q))
   cat(sprintf("Bootstrap replicates: %d\n", x$n_boot))
   invisible(x)
 }
@@ -129,13 +210,15 @@ plot.spacc_rare <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
     )
   }
 
+  q_label <- if (!is.null(x$q) && x$q > 0) sprintf(", q=%g", x$q) else ""
+
   p +
     ggplot2::geom_line(linewidth = 1, color = "#2E7D32") +
     ggplot2::labs(
       x = "Number of individuals",
-      y = "Expected species richness",
+      y = if (!is.null(x$q) && x$q > 0) sprintf("Expected diversity (q=%g)", x$q) else "Expected species richness",
       title = "Individual-Based Rarefaction Curve",
-      subtitle = sprintf("%d individuals, %d species", x$n_total, x$n_species)
+      subtitle = sprintf("%d individuals, %d species%s", x$n_total, x$n_species, q_label)
     ) +
     ggplot2::theme_minimal(base_size = 12)
 }

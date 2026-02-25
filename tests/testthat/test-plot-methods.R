@@ -206,6 +206,26 @@ test_that("plot.spacc_metrics heatmap works", {
 })
 
 
+test_that("plot.spacc_metrics palette options work", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  result <- spaccMetrics(species, coords,
+                         metrics = c("slope_10", "auc"),
+                         parallel = FALSE, progress = FALSE)
+
+  p1 <- plot(result, metric = "slope_10", palette = "magma")
+  expect_s3_class(p1, "ggplot")
+
+  p2 <- plot(result, metric = "slope_10", palette = "A")
+  expect_s3_class(p2, "ggplot")
+})
+
+
 test_that("plot.spacc_metrics histogram works", {
   skip_on_cran()
   skip_if_not_installed("ggplot2")

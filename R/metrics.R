@@ -231,7 +231,7 @@ plot_spatial_map <- function(df, value_col, title, subtitle = NULL,
 
   p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[["x"]], y = .data[["y"]], color = .data[[value_col]])) +
     ggplot2::geom_point(size = point_size) +
-    ggplot2::scale_color_viridis_c(option = substr(palette, 1, 1)) +
+    ggplot2::scale_color_viridis_c(option = palette) +
     ggplot2::labs(
       x = "X coordinate",
       y = "Y coordinate",
@@ -272,7 +272,9 @@ as_sf_from_df <- function(df, crs = NULL) {
 #'     \item{`"histogram"`}{Distribution of metric values}
 #'   }
 #' @param point_size Numeric. Size of points in heatmap. Default 3.
-#' @param palette Character. Color palette for heatmap. Default `"viridis"`.
+#' @param palette Character. Color palette for heatmap. One of `"magma"` (A),
+#'   `"inferno"` (B), `"plasma"` (C), `"viridis"` (D, default), `"cividis"` (E),
+#'   `"rocket"` (F), `"mako"` (G), `"turbo"` (H). Single letters also accepted.
 #' @param ... Additional arguments (unused).
 #'
 #' @return A ggplot2 object.

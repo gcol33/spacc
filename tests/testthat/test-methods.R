@@ -106,6 +106,80 @@ test_that("c.spacc combines objects", {
 })
 
 
+test_that("c.spacc_hill combines objects", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  h1 <- spaccHill(species, coords, q = c(0, 1), n_seeds = 3,
+                   parallel = FALSE, progress = FALSE)
+  h2 <- spaccHill(species, coords, q = c(0, 1), n_seeds = 3,
+                   parallel = FALSE, progress = FALSE)
+
+  combined <- c(h1, h2)
+
+  expect_s3_class(combined, "spacc_hill")
+  expect_equal(combined$n_seeds, 6)
+  expect_equal(nrow(combined$curves[[1]]), 6)
+})
+
+
+test_that("c.spacc_beta combines objects", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
+
+  b1 <- spaccBeta(species, coords, n_seeds = 3,
+                   parallel = FALSE, progress = FALSE)
+  b2 <- spaccBeta(species, coords, n_seeds = 3,
+                   parallel = FALSE, progress = FALSE)
+
+  combined <- c(b1, b2)
+
+  expect_s3_class(combined, "spacc_beta")
+  expect_equal(combined$n_seeds, 6)
+  expect_equal(nrow(combined$beta_total), 6)
+})
+
+
+test_that("c.spacc_coverage combines objects", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  c1 <- spaccCoverage(species, coords, n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+  c2 <- spaccCoverage(species, coords, n_seeds = 3,
+                       parallel = FALSE, progress = FALSE)
+
+  combined <- c(c1, c2)
+
+  expect_s3_class(combined, "spacc_coverage")
+  expect_equal(combined$n_seeds, 6)
+  expect_equal(nrow(combined$richness), 6)
+})
+
+
+test_that("c.spacc_hill errors on incompatible objects", {
+  set.seed(42)
+  coords1 <- data.frame(x = runif(10), y = runif(10))
+  coords2 <- data.frame(x = runif(15), y = runif(15))
+  sp1 <- matrix(rpois(10 * 8, 3), nrow = 10)
+  sp2 <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  h1 <- spaccHill(sp1, coords1, n_seeds = 3, parallel = FALSE, progress = FALSE)
+  h2 <- spaccHill(sp2, coords2, n_seeds = 3, parallel = FALSE, progress = FALSE)
+
+  expect_error(c(h1, h2), "same number of sites")
+})
+
+
 test_that("is_grouped detects grouped objects", {
   skip_on_cran()
 

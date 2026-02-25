@@ -47,6 +47,61 @@ test_that("rarefy with custom n_individuals", {
 })
 
 
+test_that("rarefy q=1 Shannon diversity", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- rarefy(species, q = 1, n_boot = 10)
+
+  expect_s3_class(result, "spacc_rare")
+  expect_equal(result$q, 1)
+  # Shannon diversity should be >= 1 for non-trivial data
+  expect_true(all(result$expected >= 1))
+  # Should be monotonically non-decreasing
+  expect_true(all(diff(result$expected) >= -0.01))
+})
+
+
+test_that("rarefy q=2 Simpson diversity", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- rarefy(species, q = 2, n_boot = 10)
+
+  expect_s3_class(result, "spacc_rare")
+  expect_equal(result$q, 2)
+  # Simpson diversity should be >= 1
+  expect_true(all(result$expected >= 1))
+})
+
+
+test_that("rarefy q=0 backward compatible", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- rarefy(species, n_boot = 10)
+  result_q0 <- rarefy(species, q = 0, n_boot = 10)
+
+  # Default should behave same as q=0
+  # (bootstrap introduces randomness, but expected should match)
+  expect_equal(result$expected, result_q0$expected)
+})
+
+
+test_that("Hill ordering: D0 >= D1 >= D2 at full sample", {
+  set.seed(42)
+  species <- matrix(rpois(30 * 15, 3), nrow = 30)
+  n_total <- sum(colSums(species)[colSums(species) > 0])
+
+  r0 <- rarefy(species, n_individuals = n_total, q = 0, n_boot = 5)
+  r1 <- rarefy(species, n_individuals = n_total, q = 1, n_boot = 5)
+  r2 <- rarefy(species, n_individuals = n_total, q = 2, n_boot = 5)
+
+  expect_true(r0$expected >= r1$expected - 0.1)
+  expect_true(r1$expected >= r2$expected - 0.1)
+})
+
+
 test_that("print.spacc_rare works", {
   set.seed(42)
   species <- matrix(rpois(15 * 8, 3), nrow = 15)

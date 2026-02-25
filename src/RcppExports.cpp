@@ -147,6 +147,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_knn_hill_beta_parallel
+List cpp_knn_hill_beta_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, NumericVector q_values, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_knn_hill_beta_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
+    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_hill_beta_parallel(species_mat, dist_mat, n_seeds, q_values, n_cores, progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_knn_hill_coverage_parallel
+List cpp_knn_hill_coverage_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, NumericVector q_values, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_knn_hill_coverage_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
+    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_hill_coverage_parallel(species_mat, dist_mat, n_seeds, q_values, n_cores, progress));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_kncn_single
 IntegerVector cpp_kncn_single(IntegerMatrix species_pa, NumericVector x, NumericVector y, int seed);
 RcppExport SEXP _spacc_cpp_kncn_single(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedSEXP) {
@@ -671,6 +703,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_calc_hill_number", (DL_FUNC) &_spacc_calc_hill_number, 2},
     {"_spacc_cpp_knn_hill_single", (DL_FUNC) &_spacc_cpp_knn_hill_single, 4},
     {"_spacc_cpp_knn_hill_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_parallel, 6},
+    {"_spacc_cpp_knn_hill_beta_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_beta_parallel, 6},
+    {"_spacc_cpp_knn_hill_coverage_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_coverage_parallel, 6},
     {"_spacc_cpp_kncn_single", (DL_FUNC) &_spacc_cpp_kncn_single, 4},
     {"_spacc_cpp_kncn_parallel", (DL_FUNC) &_spacc_cpp_kncn_parallel, 6},
     {"_spacc_cpp_kncn_kdtree_single", (DL_FUNC) &_spacc_cpp_kncn_kdtree_single, 5},

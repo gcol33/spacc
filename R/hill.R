@@ -242,3 +242,238 @@ as_sf.spacc_hill <- function(x, crs = NULL) {
   if (is.null(x$site_values)) stop("No map data. Rerun spaccHill() with map = TRUE.")
   as_sf_from_df(x$site_values, crs = crs)
 }
+
+
+# ============================================================================
+# HILL BETA DIVERSITY (Jost 2007 along accumulation)
+# ============================================================================
+
+#' Spatial Hill Number Beta Diversity
+#'
+#' Compute multisite beta diversity as gamma/alpha decomposition of Hill
+#' numbers along the spatial accumulation curve (Jost 2007 framework).
+#'
+#' @param x A site-by-species matrix (rows = sites, cols = species).
+#' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
+#' @param q Numeric vector. Orders of diversity. Default `c(0, 1, 2)`.
+#' @param n_seeds Integer. Number of random starting points. Default 50.
+#' @param distance Character. `"euclidean"` or `"haversine"`.
+#' @param parallel Logical. Use parallel processing? Default `TRUE`.
+#' @param n_cores Integer. Number of cores. Default `NULL`.
+#' @param progress Logical. Show progress? Default `TRUE`.
+#' @param seed Integer. Random seed.
+#'
+#' @return An object of class `spacc_hill_beta` containing:
+#'   \item{gamma}{Named list of n_seeds x n_sites matrices (one per q)}
+#'   \item{alpha}{Named list of n_seeds x n_sites matrices (one per q)}
+#'   \item{beta}{Named list of n_seeds x n_sites matrices (one per q)}
+#'   \item{q}{Vector of q values}
+#'   \item{coords}{Original coordinates}
+#'   \item{n_seeds, n_sites, n_species}{Dimensions}
+#'
+#' @details
+#' At each accumulation step k, the function computes:
+#' - **Gamma**: Hill number of the pooled community (all k sites combined)
+#' - **Alpha**: Generalized mean of per-site Hill numbers (Jost's power mean)
+#' - **Beta**: gamma / alpha (effective number of distinct communities)
+#'
+#' Beta = 1 means all sites are identical; beta = k means all sites are
+#' completely different. This provides the Hill-number analogue of the
+#' Baselga-based `spaccBeta()`.
+#'
+#' @references
+#' Jost, L. (2007). Partitioning diversity into independent alpha and beta
+#' components. Ecology, 88, 2427-2439.
+#'
+#' @seealso [spaccBeta()] for P/A-based Baselga partitioning,
+#'   [spaccHill()] for Hill accumulation without beta decomposition
+#'
+#' @examples
+#' \donttest{
+#' coords <- data.frame(x = runif(40), y = runif(40))
+#' species <- matrix(rpois(40 * 20, 2), nrow = 40)
+#'
+#' hb <- spaccHillBeta(species, coords, n_seeds = 10, progress = FALSE)
+#' plot(hb)
+#' }
+#'
+#' @export
+spaccHillBeta <- function(x,
+                           coords,
+                           q = c(0, 1, 2),
+                           n_seeds = 50L,
+                           distance = c("euclidean", "haversine"),
+                           parallel = TRUE,
+                           n_cores = NULL,
+                           progress = TRUE,
+                           seed = NULL) {
+
+  distance <- match.arg(distance)
+  if (!is.null(seed)) set.seed(seed)
+  n_cores <- resolve_cores(n_cores, parallel)
+
+  x <- as.matrix(x)
+  stopifnot(
+    "q must be numeric and >= 0" = is.numeric(q) && all(q >= 0),
+    "n_seeds must be positive" = n_seeds > 0
+  )
+
+  # Handle coords
+  if (inherits(coords, "spacc_dist")) {
+    dist_mat <- as.matrix(coords)
+    coord_data <- attr(coords, "coords")
+  } else {
+    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+    coord_data <- coords
+    if (progress) cli_info(sprintf("Computing distances (%d x %d)", nrow(x), nrow(x)))
+    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
+  }
+
+  stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
+
+  n_sites <- nrow(x)
+  n_species <- ncol(x)
+  storage.mode(x) <- "integer"
+
+  if (progress) cli_info(sprintf("Computing Hill beta (q = %s, %d seeds)",
+                                  paste(q, collapse = ", "), n_seeds))
+
+  result <- cpp_knn_hill_beta_parallel(x, dist_mat, n_seeds, q, n_cores, progress)
+
+  if (progress) cli_success("Done")
+
+  structure(
+    list(
+      gamma = result$gamma,
+      alpha = result$alpha,
+      beta = result$beta,
+      q = q,
+      coords = coord_data,
+      n_seeds = n_seeds,
+      n_sites = n_sites,
+      n_species = n_species,
+      distance = distance,
+      call = match.call()
+    ),
+    class = "spacc_hill_beta"
+  )
+}
+
+
+# S3 methods for spacc_hill_beta ---------------------------------------------
+
+#' @export
+print.spacc_hill_beta <- function(x, ...) {
+  cat(sprintf("spacc Hill beta diversity: %d sites, %d species, %d seeds\n",
+              x$n_sites, x$n_species, x$n_seeds))
+  cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
+
+  # Mean final beta per q
+  for (i in seq_along(x$q)) {
+    mean_beta <- mean(x$beta[[i]][, x$n_sites])
+    cat(sprintf("  q = %s: mean final beta = %.2f\n", x$q[i], mean_beta))
+  }
+  invisible(x)
+}
+
+
+#' @export
+summary.spacc_hill_beta <- function(object, ci_level = 0.95, ...) {
+  alpha_ci <- (1 - ci_level) / 2
+
+  results <- list()
+  for (comp in c("gamma", "alpha", "beta")) {
+    comp_list <- object[[comp]]
+    for (i in seq_along(object$q)) {
+      mat <- comp_list[[i]]
+      results[[length(results) + 1]] <- data.frame(
+        component = comp,
+        q = object$q[i],
+        sites = seq_len(object$n_sites),
+        mean = colMeans(mat),
+        lower = apply(mat, 2, stats::quantile, probs = alpha_ci),
+        upper = apply(mat, 2, stats::quantile, probs = 1 - alpha_ci)
+      )
+    }
+  }
+
+  do.call(rbind, results)
+}
+
+
+#' @export
+as.data.frame.spacc_hill_beta <- function(x, row.names = NULL, optional = FALSE, ...) {
+  summary(x)
+}
+
+
+#' @export
+plot.spacc_hill_beta <- function(x, component = c("beta", "gamma", "alpha", "all"),
+                                  ci = TRUE, ci_alpha = 0.2, ...) {
+  component <- match.arg(component)
+  check_suggests("ggplot2")
+
+  summ <- summary(x)
+
+  if (component != "all") {
+    plot_df <- summ[summ$component == component, ]
+    plot_df$q_label <- factor(paste0("q = ", plot_df$q),
+                               levels = paste0("q = ", sort(unique(plot_df$q))))
+
+    p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = sites, y = mean, color = q_label))
+
+    if (ci) {
+      p <- p + ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = lower, ymax = upper, fill = q_label),
+        alpha = ci_alpha, color = NA
+      )
+    }
+
+    p +
+      ggplot2::geom_line(linewidth = 1) +
+      ggplot2::labs(
+        x = "Sites accumulated",
+        y = paste0(tools::toTitleCase(component), " diversity"),
+        color = "Order", fill = "Order",
+        title = sprintf("Hill %s Diversity along Accumulation",
+                         tools::toTitleCase(component))
+      ) +
+      ggplot2::theme_minimal(base_size = 12) +
+      ggplot2::theme(legend.position = "bottom")
+
+  } else {
+    # Facet by q, show all three components
+    summ$q_label <- factor(paste0("q = ", summ$q),
+                            levels = paste0("q = ", sort(unique(summ$q))))
+    summ$component <- factor(summ$component,
+                              levels = c("gamma", "alpha", "beta"))
+
+    p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean, color = component))
+
+    if (ci) {
+      p <- p + ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = lower, ymax = upper, fill = component),
+        alpha = ci_alpha, color = NA
+      )
+    }
+
+    p +
+      ggplot2::geom_line(linewidth = 1) +
+      ggplot2::facet_wrap(~ q_label, scales = "free_y") +
+      ggplot2::labs(
+        x = "Sites accumulated",
+        y = "Diversity",
+        color = "Component", fill = "Component",
+        title = "Hill Number Diversity Partitioning"
+      ) +
+      ggplot2::theme_minimal(base_size = 12) +
+      ggplot2::theme(legend.position = "bottom")
+  }
+}
+
+
+#' @rawNamespace S3method(ggplot2::autoplot, spacc_hill_beta)
+autoplot.spacc_hill_beta <- function(object, ...) {
+  check_suggests("ggplot2")
+  plot(object, ...)
+}

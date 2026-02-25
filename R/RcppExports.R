@@ -2,178 +2,186 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 cpp_beta_knn_single <- function(species_pa, dist_mat, seed, use_jaccard = FALSE) {
-    .Call(`_spacc_cpp_beta_knn_single`, species_pa, dist_mat, seed, use_jaccard)
+    .Call('_spacc_cpp_beta_knn_single', PACKAGE = 'spacc', species_pa, dist_mat, seed, use_jaccard)
 }
 
 cpp_beta_knn_parallel <- function(species_pa, dist_mat, n_seeds, use_jaccard = FALSE, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_beta_knn_parallel`, species_pa, dist_mat, n_seeds, use_jaccard, n_cores, progress)
+    .Call('_spacc_cpp_beta_knn_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_seeds, use_jaccard, n_cores, progress)
 }
 
 calc_coverage <- function(abundances) {
-    .Call(`_spacc_calc_coverage`, abundances)
+    .Call('_spacc_calc_coverage', PACKAGE = 'spacc', abundances)
 }
 
 cpp_knn_coverage_single <- function(species_mat, dist_mat, seed) {
-    .Call(`_spacc_cpp_knn_coverage_single`, species_mat, dist_mat, seed)
+    .Call('_spacc_cpp_knn_coverage_single', PACKAGE = 'spacc', species_mat, dist_mat, seed)
 }
 
 cpp_knn_coverage_parallel <- function(species_mat, dist_mat, n_seeds, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_knn_coverage_parallel`, species_mat, dist_mat, n_seeds, n_cores, progress)
+    .Call('_spacc_cpp_knn_coverage_parallel', PACKAGE = 'spacc', species_mat, dist_mat, n_seeds, n_cores, progress)
 }
 
 interpolate_at_coverage <- function(richness, coverage, targets) {
-    .Call(`_spacc_interpolate_at_coverage`, richness, coverage, targets)
+    .Call('_spacc_interpolate_at_coverage', PACKAGE = 'spacc', richness, coverage, targets)
 }
 
 cpp_distance_matrix <- function(x, y, method = "euclidean") {
-    .Call(`_spacc_cpp_distance_matrix`, x, y, method)
+    .Call('_spacc_cpp_distance_matrix', PACKAGE = 'spacc', x, y, method)
 }
 
 calc_hill_number <- function(abundances, q) {
-    .Call(`_spacc_calc_hill_number`, abundances, q)
+    .Call('_spacc_calc_hill_number', PACKAGE = 'spacc', abundances, q)
 }
 
 cpp_knn_hill_single <- function(species_mat, dist_mat, seed, q_values) {
-    .Call(`_spacc_cpp_knn_hill_single`, species_mat, dist_mat, seed, q_values)
+    .Call('_spacc_cpp_knn_hill_single', PACKAGE = 'spacc', species_mat, dist_mat, seed, q_values)
 }
 
 cpp_knn_hill_parallel <- function(species_mat, dist_mat, n_seeds, q_values, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_knn_hill_parallel`, species_mat, dist_mat, n_seeds, q_values, n_cores, progress)
+    .Call('_spacc_cpp_knn_hill_parallel', PACKAGE = 'spacc', species_mat, dist_mat, n_seeds, q_values, n_cores, progress)
+}
+
+cpp_knn_hill_beta_parallel <- function(species_mat, dist_mat, n_seeds, q_values, n_cores = 1L, progress = FALSE) {
+    .Call('_spacc_cpp_knn_hill_beta_parallel', PACKAGE = 'spacc', species_mat, dist_mat, n_seeds, q_values, n_cores, progress)
+}
+
+cpp_knn_hill_coverage_parallel <- function(species_mat, dist_mat, n_seeds, q_values, n_cores = 1L, progress = FALSE) {
+    .Call('_spacc_cpp_knn_hill_coverage_parallel', PACKAGE = 'spacc', species_mat, dist_mat, n_seeds, q_values, n_cores, progress)
 }
 
 cpp_kncn_single <- function(species_pa, x, y, seed) {
-    .Call(`_spacc_cpp_kncn_single`, species_pa, x, y, seed)
+    .Call('_spacc_cpp_kncn_single', PACKAGE = 'spacc', species_pa, x, y, seed)
 }
 
 cpp_kncn_parallel <- function(species_pa, x, y, n_seeds, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_kncn_parallel`, species_pa, x, y, n_seeds, n_cores, progress)
+    .Call('_spacc_cpp_kncn_parallel', PACKAGE = 'spacc', species_pa, x, y, n_seeds, n_cores, progress)
 }
 
 cpp_kncn_kdtree_single <- function(species_pa, x, y, seed, distance = "euclidean") {
-    .Call(`_spacc_cpp_kncn_kdtree_single`, species_pa, x, y, seed, distance)
+    .Call('_spacc_cpp_kncn_kdtree_single', PACKAGE = 'spacc', species_pa, x, y, seed, distance)
 }
 
 cpp_kncn_kdtree_parallel <- function(species_pa, x, y, n_seeds, n_cores = 1L, progress = FALSE, distance = "euclidean") {
-    .Call(`_spacc_cpp_kncn_kdtree_parallel`, species_pa, x, y, n_seeds, n_cores, progress, distance)
+    .Call('_spacc_cpp_kncn_kdtree_parallel', PACKAGE = 'spacc', species_pa, x, y, n_seeds, n_cores, progress, distance)
 }
 
 cpp_knn_single <- function(species_pa, dist_mat, seed) {
-    .Call(`_spacc_cpp_knn_single`, species_pa, dist_mat, seed)
+    .Call('_spacc_cpp_knn_single', PACKAGE = 'spacc', species_pa, dist_mat, seed)
 }
 
 cpp_knn_parallel <- function(species_pa, dist_mat, n_seeds, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_knn_parallel`, species_pa, dist_mat, n_seeds, n_cores, progress)
+    .Call('_spacc_cpp_knn_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_seeds, n_cores, progress)
 }
 
 cpp_knn_parallel_seeds <- function(species_pa, dist_mat, seeds, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_knn_parallel_seeds`, species_pa, dist_mat, seeds, n_cores, progress)
+    .Call('_spacc_cpp_knn_parallel_seeds', PACKAGE = 'spacc', species_pa, dist_mat, seeds, n_cores, progress)
 }
 
 cpp_knn_kdtree_single <- function(species_pa, x, y, seed, distance = "euclidean") {
-    .Call(`_spacc_cpp_knn_kdtree_single`, species_pa, x, y, seed, distance)
+    .Call('_spacc_cpp_knn_kdtree_single', PACKAGE = 'spacc', species_pa, x, y, seed, distance)
 }
 
 cpp_knn_kdtree_parallel <- function(species_pa, x, y, n_seeds, n_cores = 1L, progress = FALSE, distance = "euclidean") {
-    .Call(`_spacc_cpp_knn_kdtree_parallel`, species_pa, x, y, n_seeds, n_cores, progress, distance)
+    .Call('_spacc_cpp_knn_kdtree_parallel', PACKAGE = 'spacc', species_pa, x, y, n_seeds, n_cores, progress, distance)
 }
 
 cpp_knn_kdtree_parallel_seeds <- function(species_pa, x, y, seeds, n_cores = 1L, progress = FALSE, distance = "euclidean") {
-    .Call(`_spacc_cpp_knn_kdtree_parallel_seeds`, species_pa, x, y, seeds, n_cores, progress, distance)
+    .Call('_spacc_cpp_knn_kdtree_parallel_seeds', PACKAGE = 'spacc', species_pa, x, y, seeds, n_cores, progress, distance)
 }
 
 cpp_collector_single <- function(species_pa) {
-    .Call(`_spacc_cpp_collector_single`, species_pa)
+    .Call('_spacc_cpp_collector_single', PACKAGE = 'spacc', species_pa)
 }
 
 cpp_gaussian_single <- function(species_pa, dist_mat, seed, sigma) {
-    .Call(`_spacc_cpp_gaussian_single`, species_pa, dist_mat, seed, sigma)
+    .Call('_spacc_cpp_gaussian_single', PACKAGE = 'spacc', species_pa, dist_mat, seed, sigma)
 }
 
 cpp_gaussian_parallel <- function(species_pa, dist_mat, n_seeds, sigma, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_gaussian_parallel`, species_pa, dist_mat, n_seeds, sigma, n_cores, progress)
+    .Call('_spacc_cpp_gaussian_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_seeds, sigma, n_cores, progress)
 }
 
 cpp_wavefront_single <- function(species_pa, dist_mat, seed, r0, dr, n_steps) {
-    .Call(`_spacc_cpp_wavefront_single`, species_pa, dist_mat, seed, r0, dr, n_steps)
+    .Call('_spacc_cpp_wavefront_single', PACKAGE = 'spacc', species_pa, dist_mat, seed, r0, dr, n_steps)
 }
 
 cpp_wavefront_parallel <- function(species_pa, dist_mat, n_seeds, r0, dr, n_steps, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_wavefront_parallel`, species_pa, dist_mat, n_seeds, r0, dr, n_steps, n_cores, progress)
+    .Call('_spacc_cpp_wavefront_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_seeds, r0, dr, n_steps, n_cores, progress)
 }
 
 cpp_radius_single <- function(species_pa, dist_mat, seed) {
-    .Call(`_spacc_cpp_radius_single`, species_pa, dist_mat, seed)
+    .Call('_spacc_cpp_radius_single', PACKAGE = 'spacc', species_pa, dist_mat, seed)
 }
 
 cpp_radius_parallel <- function(species_pa, dist_mat, n_seeds, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_radius_parallel`, species_pa, dist_mat, n_seeds, n_cores, progress)
+    .Call('_spacc_cpp_radius_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_seeds, n_cores, progress)
 }
 
 cpp_cone_single <- function(species_pa, x, y, seed, angle, width) {
-    .Call(`_spacc_cpp_cone_single`, species_pa, x, y, seed, angle, width)
+    .Call('_spacc_cpp_cone_single', PACKAGE = 'spacc', species_pa, x, y, seed, angle, width)
 }
 
 cpp_cone_parallel <- function(species_pa, x, y, n_seeds, width = 0.785398, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_cone_parallel`, species_pa, x, y, n_seeds, width, n_cores, progress)
+    .Call('_spacc_cpp_cone_parallel', PACKAGE = 'spacc', species_pa, x, y, n_seeds, width, n_cores, progress)
 }
 
 cpp_distance_decay_single <- function(species_pa, dist_mat, seed, breaks) {
-    .Call(`_spacc_cpp_distance_decay_single`, species_pa, dist_mat, seed, breaks)
+    .Call('_spacc_cpp_distance_decay_single', PACKAGE = 'spacc', species_pa, dist_mat, seed, breaks)
 }
 
 cpp_distance_decay_parallel <- function(species_pa, dist_mat, n_seeds, breaks, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_distance_decay_parallel`, species_pa, dist_mat, n_seeds, breaks, n_cores, progress)
+    .Call('_spacc_cpp_distance_decay_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_seeds, breaks, n_cores, progress)
 }
 
 cpp_knn_metrics_parallel <- function(species_pa, dist_mat, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_knn_metrics_parallel`, species_pa, dist_mat, n_cores, progress)
+    .Call('_spacc_cpp_knn_metrics_parallel', PACKAGE = 'spacc', species_pa, dist_mat, n_cores, progress)
 }
 
 cpp_kncn_metrics_parallel <- function(species_pa, x_coords, y_coords, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_kncn_metrics_parallel`, species_pa, x_coords, y_coords, n_cores, progress)
+    .Call('_spacc_cpp_kncn_metrics_parallel', PACKAGE = 'spacc', species_pa, x_coords, y_coords, n_cores, progress)
 }
 
 calc_mpd <- function(dist_mat, species_present, abundance_weighted = FALSE, abundances = numeric()) {
-    .Call(`_spacc_calc_mpd`, dist_mat, species_present, abundance_weighted, abundances)
+    .Call('_spacc_calc_mpd', PACKAGE = 'spacc', dist_mat, species_present, abundance_weighted, abundances)
 }
 
 calc_mntd <- function(dist_mat, species_present, abundance_weighted = FALSE, abundances = numeric()) {
-    .Call(`_spacc_calc_mntd`, dist_mat, species_present, abundance_weighted, abundances)
+    .Call('_spacc_calc_mntd', PACKAGE = 'spacc', dist_mat, species_present, abundance_weighted, abundances)
 }
 
 calc_faith_pd <- function(edge, edge_length, n_tips, species_present) {
-    .Call(`_spacc_calc_faith_pd`, edge, edge_length, n_tips, species_present)
+    .Call('_spacc_calc_faith_pd', PACKAGE = 'spacc', edge, edge_length, n_tips, species_present)
 }
 
 cpp_phylo_knn_single <- function(species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L) {
-    .Call(`_spacc_cpp_phylo_knn_single`, species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge, tree_edge_length, tree_n_tips)
+    .Call('_spacc_cpp_phylo_knn_single', PACKAGE = 'spacc', species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge, tree_edge_length, tree_n_tips)
 }
 
 cpp_phylo_knn_parallel <- function(species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores = 1L, progress = FALSE, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L) {
-    .Call(`_spacc_cpp_phylo_knn_parallel`, species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress, tree_edge, tree_edge_length, tree_n_tips)
+    .Call('_spacc_cpp_phylo_knn_parallel', PACKAGE = 'spacc', species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress, tree_edge, tree_edge_length, tree_n_tips)
 }
 
 calc_fdis <- function(traits, species_present, abundances) {
-    .Call(`_spacc_calc_fdis`, traits, species_present, abundances)
+    .Call('_spacc_calc_fdis', PACKAGE = 'spacc', traits, species_present, abundances)
 }
 
 calc_fric_approx <- function(traits, species_present) {
-    .Call(`_spacc_calc_fric_approx`, traits, species_present)
+    .Call('_spacc_calc_fric_approx', PACKAGE = 'spacc', traits, species_present)
 }
 
 cpp_func_knn_single <- function(species_mat, site_dist_mat, traits, seed, metrics) {
-    .Call(`_spacc_cpp_func_knn_single`, species_mat, site_dist_mat, traits, seed, metrics)
+    .Call('_spacc_cpp_func_knn_single', PACKAGE = 'spacc', species_mat, site_dist_mat, traits, seed, metrics)
 }
 
 cpp_func_knn_parallel <- function(species_mat, site_dist_mat, traits, n_seeds, metrics, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_func_knn_parallel`, species_mat, site_dist_mat, traits, n_seeds, metrics, n_cores, progress)
+    .Call('_spacc_cpp_func_knn_parallel', PACKAGE = 'spacc', species_mat, site_dist_mat, traits, n_seeds, metrics, n_cores, progress)
 }
 
 cpp_random_single <- function(species_pa, order) {
-    .Call(`_spacc_cpp_random_single`, species_pa, order)
+    .Call('_spacc_cpp_random_single', PACKAGE = 'spacc', species_pa, order)
 }
 
 cpp_random_parallel <- function(species_pa, n_seeds, n_cores = 1L, progress = FALSE) {
-    .Call(`_spacc_cpp_random_parallel`, species_pa, n_seeds, n_cores, progress)
+    .Call('_spacc_cpp_random_parallel', PACKAGE = 'spacc', species_pa, n_seeds, n_cores, progress)
 }
 

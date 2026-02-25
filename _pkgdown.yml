@@ -38,6 +38,12 @@ articles:
   - diversity
   - extrapolation
   - spatial-analysis
+- title: Advanced Topics
+  navbar: Advanced
+  contents:
+  - richness-estimation
+  - community-assembly
+  - rarefaction-standardization
 reference:
 - title: Core Functions
   desc: Main spatial accumulation functions
@@ -53,17 +59,27 @@ reference:
   - gammaDiversity
   - diversityPartition
   - diversityProfile
+  - diversityProfilePhylo
+  - diversityProfileFunc
   - evenness
 - title: Hill Numbers
   desc: Diversity accumulation with Hill numbers (q=0,1,2)
-  contents: spaccHill
+  contents:
+  - spaccHill
+  - spaccHillCoverage
+  - spaccHillBeta
 - title: Beta Diversity
   desc: Spatial beta diversity with turnover/nestedness partitioning
   contents:
   - spaccBeta
   - spaccBetaFunc
   - spaccBetaPhylo
+- title: Community Turnover
+  desc: Distance-decay, zeta diversity, and null models
+  contents:
   - betaDecay
+  - zetaDiversity
+  - ses
 - title: Phylogenetic & Functional Diversity
   desc: Accumulation of PD and FD metrics
   contents:
@@ -85,9 +101,17 @@ reference:
   contents:
   - chao1
   - chao2
+  - iChao1
+  - iChao2
   - ace
   - jackknife
   - bootstrap_richness
+  - completenessProfile
+- title: Spatial Structure
+  desc: Spatial eigenvectors and variance partitioning
+  contents:
+  - spatialEigenvectors
+  - spatialPartition
 - title: Analytical Methods
   desc: Expected curves without simulation
   contents:
@@ -109,7 +133,6 @@ reference:
   - compare
   - rarefy
   - subsample
-  - ses
 - title: Internal
   desc: Internal functions (not for end users)
   contents:
@@ -120,3 +143,4 @@ reference:
   - c.spacc
   - plot.spacc
   - plot.spacc_metrics
+  - autoplot.spacc

@@ -9,7 +9,7 @@ ses(
   species,
   coords = NULL,
   metric = NULL,
-  null_model = c("frequency", "richness", "both", "curveball"),
+  null_model = c("frequency", "richness", "both", "curveball", "torus", "spatial_swap"),
   n_perm = 999L,
   parallel = TRUE,
   n_cores = NULL,
@@ -43,6 +43,12 @@ totals = species frequency)
 \item \code{"both"}: Independent swap algorithm maintaining both row and column
 totals (Gotelli 2000)
 \item \code{"curveball"}: Curveball algorithm for efficient swap (Strona et al. 2014)
+\item \code{"torus"}: Toroidal shift preserving spatial autocorrelation. Shifts all
+coordinates by a random offset and reassigns species to shifted sites.
+Requires \code{coords}.
+\item \code{"spatial_swap"}: Independent swap restricted to spatially proximate site
+pairs. Preserves both marginals while respecting spatial structure.
+Requires \code{coords}.
 }}
 
 \item{n_perm}{Integer. Number of permutations. Default 999.}

@@ -466,7 +466,12 @@ diversityProfile <- function(x, q = seq(0, 3, by = 0.1),
 
 #' @export
 print.spacc_profile <- function(x, ...) {
-  cat(sprintf("Diversity profile: %d sites, %d species\n", x$n_sites, x$n_species))
+  type_label <- if (!is.null(x$profile_type)) {
+    paste0(tools::toTitleCase(x$profile_type), " diversity")
+  } else {
+    "Diversity"
+  }
+  cat(sprintf("%s profile: %d sites, %d species\n", type_label, x$n_sites, x$n_species))
   cat(sprintf("q range: [%.1f, %.1f] (%d values)\n", min(x$q), max(x$q), length(x$q)))
   if (!is.null(x$per_site)) {
     cat(sprintf("Per-site: mean D_0 = %.1f, mean D_1 = %.1f, mean D_2 = %.1f\n",
@@ -582,11 +587,352 @@ plot.spacc_profile <- function(x, type = c("profile", "map"),
     )
   }
 
+  y_label <- if (!is.null(x$profile_type) && x$profile_type == "phylogenetic") {
+    "Effective number of lineages"
+  } else if (!is.null(x$profile_type) && x$profile_type == "functional") {
+    "Effective number of functional units"
+  } else {
+    "Effective number of species"
+  }
+
+  title_label <- if (!is.null(x$profile_type)) {
+    paste0(tools::toTitleCase(x$profile_type), " Diversity Profile")
+  } else {
+    "Diversity Profile"
+  }
+
   p +
     ggplot2::labs(
       x = "Diversity order (q)",
-      y = "Effective number of species",
-      title = "Diversity Profile"
+      y = y_label,
+      title = title_label
     ) +
     ggplot2::theme_minimal(base_size = 12)
+}
+
+
+# ============================================================================
+# PHYLOGENETIC DIVERSITY PROFILE
+# ============================================================================
+
+# Internal helper: compute phylogenetic Hill number for one site
+calc_hill_phylo_site <- function(abundances, tree, T_max, q) {
+  # abundances: named vector matching tree$tip.label
+  # Post-order traversal to compute branch-level abundances
+  n_tips <- length(tree$tip.label)
+  n_edges <- nrow(tree$edge)
+  edge_abundances <- numeric(n_edges)
+  N <- sum(abundances)
+
+  if (N == 0) return(0)
+
+  # Map tip abundances to terminal edges
+  tip_order <- match(names(abundances), tree$tip.label)
+
+  for (e in seq_len(n_edges)) {
+    descendant <- tree$edge[e, 2]
+    if (descendant <= n_tips) {
+      # Terminal edge: abundance of that tip
+      tip_idx <- tip_order[descendant]
+      if (!is.na(tip_idx)) {
+        edge_abundances[e] <- abundances[tree$tip.label[descendant]]
+      }
+    }
+  }
+
+  # Post-order traversal: propagate abundances up internal edges
+  # Compute from tips upward
+  for (e in rev(seq_len(n_edges))) {
+    parent <- tree$edge[e, 1]
+    descendant <- tree$edge[e, 2]
+    if (descendant > n_tips) {
+      # Internal node: sum of descendant edge abundances
+      child_edges <- which(tree$edge[, 1] == descendant)
+      edge_abundances[e] <- sum(edge_abundances[child_edges])
+    }
+  }
+
+  # Compute phylogenetic Hill number
+  L <- tree$edge.length
+  a <- edge_abundances
+  p <- a / N  # relative abundance per branch
+
+  # Only branches with positive abundance contribute
+  keep <- a > 0 & L > 0
+  if (sum(keep) == 0) return(0)
+
+  L_k <- L[keep]
+  p_k <- p[keep]
+
+  if (abs(q - 1) < 1e-10) {
+    # q = 1: exponential of phylogenetic entropy
+    H <- -sum(L_k / T_max * p_k * log(p_k))
+    return(exp(H))
+  } else {
+    # General q
+    val <- sum(L_k / T_max * p_k^q)
+    return(val^(1 / (1 - q)))
+  }
+}
+
+
+#' Phylogenetic Diversity Profile
+#'
+#' Compute phylogenetic Hill numbers (Chao et al. 2010) across a continuous
+#' range of diversity orders (q), producing a phylogenetic diversity profile.
+#'
+#' @param x A site-by-species matrix (abundance data). Column names must match
+#'   tip labels in the phylogeny.
+#' @param tree An `ape::phylo` object. Tips must include all species in `x`.
+#' @param q Numeric vector. Orders of diversity. Default `seq(0, 3, by = 0.1)`.
+#' @param type Character. What to compute: `"per_site"`, `"regional"`, or
+#'   `"both"` (default).
+#' @param coords Optional data.frame with `x` and `y` for spatial mapping.
+#'
+#' @return An object of class `spacc_profile` with `$profile_type = "phylogenetic"`.
+#'
+#' @details
+#' Phylogenetic Hill numbers (Chao et al. 2010) weight branches by their
+#' evolutionary distance. At q=0 this approximates normalized Faith's PD.
+#' Higher q values increasingly emphasize common lineages.
+#'
+#' @references
+#' Chao, A., Chiu, C.H. & Jost, L. (2010). Phylogenetic diversity measures
+#' based on Hill numbers. Philosophical Transactions of the Royal Society B,
+#' 365, 3599-3609.
+#'
+#' @seealso [diversityProfile()] for taxonomic profiles,
+#'   [diversityProfileFunc()] for functional profiles
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("ape", quietly = TRUE)) {
+#'   species <- matrix(rpois(20 * 10, 2), nrow = 20,
+#'                     dimnames = list(NULL, paste0("sp", 1:10)))
+#'   tree <- ape::rcoal(10, tip.label = paste0("sp", 1:10))
+#'   prof <- diversityProfilePhylo(species, tree)
+#'   print(prof)
+#' }
+#' }
+#'
+#' @export
+diversityProfilePhylo <- function(x, tree, q = seq(0, 3, by = 0.1),
+                                   type = c("both", "per_site", "regional"),
+                                   coords = NULL) {
+  type <- match.arg(type)
+  check_suggests("ape")
+  x <- as.matrix(x)
+  n_sites <- nrow(x)
+  n_species <- ncol(x)
+
+  if (is.null(colnames(x))) stop("x must have column names matching tree tip labels")
+
+  # Check species match
+  missing_tips <- setdiff(colnames(x), tree$tip.label)
+  if (length(missing_tips) > 0) {
+    stop(sprintf("Species not in tree: %s", paste(missing_tips[seq_len(min(5, length(missing_tips)))], collapse = ", ")))
+  }
+
+  if (!is.null(coords)) {
+    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+    stopifnot("x and coords must have same number of rows" = nrow(x) == nrow(coords))
+  }
+
+  # Total tree depth
+  T_max <- max(ape::node.depth.edgelength(tree))
+
+  per_site <- NULL
+  regional <- NULL
+
+  if (type %in% c("both", "per_site")) {
+    per_site <- matrix(NA, nrow = n_sites, ncol = length(q))
+    colnames(per_site) <- paste0("q", q)
+    for (i in seq_len(n_sites)) {
+      abund <- x[i, ]
+      names(abund) <- colnames(x)
+      for (j in seq_along(q)) {
+        per_site[i, j] <- calc_hill_phylo_site(abund, tree, T_max, q[j])
+      }
+    }
+  }
+
+  if (type %in% c("both", "regional")) {
+    pooled <- colSums(x)
+    names(pooled) <- colnames(x)
+    regional <- sapply(q, function(qi) calc_hill_phylo_site(pooled, tree, T_max, qi))
+    names(regional) <- paste0("q", q)
+  }
+
+  structure(
+    list(
+      per_site = per_site,
+      regional = regional,
+      q = q,
+      type = type,
+      profile_type = "phylogenetic",
+      coords = coords,
+      n_sites = n_sites,
+      n_species = n_species,
+      call = match.call()
+    ),
+    class = "spacc_profile"
+  )
+}
+
+
+# ============================================================================
+# FUNCTIONAL DIVERSITY PROFILE
+# ============================================================================
+
+# Internal helper: compute functional Hill number for one site
+calc_hill_func_site <- function(abundances, Z, q) {
+  # abundances: named vector
+  # Z: similarity matrix (species x species), values in [0,1]
+  N <- sum(abundances)
+  if (N == 0) return(0)
+
+  p <- abundances / N
+  keep <- p > 0
+  if (sum(keep) < 1) return(0)
+
+  p_k <- p[keep]
+  Z_k <- Z[keep, keep, drop = FALSE]
+
+  # Mean similarity: Zp = Z %*% p
+  Zp <- as.vector(Z_k %*% p_k)
+
+  if (abs(q - 1) < 1e-10) {
+    # q = 1
+    return(exp(-sum(p_k * log(Zp))))
+  } else {
+    val <- sum(p_k * Zp^(q - 1))
+    return(val^(1 / (1 - q)))
+  }
+}
+
+
+#' Functional Diversity Profile
+#'
+#' Compute functional Hill numbers (Leinster & Cobbold 2012) across a continuous
+#' range of diversity orders (q), producing a functional diversity profile based
+#' on trait similarity.
+#'
+#' @param x A site-by-species matrix (abundance data). Column names must match
+#'   row names in `traits`.
+#' @param traits A data.frame of species traits. Row names must match column
+#'   names in `x`.
+#' @param q Numeric vector. Orders of diversity. Default `seq(0, 3, by = 0.1)`.
+#' @param type Character. What to compute: `"per_site"`, `"regional"`, or
+#'   `"both"` (default).
+#' @param dist_method Character. Distance method for trait matrix:
+#'   `"euclidean"` (default) or `"gower"`.
+#' @param normalize Logical. Normalize distances to \[0, 1\]? Default `TRUE`.
+#' @param coords Optional data.frame with `x` and `y` for spatial mapping.
+#'
+#' @return An object of class `spacc_profile` with `$profile_type = "functional"`.
+#'
+#' @details
+#' Functional Hill numbers (Leinster & Cobbold 2012) incorporate trait similarity
+#' via a similarity matrix Z = 1 - D. When all species are maximally dissimilar
+#' (Z = identity), this reduces to standard Hill numbers.
+#'
+#' @references
+#' Leinster, T. & Cobbold, C.A. (2012). Measuring diversity: the importance
+#' of species similarity. Ecology, 93, 477-489.
+#'
+#' @seealso [diversityProfile()] for taxonomic profiles,
+#'   [diversityProfilePhylo()] for phylogenetic profiles
+#'
+#' @examples
+#' \donttest{
+#' species <- matrix(rpois(20 * 10, 2), nrow = 20,
+#'                   dimnames = list(NULL, paste0("sp", 1:10)))
+#' traits <- data.frame(
+#'   body_size = rnorm(10), diet = rnorm(10),
+#'   row.names = paste0("sp", 1:10)
+#' )
+#' prof <- diversityProfileFunc(species, traits)
+#' print(prof)
+#' }
+#'
+#' @export
+diversityProfileFunc <- function(x, traits, q = seq(0, 3, by = 0.1),
+                                  type = c("both", "per_site", "regional"),
+                                  dist_method = c("euclidean", "gower"),
+                                  normalize = TRUE, coords = NULL) {
+  type <- match.arg(type)
+  dist_method <- match.arg(dist_method)
+  x <- as.matrix(x)
+  n_sites <- nrow(x)
+  n_species <- ncol(x)
+
+  if (is.null(colnames(x))) stop("x must have column names matching trait row names")
+
+  # Check species match
+  missing_sp <- setdiff(colnames(x), rownames(traits))
+  if (length(missing_sp) > 0) {
+    stop(sprintf("Species not in traits: %s", paste(missing_sp[seq_len(min(5, length(missing_sp)))], collapse = ", ")))
+  }
+
+  if (!is.null(coords)) {
+    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+    stopifnot("x and coords must have same number of rows" = nrow(x) == nrow(coords))
+  }
+
+  # Compute distance matrix on traits
+  traits_sub <- traits[colnames(x), , drop = FALSE]
+
+  if (dist_method == "gower") {
+    check_suggests("cluster")
+    D <- as.matrix(cluster::daisy(traits_sub, metric = "gower"))
+  } else {
+    # Scale numeric traits for euclidean
+    traits_scaled <- scale(traits_sub)
+    D <- as.matrix(stats::dist(traits_scaled))
+  }
+
+  # Normalize to [0, 1]
+  if (normalize && max(D) > 0) {
+    D <- D / max(D)
+  }
+
+  # Similarity matrix
+  Z <- 1 - D
+
+  per_site <- NULL
+  regional <- NULL
+
+  if (type %in% c("both", "per_site")) {
+    per_site <- matrix(NA, nrow = n_sites, ncol = length(q))
+    colnames(per_site) <- paste0("q", q)
+    for (i in seq_len(n_sites)) {
+      abund <- x[i, ]
+      names(abund) <- colnames(x)
+      for (j in seq_along(q)) {
+        per_site[i, j] <- calc_hill_func_site(abund, Z, q[j])
+      }
+    }
+  }
+
+  if (type %in% c("both", "regional")) {
+    pooled <- colSums(x)
+    names(pooled) <- colnames(x)
+    regional <- sapply(q, function(qi) calc_hill_func_site(pooled, Z, qi))
+    names(regional) <- paste0("q", q)
+  }
+
+  structure(
+    list(
+      per_site = per_site,
+      regional = regional,
+      q = q,
+      type = type,
+      profile_type = "functional",
+      coords = coords,
+      n_sites = n_sites,
+      n_species = n_species,
+      call = match.call()
+    ),
+    class = "spacc_profile"
+  )
 }

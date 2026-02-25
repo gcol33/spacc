@@ -24,6 +24,12 @@
 #'   - `"both"`: Independent swap algorithm maintaining both row and column
 #'     totals (Gotelli 2000)
 #'   - `"curveball"`: Curveball algorithm for efficient swap (Strona et al. 2014)
+#'   - `"torus"`: Toroidal shift preserving spatial autocorrelation. Shifts all
+#'     coordinates by a random offset and reassigns species to shifted sites.
+#'     Requires `coords`.
+#'   - `"spatial_swap"`: Independent swap restricted to spatially proximate site
+#'     pairs. Preserves both marginals while respecting spatial structure.
+#'     Requires `coords`.
 #' @param n_perm Integer. Number of permutations. Default 999.
 #' @param parallel Logical. Use parallel processing for the underlying analysis?
 #'   Default `TRUE`.
@@ -85,7 +91,8 @@
 ses <- function(x, species,
                 coords = NULL,
                 metric = NULL,
-                null_model = c("frequency", "richness", "both", "curveball"),
+                null_model = c("frequency", "richness", "both", "curveball",
+                               "torus", "spatial_swap"),
                 n_perm = 999L,
                 parallel = TRUE,
                 n_cores = NULL,
@@ -97,6 +104,12 @@ ses <- function(x, species,
 
   species <- as.matrix(species)
   input_class <- class(x)[1]
+
+  # Spatial null models require coords
+  spatial_nulls <- c("torus", "spatial_swap")
+  if (null_model %in% spatial_nulls && is.null(coords) && is.null(x$coords)) {
+    stop(sprintf("Null model '%s' requires coords.", null_model))
+  }
 
   # Supported classes
 
@@ -123,7 +136,7 @@ ses <- function(x, species,
 
   for (p in seq_len(n_perm)) {
     # Randomize species matrix
-    null_species <- randomize_matrix(species, null_model)
+    null_species <- randomize_matrix(species, null_model, coords = coords)
 
     # Re-run analysis with null species
     null_result <- tryCatch(
@@ -296,7 +309,7 @@ rerun_analysis <- function(original, null_species, coords, parallel, n_cores) {
 
 # Null model algorithms --------------------------------------------------
 
-randomize_matrix <- function(m, method) {
+randomize_matrix <- function(m, method, coords = NULL) {
   pa <- (m > 0) * 1L
 
   switch(method,
@@ -320,6 +333,12 @@ randomize_matrix <- function(m, method) {
     },
     "curveball" = {
       curveball(pa)
+    },
+    "torus" = {
+      torus_shift(pa, coords)
+    },
+    "spatial_swap" = {
+      spatial_swap(pa, coords)
     }
   )
 }
@@ -394,6 +413,83 @@ curveball <- function(m) {
     result[i, row_cols[[i]]] <- 1L
   }
   result
+}
+
+
+# Toroidal shift null model
+# Shifts all coordinates by random offset, then reassigns species
+# to shifted sites via nearest-neighbor mapping
+torus_shift <- function(pa, coords) {
+  n <- nrow(pa)
+  x_range <- range(coords$x)
+  y_range <- range(coords$y)
+  x_width <- diff(x_range)
+  y_width <- diff(y_range)
+
+  # Random shift
+  dx <- stats::runif(1, 0, x_width)
+  dy <- stats::runif(1, 0, y_width)
+
+  # Shift coordinates with wrapping
+  new_x <- ((coords$x - x_range[1] + dx) %% x_width) + x_range[1]
+  new_y <- ((coords$y - y_range[1] + dy) %% y_width) + y_range[1]
+
+  # For each shifted site, find nearest original site
+  # Simple O(n^2) matching - fine for typical use
+  mapping <- integer(n)
+  for (i in seq_len(n)) {
+    dists <- (new_x[i] - coords$x)^2 + (new_y[i] - coords$y)^2
+    mapping[i] <- which.min(dists)
+  }
+
+  # Reassign rows
+  pa[mapping, , drop = FALSE]
+}
+
+
+# Spatially-constrained independent swap
+# Like independent_swap but only swaps between spatially proximate sites
+spatial_swap <- function(pa, coords, n_swaps = NULL) {
+  nr <- nrow(pa)
+  nc <- ncol(pa)
+
+  # Compute pairwise distances
+  dist_vec <- as.matrix(stats::dist(cbind(coords$x, coords$y)))
+
+  # Distance threshold: median pairwise distance
+  threshold <- stats::median(dist_vec[upper.tri(dist_vec)])
+
+  # Find valid pairs within threshold
+  valid_pairs <- which(dist_vec <= threshold & upper.tri(dist_vec), arr.ind = TRUE)
+  n_pairs <- nrow(valid_pairs)
+
+  if (n_pairs == 0) {
+    # Fallback to standard independent swap
+    return(independent_swap(pa, n_swaps = 5L * sum(pa)))
+  }
+
+  if (is.null(n_swaps)) n_swaps <- 5L * sum(pa)
+
+  for (s in seq_len(n_swaps)) {
+    # Pick a random proximate pair
+    pair_idx <- sample.int(n_pairs, 1)
+    rows <- valid_pairs[pair_idx, ]
+    cols <- sample(nc, 2)
+
+    submat <- pa[rows, cols]
+
+    # Check for checkerboard pattern to swap
+    if ((submat[1, 1] == 1 && submat[2, 2] == 1 &&
+         submat[1, 2] == 0 && submat[2, 1] == 0) ||
+        (submat[1, 1] == 0 && submat[2, 2] == 0 &&
+         submat[1, 2] == 1 && submat[2, 1] == 1)) {
+      pa[rows[1], cols[1]] <- 1L - pa[rows[1], cols[1]]
+      pa[rows[2], cols[2]] <- 1L - pa[rows[2], cols[2]]
+      pa[rows[1], cols[2]] <- 1L - pa[rows[1], cols[2]]
+      pa[rows[2], cols[1]] <- 1L - pa[rows[2], cols[1]]
+    }
+  }
+  pa
 }
 
 

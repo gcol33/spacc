@@ -453,3 +453,91 @@ print.summary.spacc_rare <- function(x, ...) {
   }
   invisible(x)
 }
+
+
+#' Combine spacc_hill Objects
+#'
+#' Combine multiple `spacc_hill` objects by stacking their curve matrices.
+#' All objects must have the same number of sites.
+#'
+#' @param ... `spacc_hill` objects to combine.
+#' @return A combined `spacc_hill` object with more seeds.
+#' @export
+c.spacc_hill <- function(...) {
+  objects <- list(...)
+  base <- objects[[1]]
+
+  # Validate compatible objects
+  for (i in seq_along(objects)[-1]) {
+    if (objects[[i]]$n_sites != base$n_sites) {
+      stop("All objects must have the same number of sites")
+    }
+  }
+
+  # Stack curves (list of matrices, one per q)
+  combined_curves <- lapply(seq_along(base$curves), function(q_idx) {
+    do.call(rbind, lapply(objects, function(obj) obj$curves[[q_idx]]))
+  })
+  names(combined_curves) <- names(base$curves)
+
+  total_seeds <- sum(vapply(objects, function(o) o$n_seeds, numeric(1)))
+
+  base$curves <- combined_curves
+  base$n_seeds <- total_seeds
+  base
+}
+
+
+#' Combine spacc_beta Objects
+#'
+#' Combine multiple `spacc_beta` objects by stacking their curve matrices.
+#' All objects must have the same number of sites and index.
+#'
+#' @param ... `spacc_beta` objects to combine.
+#' @return A combined `spacc_beta` object with more seeds.
+#' @export
+c.spacc_beta <- function(...) {
+  objects <- list(...)
+  base <- objects[[1]]
+
+  for (i in seq_along(objects)[-1]) {
+    if (objects[[i]]$n_sites != base$n_sites) {
+      stop("All objects must have the same number of sites")
+    }
+  }
+
+  base$beta_total <- do.call(rbind, lapply(objects, `[[`, "beta_total"))
+  base$beta_turnover <- do.call(rbind, lapply(objects, `[[`, "beta_turnover"))
+  base$beta_nestedness <- do.call(rbind, lapply(objects, `[[`, "beta_nestedness"))
+  base$distance <- do.call(rbind, lapply(objects, `[[`, "distance"))
+  base$n_seeds <- sum(vapply(objects, function(o) o$n_seeds, numeric(1)))
+
+  base
+}
+
+
+#' Combine spacc_coverage Objects
+#'
+#' Combine multiple `spacc_coverage` objects by stacking their curve matrices.
+#' All objects must have the same number of sites.
+#'
+#' @param ... `spacc_coverage` objects to combine.
+#' @return A combined `spacc_coverage` object with more seeds.
+#' @export
+c.spacc_coverage <- function(...) {
+  objects <- list(...)
+  base <- objects[[1]]
+
+  for (i in seq_along(objects)[-1]) {
+    if (objects[[i]]$n_sites != base$n_sites) {
+      stop("All objects must have the same number of sites")
+    }
+  }
+
+  base$richness <- do.call(rbind, lapply(objects, `[[`, "richness"))
+  base$individuals <- do.call(rbind, lapply(objects, `[[`, "individuals"))
+  base$coverage <- do.call(rbind, lapply(objects, `[[`, "coverage"))
+  base$n_seeds <- sum(vapply(objects, function(o) o$n_seeds, numeric(1)))
+
+  base
+}

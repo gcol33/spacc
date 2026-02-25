@@ -73,6 +73,77 @@ test_that("curveball preserves both marginals", {
 })
 
 
+test_that("torus shift produces valid binary matrix", {
+  set.seed(42)
+  m <- matrix(rbinom(20 * 10, 1, 0.3), nrow = 20)
+  coords <- data.frame(x = runif(20), y = runif(20))
+
+  null_m <- spacc:::randomize_matrix(m, "torus", coords = coords)
+  # Result should be a valid binary matrix of same dimensions
+  expect_equal(dim(null_m), dim(m))
+  expect_true(all(null_m %in% c(0L, 1L)))
+  # Each row in null is a row from original (permuted assignment)
+  # Row richness values come from original rows
+  expect_true(all(rowSums(null_m) %in% rowSums(m)))
+})
+
+
+test_that("spatial_swap preserves both marginals", {
+  set.seed(42)
+  m <- matrix(rbinom(20 * 10, 1, 0.3), nrow = 20)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  row_sums_orig <- rowSums(m)
+  col_sums_orig <- colSums(m)
+
+  null_m <- spacc:::randomize_matrix(m, "spatial_swap", coords = coords)
+  expect_equal(rowSums(null_m), row_sums_orig)
+  expect_equal(colSums(null_m), col_sums_orig)
+})
+
+
+test_that("ses with torus null model works", {
+  set.seed(42)
+  coords <- data.frame(x = runif(10), y = runif(10))
+  species <- matrix(rbinom(10 * 8, 1, 0.4), nrow = 10)
+
+  sac <- spacc(species, coords, n_seeds = 5, progress = FALSE)
+  result <- ses(sac, species, null_model = "torus", n_perm = 9, progress = FALSE)
+
+  expect_s3_class(result, "spacc_ses")
+  expect_equal(result$null_model, "torus")
+})
+
+
+test_that("ses with spatial_swap null model works", {
+  set.seed(42)
+  coords <- data.frame(x = runif(10), y = runif(10))
+  species <- matrix(rbinom(10 * 8, 1, 0.4), nrow = 10)
+
+  sac <- spacc(species, coords, n_seeds = 5, progress = FALSE)
+  result <- ses(sac, species, null_model = "spatial_swap", n_perm = 9, progress = FALSE)
+
+  expect_s3_class(result, "spacc_ses")
+  expect_equal(result$null_model, "spatial_swap")
+})
+
+
+test_that("spatial null models require coords", {
+  set.seed(42)
+  species <- matrix(rbinom(10 * 8, 1, 0.4), nrow = 10)
+
+  # Create a spacc object without coords
+  result <- structure(
+    list(curves = matrix(1:10, nrow = 1), n_seeds = 1, n_sites = 10,
+         n_species = 8, method = "knn", distance = "euclidean",
+         coords = NULL),
+    class = "spacc"
+  )
+
+  expect_error(ses(result, species, null_model = "torus", n_perm = 9),
+               "requires coords")
+})
+
+
 test_that("ses works with spacc_alpha", {
   set.seed(42)
   coords <- data.frame(x = runif(10), y = runif(10))

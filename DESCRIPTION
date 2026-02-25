@@ -47,7 +47,8 @@ Suggests:
     areaOfEffect,
     ape,
     iNEXT,
-    betapart
+    betapart,
+    cluster
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 SystemRequirements: GNU make

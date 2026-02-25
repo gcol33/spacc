@@ -27,7 +27,9 @@
 
 \item{point_size}{Numeric. Size of points in heatmap. Default 3.}
 
-\item{palette}{Character. Color palette for heatmap. Default \code{"viridis"}.}
+\item{palette}{Character. Color palette for heatmap. One of \code{"magma"} (A),
+\code{"inferno"} (B), \code{"plasma"} (C), \code{"viridis"} (D, default), \code{"cividis"} (E),
+\code{"rocket"} (F), \code{"mako"} (G), \code{"turbo"} (H). Single letters also accepted.}
 
 \item{...}{Additional arguments (unused).}
 }

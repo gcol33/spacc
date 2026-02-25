@@ -4,32 +4,49 @@
 \alias{rarefy}
 \title{Individual-Based Rarefaction}
 \usage{
-rarefy(x, n_individuals = NULL, n_boot = 100L)
+rarefy(x, n_individuals = NULL, q = 0, n_boot = 100L)
 }
 \arguments{
 \item{x}{A site-by-species matrix with abundance data (not presence/absence).}
 
 \item{n_individuals}{Integer vector. Sample sizes to compute expected
-richness for. Default \code{NULL} computes for all levels from 1 to total.}
+diversity for. Default \code{NULL} computes for all levels from 1 to total.}
+
+\item{q}{Numeric. Order of Hill number. Default 0 (species richness).
+q=1 gives rarefied Shannon diversity, q=2 gives rarefied Simpson diversity.}
 
 \item{n_boot}{Integer. Number of bootstrap replicates for CI. Default 100.}
 }
 \value{
 An object of class \code{spacc_rare} containing:
 \item{n}{Sample sizes}
-\item{expected}{Expected species richness}
+\item{expected}{Expected diversity (Hill number of order q)}
 \item{sd}{Standard deviation}
-\item{lower, upper}{95\% confidence bounds}
+\item{lower, upper}{95 percent confidence bounds}
+\item{q}{Order of diversity used}
 }
 \description{
-Compute classic individual-based rarefaction curves. This complements
-the sample-based accumulation in \code{\link[=spacc]{spacc()}}.
+Compute individual-based rarefaction curves for Hill numbers at any order q.
+This complements the sample-based accumulation in \code{\link[=spacc]{spacc()}}.
+}
+\details{
+For q=0 (species richness): uses the Hurlbert (1971) formula.
+
+For q=1 (Shannon diversity): rarefied Shannon entropy is computed and
+converted to effective number of species via exponentiation.
+
+For q=2 (Simpson diversity): rarefied Simpson concentration is computed
+and converted to effective number of species via inversion.
 }
 \examples{
 \donttest{
 abundance_matrix <- matrix(rpois(50 * 30, 2), nrow = 50)
 rare <- rarefy(abundance_matrix)
 plot(rare)
+
+# Shannon rarefaction
+rare_q1 <- rarefy(abundance_matrix, q = 1)
+plot(rare_q1)
 }
 
 }
@@ -37,7 +54,7 @@ plot(rare)
 Hurlbert, S.H. (1971). The nonconcept of species diversity: a critique
 and alternative parameters. Ecology, 52, 577-586.
 
-Gotelli, N.J. & Colwell, R.K. (2001). Quantifying biodiversity: procedures
-and pitfalls in the measurement and comparison of species richness. Ecology
-Letters, 4, 379-391.
+Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+extrapolation with Hill numbers: a framework for sampling and estimation
+in species diversity studies. Ecological Monographs, 84, 45-67.
 }

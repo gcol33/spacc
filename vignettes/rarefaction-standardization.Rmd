@@ -1,0 +1,143 @@
+---
+title: "Rarefaction and Standardization"
+author: "Gilles Colling"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Rarefaction and Standardization}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  dev = "svglite",
+  fig.ext = "svg"
+)
+```
+
+## Overview
+
+Comparing diversity across sites with unequal sampling effort requires
+standardization. **spacc** offers three approaches:
+
+1. **Individual-based rarefaction**: Subsample to equal number of individuals
+2. **Coverage-based rarefaction**: Standardize by sample completeness
+3. **Spatial coverage tracking**: Monitor coverage along accumulation curves
+
+This vignette compares these methods and provides guidance on when to use each.
+
+## Data setup
+
+```{r data}
+library(spacc)
+set.seed(42)
+
+n_sites <- 60
+coords <- data.frame(x = runif(n_sites), y = runif(n_sites))
+
+# Variable total abundances across sites (realistic uneven sampling)
+lambdas <- rep(c(1, 3, 5), each = 20)
+species <- matrix(0, nrow = n_sites, ncol = 20)
+for (i in seq_len(n_sites)) {
+  species[i, ] <- rpois(20, lambda = lambdas[i])
+}
+colnames(species) <- paste0("sp", 1:20)
+```
+
+## Individual-based rarefaction
+
+The `rarefy()` function subsamples curves to a common number of
+individuals, removing the abundance bias:
+
+```{r rarefy, eval = requireNamespace("ggplot2", quietly = TRUE)}
+sac <- spacc(species, coords, n_seeds = 10, progress = FALSE)
+
+# Rarefy to minimum observed abundance
+rare <- rarefy(sac)
+print(rare)
+```
+
+```{r rarefy-plot, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot(rare)
+```
+
+You can also rarefy Hill number curves:
+
+```{r rarefy-hill, eval = requireNamespace("ggplot2", quietly = TRUE)}
+hill <- spaccHill(species, coords, q = c(0, 1, 2),
+                   n_seeds = 10, progress = FALSE)
+rare_hill <- rarefy(hill, target = 100)
+print(rare_hill)
+```
+
+## Coverage-based standardization
+
+Coverage-based rarefaction (Chao & Jost 2012) standardizes by sample
+completeness rather than sample size. This is often preferred because
+equal coverage means equal proportional representation of the community:
+
+```{r coverage, eval = requireNamespace("ggplot2", quietly = TRUE)}
+cov_result <- spaccCoverage(species, coords, n_seeds = 10, progress = FALSE)
+plot(cov_result)
+```
+
+### Interpolation at fixed coverage
+
+```{r interpolate}
+interp <- interpolateCoverage(cov_result, target_coverage = c(0.8, 0.9, 0.95))
+print(interp)
+```
+
+### Extrapolation beyond observed
+
+```{r extrapolate}
+extrap <- extrapolateCoverage(cov_result, target_coverage = 0.99, q = 0)
+print(extrap)
+```
+
+## Combined Hill + Coverage analysis
+
+The `spaccHillCoverage()` function tracks both Hill numbers and coverage
+simultaneously, enabling standardization across q orders:
+
+```{r hill-coverage, eval = requireNamespace("ggplot2", quietly = TRUE)}
+hc <- spaccHillCoverage(species, coords, q = c(0, 1, 2),
+                         target_coverage = 0.9,
+                         n_seeds = 10, progress = FALSE)
+print(hc)
+```
+
+```{r hill-coverage-plot, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot(hc, xaxis = "coverage")
+```
+
+## When to use which method
+
+| Method | Best for | Limitation |
+|--------|----------|------------|
+| Individual-based | Simple comparisons | Sensitive to abundance distribution |
+| Coverage-based | Uneven sampling | Requires abundance data |
+| Hill + Coverage | Multi-order standardization | Computationally heavier |
+
+**Rules of thumb:**
+
+- Use individual-based rarefaction when total abundances are the primary
+  source of variation and you want a simple, well-understood correction.
+- Use coverage-based methods when sites differ in sampling completeness
+  and you want to compare at equal representativeness.
+- Use Hill + Coverage when you need standardized comparisons across
+  multiple diversity orders (q = 0, 1, 2) simultaneously.
+
+## References
+
+- Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
+  standardizing samples by completeness rather than size. *Ecology*, 93,
+  2533-2547.
+- Chao, A., Gotelli, N.J., Hsieh, T.C., Sander, E.L., Ma, K.H., Colwell,
+  R.K. & Ellison, A.M. (2014). Rarefaction and extrapolation with Hill
+  numbers. *Ecological Monographs*, 84, 45-67.

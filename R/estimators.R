@@ -417,6 +417,192 @@ bootstrap_richness <- function(x, n_boot = 200L) {
 }
 
 
+#' Improved Chao1 (iChao1) Richness Estimator
+#'
+#' Estimate total species richness using the improved Chao1 estimator
+#' (Chiu et al. 2014). Uses singletons through quadrupletons (f1--f4)
+#' to reduce bias for small samples.
+#'
+#' @param x A site-by-species matrix (abundance data). Columns are pooled
+#'   across sites.
+#'
+#' @return An object of class `spacc_estimate` with components:
+#' \describe{
+#'   \item{estimator}{Name of the estimator (`"iChao1"`)}
+#'   \item{estimate}{Estimated total richness}
+#'   \item{se}{Standard error of the estimate}
+#'   \item{lower}{Lower 95 percent confidence bound}
+#'   \item{upper}{Upper 95 percent confidence bound}
+#'   \item{S_obs}{Observed species richness}
+#'   \item{details}{List with `f1`, `f2`, `f3`, `f4`}
+#' }
+#'
+#' @details
+#' The improved Chao1 estimator adds a correction term using f3 and f4:
+#' \deqn{S_{iChao1} = S_{Chao1} + \frac{f_3}{4 f_4} \max\left(f_1 - \frac{f_2 f_3}{2 f_4}, 0\right)}
+#'
+#' When \eqn{f_4 = 0}, the estimator collapses to Chao1.
+#'
+#' @references
+#' Chiu, C.H., Wang, Y.T., Walther, B.A. & Chao, A. (2014). An improved
+#' nonparametric lower bound of species richness via a modified Good-Turing
+#' frequency formula. Biometrics, 70, 671-682.
+#'
+#' @seealso [chao1()] for the standard estimator, [iChao2()] for
+#'   incidence-based version
+#'
+#' @examples
+#' species <- matrix(rpois(50 * 30, 2), nrow = 50)
+#' iChao1(species)
+#'
+#' @export
+iChao1 <- function(x) {
+  x <- as.matrix(x)
+  abundances <- colSums(x)
+  abundances <- abundances[abundances > 0]
+
+  S_obs <- length(abundances)
+  f1 <- sum(abundances == 1)
+  f2 <- sum(abundances == 2)
+  f3 <- sum(abundances == 3)
+  f4 <- sum(abundances == 4)
+
+  # Base Chao1 estimate
+  if (f2 > 0) {
+    S_chao1 <- S_obs + f1^2 / (2 * f2)
+    se_chao1 <- sqrt(f2 * ((f1 / f2)^2 / 4 + (f1 / f2)^3 + (f1 / f2)^4 / 4))
+  } else {
+    S_chao1 <- S_obs + f1 * (f1 - 1) / 2
+    se_chao1 <- sqrt(f1 * (f1 - 1) / 2 + f1 * (2 * f1 - 1)^2 / 4 -
+                     f1^4 / (4 * max(S_chao1, 1)))
+  }
+
+  if (f4 > 0 && f3 > 0) {
+    correction <- (f3 / (4 * f4)) * max(f1 - f2 * f3 / (2 * f4), 0)
+    estimate <- S_chao1 + correction
+
+    # Delta-method SE: combine Chao1 SE with correction term variance
+    se_correction <- sqrt((f3 / (4 * f4))^2 * f1 +
+                          (f3 / (4 * f4))^2 * (f2 * f3 / (2 * f4))^2 / max(f2, 1))
+    se <- sqrt(se_chao1^2 + se_correction^2)
+  } else {
+    estimate <- S_chao1
+    se <- se_chao1
+  }
+
+  ci <- chao_log_ci(estimate, se, S_obs)
+
+  structure(
+    list(
+      estimator = "iChao1",
+      estimate = estimate,
+      se = se,
+      lower = ci[1],
+      upper = ci[2],
+      S_obs = S_obs,
+      details = list(f1 = f1, f2 = f2, f3 = f3, f4 = f4)
+    ),
+    class = "spacc_estimate"
+  )
+}
+
+
+#' Improved Chao2 (iChao2) Richness Estimator
+#'
+#' Estimate total species richness from incidence data using the improved
+#' Chao2 estimator (Chiu et al. 2014). Uses uniques through quadruplicates
+#' (Q1--Q4) to reduce bias for small samples.
+#'
+#' @param x A site-by-species matrix (presence/absence or abundance).
+#'   Automatically binarized.
+#'
+#' @return An object of class `spacc_estimate` with components:
+#' \describe{
+#'   \item{estimator}{Name of the estimator (`"iChao2"`)}
+#'   \item{estimate}{Estimated total richness}
+#'   \item{se}{Standard error of the estimate}
+#'   \item{lower}{Lower 95 percent confidence bound}
+#'   \item{upper}{Upper 95 percent confidence bound}
+#'   \item{S_obs}{Observed species richness}
+#'   \item{details}{List with `Q1`, `Q2`, `Q3`, `Q4`, `n_sites`}
+#' }
+#'
+#' @details
+#' The improved Chao2 estimator is the incidence-based analogue of iChao1:
+#' \deqn{S_{iChao2} = S_{Chao2} + \frac{Q_3}{4 Q_4} \max\left(Q_1 - \frac{Q_2 Q_3}{2 Q_4}, 0\right)}
+#'
+#' When \eqn{Q_4 = 0}, the estimator collapses to Chao2.
+#'
+#' @references
+#' Chiu, C.H., Wang, Y.T., Walther, B.A. & Chao, A. (2014). An improved
+#' nonparametric lower bound of species richness via a modified Good-Turing
+#' frequency formula. Biometrics, 70, 671-682.
+#'
+#' @seealso [chao2()] for the standard estimator, [iChao1()] for
+#'   abundance-based version
+#'
+#' @examples
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+#' iChao2(species)
+#'
+#' @export
+iChao2 <- function(x) {
+  x <- as.matrix(x)
+  pa <- (x > 0) * 1L
+
+  freq <- colSums(pa)
+  freq <- freq[freq > 0]
+
+  S_obs <- length(freq)
+  Q1 <- sum(freq == 1)
+  Q2 <- sum(freq == 2)
+  Q3 <- sum(freq == 3)
+  Q4 <- sum(freq == 4)
+  n <- nrow(pa)
+
+  # Base Chao2 estimate
+  m <- (n - 1) / n
+  if (Q2 > 0) {
+    S_chao2 <- S_obs + m * Q1^2 / (2 * Q2)
+    se_chao2 <- sqrt(Q2 * (0.5 * m * (Q1 / Q2)^2 +
+                            m^2 * (Q1 / Q2)^3 +
+                            0.25 * m^2 * (Q1 / Q2)^4))
+  } else {
+    S_chao2 <- S_obs + m * Q1 * (Q1 - 1) / 2
+    se_chao2 <- sqrt(m * Q1 * (Q1 - 1) / 2 +
+                     m^2 * Q1 * (2 * Q1 - 1)^2 / 4 -
+                     m^2 * Q1^4 / (4 * max(S_chao2, 1)))
+  }
+
+  if (Q4 > 0 && Q3 > 0) {
+    correction <- (Q3 / (4 * Q4)) * max(Q1 - Q2 * Q3 / (2 * Q4), 0)
+    estimate <- S_chao2 + correction
+
+    se_correction <- sqrt((Q3 / (4 * Q4))^2 * Q1 +
+                          (Q3 / (4 * Q4))^2 * (Q2 * Q3 / (2 * Q4))^2 / max(Q2, 1))
+    se <- sqrt(se_chao2^2 + se_correction^2)
+  } else {
+    estimate <- S_chao2
+    se <- se_chao2
+  }
+
+  ci <- chao_log_ci(estimate, se, S_obs)
+
+  structure(
+    list(
+      estimator = "iChao2",
+      estimate = estimate,
+      se = se,
+      lower = ci[1],
+      upper = ci[2],
+      S_obs = S_obs,
+      details = list(Q1 = Q1, Q2 = Q2, Q3 = Q3, Q4 = Q4, n_sites = n)
+    ),
+    class = "spacc_estimate"
+  )
+}
+
+
 # Log-transformed CI for Chao estimators (Chao 1987)
 chao_log_ci <- function(estimate, se, S_obs) {
   T_val <- estimate - S_obs
