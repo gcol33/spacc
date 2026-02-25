@@ -10,6 +10,7 @@ spaccEndemism(
   n_seeds = 50L,
   method = "knn",
   distance = c("euclidean", "haversine"),
+  map = FALSE,
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
@@ -27,6 +28,10 @@ spaccEndemism(
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}
 
+\item{map}{Logical. If \code{TRUE}, compute per-site endemism by running
+accumulation from each site as seed. Stores a \code{site_values} data.frame
+enabling \code{plot(type = "map")} and \code{\link[=as_sf]{as_sf()}}. Default \code{FALSE}.}
+
 \item{parallel}{Logical. Use parallel processing? Default \code{TRUE}.}
 
 \item{n_cores}{Integer. Number of cores.}
@@ -39,6 +44,7 @@ spaccEndemism(
 An object of class \code{spacc_endemism} containing:
 \item{richness}{Matrix of cumulative richness (n_seeds x n_sites)}
 \item{endemism}{Matrix of endemic species count (n_seeds x n_sites)}
+\item{site_values}{Per-site endemism data.frame (if \code{map = TRUE})}
 \item{coords, n_seeds, n_sites, method}{Parameters used}
 }
 \description{
@@ -57,7 +63,7 @@ increases as the region grows, and eventually equals total richness when
 all sites are included.
 }
 \examples{
-\dontrun{
+\donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 

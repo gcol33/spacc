@@ -354,3 +354,239 @@ as_sf.spacc_partition <- function(x, crs = NULL) {
   df$y <- x$coords$y
   as_sf_from_df(df, crs = crs)
 }
+
+
+# ============================================================================
+# DIVERSITY PROFILES
+# ============================================================================
+
+#' Diversity Profile
+#'
+#' Compute Hill numbers across a continuous range of diversity orders (q),
+#' producing a diversity profile for each site and the regional pool.
+#'
+#' @param x A site-by-species matrix (abundance data).
+#' @param q Numeric vector. Orders of diversity to evaluate. Default
+#'   `seq(0, 3, by = 0.1)`.
+#' @param type Character. What to compute: `"per_site"` (per-site profiles),
+#'   `"regional"` (pooled gamma), or `"both"` (default).
+#' @param coords Optional data.frame with columns `x` and `y` for spatial
+#'   mapping. When provided, enables `plot(type = "map")`.
+#'
+#' @return An object of class `spacc_profile` containing:
+#'   \item{per_site}{Matrix of per-site diversity (sites x q values), or `NULL`}
+#'   \item{regional}{Named numeric vector of gamma diversity per q, or `NULL`}
+#'   \item{q}{Vector of diversity orders used}
+#'   \item{coords}{Coordinates if provided}
+#'   \item{n_sites}{Number of sites}
+#'   \item{n_species}{Number of species}
+#'
+#' @details
+#' A diversity profile plots effective number of species as a function of the
+#' order q. The key property is that Hill numbers are non-increasing in q:
+#' \eqn{D_q \ge D_{q'}} for \eqn{q \le q'}.
+#'
+#' - q = 0: Species richness (insensitive to abundance)
+#' - q = 1: Exponential of Shannon entropy (all species weighted equally by
+#'   their proportional abundance)
+#' - q = 2: Inverse Simpson concentration (emphasizes dominant species)
+#' - q > 2: Increasingly dominated by common species
+#'
+#' @references
+#' Leinster, T. & Cobbold, C.A. (2012). Measuring diversity: the importance
+#' of species similarity. Ecology, 93, 477-489.
+#'
+#' Chao, A., Chiu, C.H. & Jost, L. (2014). Unifying species diversity,
+#' phylogenetic diversity, functional diversity, and related similarity and
+#' differentiation measures through Hill numbers. Annual Review of Ecology,
+#' Evolution, and Systematics, 45, 297-324.
+#'
+#' @seealso [alphaDiversity()] for per-site values at specific q,
+#'   [gammaDiversity()] for regional diversity, [evenness()] for evenness
+#'   profiles
+#'
+#' @examples
+#' species <- matrix(rpois(50 * 30, 2), nrow = 50)
+#' prof <- diversityProfile(species)
+#' print(prof)
+#'
+#' \donttest{
+#' plot(prof)
+#' }
+#'
+#' @export
+diversityProfile <- function(x, q = seq(0, 3, by = 0.1),
+                              type = c("both", "per_site", "regional"),
+                              coords = NULL) {
+  type <- match.arg(type)
+  x <- as.matrix(x)
+  n_sites <- nrow(x)
+  n_species <- ncol(x)
+
+  if (!is.null(coords)) {
+    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+    stopifnot("x and coords must have same number of rows" = nrow(x) == nrow(coords))
+  }
+
+  per_site <- NULL
+  regional <- NULL
+
+  if (type %in% c("both", "per_site")) {
+    per_site <- matrix(NA, nrow = n_sites, ncol = length(q))
+    colnames(per_site) <- paste0("q", q)
+    for (i in seq_len(n_sites)) {
+      abundances <- as.numeric(x[i, ])
+      for (j in seq_along(q)) {
+        per_site[i, j] <- calc_hill_number(abundances, q[j])
+      }
+    }
+  }
+
+  if (type %in% c("both", "regional")) {
+    pooled <- colSums(x)
+    regional <- sapply(q, function(qi) calc_hill_number(pooled, qi))
+    names(regional) <- paste0("q", q)
+  }
+
+  structure(
+    list(
+      per_site = per_site,
+      regional = regional,
+      q = q,
+      type = type,
+      coords = coords,
+      n_sites = n_sites,
+      n_species = n_species,
+      call = match.call()
+    ),
+    class = "spacc_profile"
+  )
+}
+
+
+#' @export
+print.spacc_profile <- function(x, ...) {
+  cat(sprintf("Diversity profile: %d sites, %d species\n", x$n_sites, x$n_species))
+  cat(sprintf("q range: [%.1f, %.1f] (%d values)\n", min(x$q), max(x$q), length(x$q)))
+  if (!is.null(x$per_site)) {
+    cat(sprintf("Per-site: mean D_0 = %.1f, mean D_1 = %.1f, mean D_2 = %.1f\n",
+                mean(x$per_site[, 1]),
+                mean(x$per_site[, which.min(abs(x$q - 1))]),
+                mean(x$per_site[, which.min(abs(x$q - 2))])))
+  }
+  if (!is.null(x$regional)) {
+    cat(sprintf("Regional: D_0 = %.1f, D_1 = %.1f, D_2 = %.1f\n",
+                x$regional[1],
+                x$regional[which.min(abs(x$q - 1))],
+                x$regional[which.min(abs(x$q - 2))]))
+  }
+  invisible(x)
+}
+
+
+#' @export
+summary.spacc_profile <- function(object, ...) {
+  df <- data.frame(q = object$q)
+  if (!is.null(object$per_site)) {
+    df$mean_alpha <- colMeans(object$per_site)
+    df$sd_alpha <- apply(object$per_site, 2, stats::sd)
+    df$min_alpha <- apply(object$per_site, 2, min)
+    df$max_alpha <- apply(object$per_site, 2, max)
+  }
+  if (!is.null(object$regional)) {
+    df$gamma <- as.numeric(object$regional)
+  }
+  df
+}
+
+
+#' @export
+as.data.frame.spacc_profile <- function(x, row.names = NULL, optional = FALSE, ...) {
+  summary(x)
+}
+
+
+#' @export
+as_sf.spacc_profile <- function(x, crs = NULL) {
+  if (is.null(x$coords)) stop("No coordinates available. Rerun diversityProfile() with coords.")
+  if (is.null(x$per_site)) stop("No per-site data. Rerun diversityProfile() with type = 'both' or 'per_site'.")
+  df <- as.data.frame(x$per_site)
+  df$x <- x$coords$x
+  df$y <- x$coords$y
+  as_sf_from_df(df, crs = crs)
+}
+
+
+#' @export
+plot.spacc_profile <- function(x, type = c("profile", "map"),
+                                show_sites = FALSE, ci = TRUE,
+                                q_map = 0,
+                                point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (type == "map") {
+    if (is.null(x$coords)) stop("No coordinates available. Rerun diversityProfile() with coords.")
+    if (is.null(x$per_site)) stop("No per-site data. Rerun diversityProfile() with type = 'both' or 'per_site'.")
+
+    q_idx <- which.min(abs(x$q - q_map))
+    q_col <- paste0("q", x$q[q_idx])
+    df <- data.frame(x = x$coords$x, y = x$coords$y)
+    df[[q_col]] <- x$per_site[, q_idx]
+
+    return(plot_spatial_map(df, q_col,
+                            title = sprintf("Diversity (q = %s)", x$q[q_idx]),
+                            subtitle = sprintf("%d sites", x$n_sites),
+                            point_size = point_size, palette = palette))
+  }
+
+  check_suggests("ggplot2")
+
+  summ <- summary(x)
+  p <- ggplot2::ggplot()
+
+  if (!is.null(x$per_site)) {
+    if (show_sites) {
+      site_df <- data.frame(
+        q = rep(x$q, each = x$n_sites),
+        diversity = as.vector(x$per_site),
+        site = rep(seq_len(x$n_sites), length(x$q))
+      )
+      p <- p + ggplot2::geom_line(
+        data = site_df,
+        ggplot2::aes(x = q, y = diversity, group = site),
+        alpha = 0.1, color = "grey50"
+      )
+    }
+
+    if (ci && "sd_alpha" %in% names(summ)) {
+      p <- p + ggplot2::geom_ribbon(
+        data = summ,
+        ggplot2::aes(x = q, ymin = mean_alpha - sd_alpha,
+                     ymax = mean_alpha + sd_alpha),
+        alpha = 0.3, fill = "#4CAF50"
+      )
+    }
+
+    p <- p + ggplot2::geom_line(
+      data = summ,
+      ggplot2::aes(x = q, y = mean_alpha),
+      linewidth = 1, color = "#2E7D32"
+    )
+  }
+
+  if (!is.null(x$regional)) {
+    p <- p + ggplot2::geom_line(
+      data = summ,
+      ggplot2::aes(x = q, y = gamma),
+      linewidth = 1, color = "#1565C0", linetype = "dashed"
+    )
+  }
+
+  p +
+    ggplot2::labs(
+      x = "Diversity order (q)",
+      y = "Effective number of species",
+      title = "Diversity Profile"
+    ) +
+    ggplot2::theme_minimal(base_size = 12)
+}

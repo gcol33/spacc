@@ -43,15 +43,11 @@
 #' visualization with study area boundaries, see the `areaOfEffect` package.
 #'
 #' @examples
-#' \dontrun{
-#' # Compute per-site metrics
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' metrics <- spaccMetrics(species, coords,
-#'                         metrics = c("slope_10", "half_richness", "auc"))
-#'
-#' # Basic heatmap
-#' plot(metrics, metric = "slope_10", type = "heatmap")
-#'
-#' # Access metric values directly
+#'                         metrics = c("slope_10", "auc"))
 #' metrics$metrics$slope_10
 #' }
 #'
@@ -255,7 +251,11 @@ plot_spatial_map <- function(df, value_col, title, subtitle = NULL,
 #' @noRd
 as_sf_from_df <- function(df, crs = NULL) {
   check_suggests("sf")
-  sf::st_as_sf(df, coords = c("x", "y"), crs = crs)
+  if (!is.null(crs)) {
+    sf::st_as_sf(df, coords = c("x", "y"), crs = crs)
+  } else {
+    sf::st_as_sf(df, coords = c("x", "y"))
+  }
 }
 
 
@@ -278,14 +278,11 @@ as_sf_from_df <- function(df, crs = NULL) {
 #' @return A ggplot2 object.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' metrics <- spaccMetrics(species, coords, metrics = c("slope_10", "auc"))
-#'
-#' # Heatmap of initial accumulation rate
 #' plot(metrics, metric = "slope_10", type = "heatmap")
-#'
-#' # Distribution of AUC values
-#' plot(metrics, metric = "auc", type = "histogram")
 #' }
 #'
 #' @export
@@ -342,15 +339,12 @@ plot.spacc_metrics <- function(x, metric = NULL, type = c("heatmap", "points", "
 #' @return An sf object with POINT geometries and metric columns.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' metrics <- spaccMetrics(species, coords)
-#'
-#' # Convert to sf with UTM projection
-#' metrics_sf <- as_sf(metrics, crs = 32631)
-#'
-#' # Use with areaOfEffect for spatial analysis
-#' if (requireNamespace("areaOfEffect", quietly = TRUE)) {
-#'   result <- areaOfEffect::aoe(metrics_sf, support = study_area)
+#' if (requireNamespace("sf", quietly = TRUE)) {
+#'   metrics_sf <- as_sf(metrics)
 #' }
 #' }
 #'
@@ -365,7 +359,11 @@ as_sf.spacc_metrics <- function(x, crs = NULL) {
   check_suggests("sf")
 
   df <- x$metrics
-  sf_obj <- sf::st_as_sf(df, coords = c("x", "y"), crs = crs)
+  if (!is.null(crs)) {
+    sf_obj <- sf::st_as_sf(df, coords = c("x", "y"), crs = crs)
+  } else {
+    sf_obj <- sf::st_as_sf(df, coords = c("x", "y"))
+  }
 
   sf_obj
 }

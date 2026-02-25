@@ -215,3 +215,158 @@ test_that("plot.spacc_partition works", {
   p <- plot(result)
   expect_s3_class(p, "ggplot")
 })
+
+
+# diversityProfile tests --------------------------------------------------
+
+test_that("diversityProfile returns correct structure", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = seq(0, 2, by = 0.5))
+
+  expect_s3_class(result, "spacc_profile")
+  expect_true(!is.null(result$per_site))
+  expect_true(!is.null(result$regional))
+  expect_equal(nrow(result$per_site), 20)
+  expect_equal(ncol(result$per_site), length(seq(0, 2, by = 0.5)))
+})
+
+
+test_that("diversityProfile D_q is non-increasing in q", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = seq(0, 3, by = 0.5))
+
+  # Check per-site: each row should be non-increasing
+  for (i in seq_len(nrow(result$per_site))) {
+    vals <- result$per_site[i, ]
+    for (j in 2:length(vals)) {
+      expect_true(vals[j] <= vals[j - 1] + 1e-10,
+                  info = sprintf("Site %d, q[%d] vs q[%d]", i, j - 1, j))
+    }
+  }
+
+  # Check regional
+  for (j in 2:length(result$regional)) {
+    expect_true(result$regional[j] <= result$regional[j - 1] + 1e-10)
+  }
+})
+
+
+test_that("diversityProfile D_0 equals richness", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = c(0, 1, 2))
+
+  # D_0 per site = observed richness
+  expected <- rowSums(species > 0)
+  expect_equal(as.numeric(result$per_site[, 1]), expected)
+})
+
+
+test_that("diversityProfile regional >= mean alpha", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = seq(0, 2, by = 0.5))
+
+  mean_alpha <- colMeans(result$per_site)
+  # Gamma >= mean alpha is a fundamental property
+  for (j in seq_along(result$q)) {
+    expect_true(result$regional[j] >= mean_alpha[j] - 1e-10,
+                info = sprintf("q = %.1f", result$q[j]))
+  }
+})
+
+
+test_that("diversityProfile type = 'per_site' omits regional", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = c(0, 1), type = "per_site")
+  expect_true(!is.null(result$per_site))
+  expect_null(result$regional)
+})
+
+
+test_that("diversityProfile type = 'regional' omits per_site", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = c(0, 1), type = "regional")
+  expect_null(result$per_site)
+  expect_true(!is.null(result$regional))
+})
+
+
+test_that("diversityProfile print works", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+  result <- diversityProfile(species, q = seq(0, 2, by = 0.5))
+
+  expect_output(print(result), "Diversity profile")
+})
+
+
+test_that("diversityProfile summary returns data.frame", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+  result <- diversityProfile(species, q = seq(0, 2, by = 0.5))
+
+  summ <- summary(result)
+  expect_s3_class(summ, "data.frame")
+  expect_true("mean_alpha" %in% names(summ))
+  expect_true("gamma" %in% names(summ))
+})
+
+
+test_that("plot.spacc_profile works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+  result <- diversityProfile(species, q = seq(0, 2, by = 0.5))
+
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
+})
+
+
+test_that("as_sf.spacc_profile works", {
+  skip_if_not_installed("sf")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = c(0, 1, 2), coords = coords)
+  sf_obj <- as_sf(result)
+
+  expect_s3_class(sf_obj, "sf")
+  expect_equal(nrow(sf_obj), 20)
+  expect_true("q0" %in% names(sf_obj))
+  expect_true("q1" %in% names(sf_obj))
+})
+
+
+test_that("as_sf.spacc_profile errors without coords", {
+  set.seed(42)
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+  result <- diversityProfile(species, q = c(0, 1))
+
+  expect_error(as_sf(result), "No coordinates")
+})
+
+
+test_that("as_sf.spacc_profile errors without per_site", {
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- diversityProfile(species, q = c(0, 1), type = "regional", coords = coords)
+  expect_error(as_sf(result), "No per-site data")
+})

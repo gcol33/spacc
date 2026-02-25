@@ -375,3 +375,103 @@ test_that("spaccEndemism plot returns ggplot", {
   p <- plot(result)
   expect_s3_class(p, "ggplot")
 })
+
+
+test_that("spaccEndemism map = TRUE stores site_values", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3, map = TRUE,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_endemism")
+  expect_false(is.null(result$site_values))
+  expect_equal(nrow(result$site_values), 15)
+  expect_true("endemism" %in% names(result$site_values))
+  expect_true("endemism_prop" %in% names(result$site_values))
+  expect_true(all(result$site_values$endemism_prop >= 0))
+  expect_true(all(result$site_values$endemism_prop <= 1))
+})
+
+
+test_that("spaccEndemism map = FALSE has NULL site_values", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_null(result$site_values)
+})
+
+
+test_that("spaccEndemism plot(type = 'map') works", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3, map = TRUE,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  p <- plot(result, type = "map")
+  expect_s3_class(p, "ggplot")
+
+  p2 <- plot(result, type = "map", metric = "endemism_prop")
+  expect_s3_class(p2, "ggplot")
+})
+
+
+test_that("spaccEndemism plot(type = 'map') errors without map", {
+  skip_on_cran()
+  skip_if_not_installed("ggplot2")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_error(plot(result, type = "map"), "per-site data")
+})
+
+
+test_that("as_sf.spacc_endemism works", {
+  skip_on_cran()
+  skip_if_not_installed("sf")
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3, map = TRUE,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  sf_obj <- as_sf(result)
+  expect_s3_class(sf_obj, "sf")
+  expect_equal(nrow(sf_obj), 15)
+  expect_true("endemism" %in% names(sf_obj))
+})
+
+
+test_that("as_sf.spacc_endemism errors without map", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
+
+  result <- spaccEndemism(species, coords, n_seeds = 3,
+                           parallel = FALSE, progress = FALSE, seed = 1)
+
+  expect_error(as_sf(result), "per-site data")
+})

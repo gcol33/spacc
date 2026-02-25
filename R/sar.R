@@ -43,7 +43,7 @@
 #' @seealso [spaccHill()], [extrapolate()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rpois(50 * 30, 2), nrow = 50)
 #'
@@ -265,12 +265,13 @@ plot.spacc_dar <- function(x, log_scale = FALSE, ci = TRUE, ci_alpha = 0.2, ...)
 #' @seealso [extrapolate()], [spacc()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' sac <- spacc(species, coords)
-#' effort <- rpois(nrow(species), 10)  # e.g., number of visits
+#' effort <- rpois(50, 10)
 #' ses <- sesars(sac, effort, model = "power")
 #' print(ses)
-#' plot(ses)
 #' }
 #'
 #' @export
@@ -408,12 +409,13 @@ plot.spacc_sesars <- function(x, ...) {
 #' @seealso [extrapolate()], [sesars()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' sac <- spacc(species, coords)
 #' patches <- kmeans(coords, centers = 5)$cluster
 #' sfar_result <- sfar(sac, patches)
 #' print(sfar_result)
-#' plot(sfar_result)
 #' }
 #'
 #' @export
@@ -524,12 +526,16 @@ plot.spacc_sfar <- function(x, ...) {
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
+#' @param map Logical. If `TRUE`, compute per-site endemism by running
+#'   accumulation from each site as seed. Stores a `site_values` data.frame
+#'   enabling `plot(type = "map")` and [as_sf()]. Default `FALSE`.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
 #'
 #' @return An object of class `spacc_endemism` containing:
 #'   \item{richness}{Matrix of cumulative richness (n_seeds x n_sites)}
 #'   \item{endemism}{Matrix of endemic species count (n_seeds x n_sites)}
+#'   \item{site_values}{Per-site endemism data.frame (if `map = TRUE`)}
 #'   \item{coords, n_seeds, n_sites, method}{Parameters used}
 #'
 #' @details
@@ -554,7 +560,7 @@ plot.spacc_sfar <- function(x, ...) {
 #' @seealso [spacc()], [spaccHill()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #'
@@ -568,6 +574,7 @@ spaccEndemism <- function(x,
                            n_seeds = 50L,
                            method = "knn",
                            distance = c("euclidean", "haversine"),
+                           map = FALSE,
                            parallel = TRUE,
                            n_cores = NULL,
                            progress = TRUE,
@@ -635,12 +642,48 @@ spaccEndemism <- function(x,
     }
   }
 
+  # Per-site endemism map
+  site_values <- NULL
+  if (map) {
+    if (progress) cli_info("Computing per-site endemism map")
+    # Run accumulation from each site, record final endemism count
+    site_endemism <- numeric(n_sites)
+    for (s in seq_len(n_sites)) {
+      visited <- logical(n_sites)
+      visit_order <- integer(n_sites)
+      current <- s
+      visited[current] <- TRUE
+      visit_order[1] <- current
+
+      for (step in 2:n_sites) {
+        dists <- dist_mat[current, ]
+        dists[visited] <- Inf
+        next_site <- which.min(dists)
+        visited[next_site] <- TRUE
+        visit_order[step] <- next_site
+        current <- next_site
+      }
+
+      # Count endemics at final step (= species only found in the accumulated area)
+      accumulated <- colSums(species_pa[visit_order, , drop = FALSE])
+      site_endemism[s] <- sum(accumulated > 0 & accumulated == total_occ)
+    }
+
+    site_values <- data.frame(
+      x = coord_data$x,
+      y = coord_data$y,
+      endemism = site_endemism,
+      endemism_prop = site_endemism / sum(total_occ > 0)
+    )
+  }
+
   if (progress) cli_success("Done")
 
   structure(
     list(
       richness = richness_mat,
       endemism = endemism_mat,
+      site_values = site_values,
       coords = coord_data,
       n_seeds = n_seeds,
       n_sites = n_sites,
@@ -681,7 +724,21 @@ summary.spacc_endemism <- function(object, ci_level = 0.95, ...) {
 
 
 #' @export
-plot.spacc_endemism <- function(x, ci = TRUE, ci_alpha = 0.2, show_richness = TRUE, ...) {
+plot.spacc_endemism <- function(x, type = c("curve", "map"),
+                                 ci = TRUE, ci_alpha = 0.2, show_richness = TRUE,
+                                 metric = c("endemism", "endemism_prop"),
+                                 point_size = 3, palette = "viridis", ...) {
+  type <- match.arg(type)
+
+  if (type == "map") {
+    if (is.null(x$site_values)) stop("No per-site data. Rerun spaccEndemism() with map = TRUE.")
+    metric <- match.arg(metric)
+    return(plot_spatial_map(x$site_values, metric,
+                            title = sprintf("Per-site %s", gsub("_", " ", metric)),
+                            subtitle = sprintf("%d sites", x$n_sites),
+                            point_size = point_size, palette = palette))
+  }
+
   check_suggests("ggplot2")
 
   summ <- summary(x)
@@ -726,4 +783,11 @@ plot.spacc_endemism <- function(x, ci = TRUE, ci_alpha = 0.2, show_richness = TR
     ) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
+}
+
+
+#' @export
+as_sf.spacc_endemism <- function(x, crs = NULL) {
+  if (is.null(x$site_values)) stop("No per-site data. Rerun spaccEndemism() with map = TRUE.")
+  as_sf_from_df(x$site_values, crs = crs)
 }
