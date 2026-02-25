@@ -8,6 +8,7 @@ compare(
   x,
   y,
   method = c("permutation", "bootstrap", "auc"),
+  normalize = FALSE,
   n_perm = 999L,
   ...
 )
@@ -20,6 +21,11 @@ compare(
 \item{method}{Character. Comparison method: \code{"permutation"} (default),
 \code{"bootstrap"}, or \code{"auc"} (area under curve difference).}
 
+\item{normalize}{Logical. If \code{TRUE}, each seed's curve is divided by its
+final value before computing AUC, so that curves are compared on a
+[0, 1] scale (proportion of total species). This compares the \strong{shape}
+of accumulation rather than absolute species counts. Default \code{FALSE}.}
+
 \item{n_perm}{Integer. Number of permutations/bootstrap replicates. Default 999.}
 
 \item{...}{Additional arguments passed to comparison methods.}
@@ -31,6 +37,7 @@ An object of class \code{spacc_comp} containing:
 \item{p_value}{P-value from permutation test}
 \item{saturation_diff}{Difference in saturation points}
 \item{method}{Comparison method used}
+\item{normalized}{Whether curves were normalized before comparison}
 }
 \description{
 Test whether two species accumulation curves differ significantly.
@@ -40,9 +47,13 @@ Test whether two species accumulation curves differ significantly.
 sac_native <- spacc(native_species, coords)
 sac_alien <- spacc(alien_species, coords)
 
+# Compare absolute accumulation
 comp <- compare(sac_native, sac_alien)
-print(comp)
-plot(comp)
+
+# Compare curve shapes (normalized to [0, 1])
+comp_norm <- compare(sac_native, sac_alien, normalize = TRUE)
+print(comp_norm)
+plot(comp_norm)
 }
 
 }
