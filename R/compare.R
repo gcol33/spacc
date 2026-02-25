@@ -22,17 +22,15 @@
 #'   \item{normalized}{Whether curves were normalized before comparison}
 #'
 #' @examples
-#' \dontrun{
-#' sac_native <- spacc(native_species, coords)
-#' sac_alien <- spacc(alien_species, coords)
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' sp_a <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+#' sp_b <- matrix(rbinom(50 * 30, 1, 0.5), nrow = 50)
 #'
-#' # Compare absolute accumulation
-#' comp <- compare(sac_native, sac_alien)
-#'
-#' # Compare curve shapes (normalized to [0, 1])
-#' comp_norm <- compare(sac_native, sac_alien, normalize = TRUE)
-#' print(comp_norm)
-#' plot(comp_norm)
+#' sac_a <- spacc(sp_a, coords, n_seeds = 10)
+#' sac_b <- spacc(sp_b, coords, n_seeds = 10)
+#' comp <- compare(sac_a, sac_b)
+#' print(comp)
 #' }
 #'
 #' @references

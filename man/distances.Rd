@@ -46,21 +46,13 @@ For smaller study areas with projected coordinates (UTM, etc.), Euclidean
 distance is appropriate and faster.
 }
 \examples{
-\dontrun{
-# Data frame with coordinates
-d <- distances(coords, method = "haversine")
-
-# sf object - auto-detects appropriate method
-library(sf)
-pts_sf <- st_as_sf(coords, coords = c("lon", "lat"), crs = 4326)
-d <- distances(pts_sf)  # uses geodesic automatically
-
-# Force geodesic for maximum accuracy
-d <- distances(pts_sf, method = "geodesic")
+\donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+d <- distances(coords)
 
 # Reuse for multiple analyses
-sac_native <- spacc(native_species, d)
-sac_alien <- spacc(alien_species, d)
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+sac <- spacc(species, d)
 }
 
 }

@@ -46,8 +46,10 @@ Accumulate species within an expanding radius from seed points.
 Models invasion spread from introduction points.
 }
 \examples{
-\dontrun{
-wf <- wavefront(species, coords, n_seeds = 20, n_steps = 100)
+\donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+wf <- wavefront(species, coords, n_seeds = 20, n_steps = 50)
 plot(wf)
 }
 

@@ -50,7 +50,7 @@
 #'   non-spatial Hill number rarefaction
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Compare diversity at different orders
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rpois(50 * 30, 2), nrow = 50)

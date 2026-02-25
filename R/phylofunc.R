@@ -48,7 +48,7 @@
 #' @seealso [picante::mpd()], [picante::mntd()], [picante::pd()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ape)
 #'
 #' # Create random tree
@@ -232,7 +232,7 @@ spaccPhylo <- function(x,
 #' @seealso [FD::dbFD()] for comprehensive functional diversity analysis
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rpois(50 * 20, 2), nrow = 50)
 #'

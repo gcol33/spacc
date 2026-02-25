@@ -39,11 +39,12 @@ are singleton/doubleton counts. Extrapolation via coverage deficit.
 }
 }
 \examples{
-\dontrun{
+\donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rpois(50 * 30, 2), nrow = 50)
 cov <- spaccCoverage(species, coords)
-ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99, 1.0))
+ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99))
 print(ext)
-plot(ext)
 }
 
 }

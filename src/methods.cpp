@@ -238,6 +238,52 @@ List cpp_wavefront_single(IntegerMatrix species_pa,
 }
 
 
+// Parallel worker for wavefront
+struct WavefrontWorker : public Worker {
+  const RMatrix<int> species_pa;
+  const RMatrix<double> dist_mat;
+  const RVector<int> seeds;
+  const double r0;
+  const double dr;
+  const int n_steps;
+  RMatrix<int> curves;
+  RMatrix<int> sites_mat;
+
+  WavefrontWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
+                  const IntegerVector& s, double r0_, double dr_, int n_steps_,
+                  IntegerMatrix& c, IntegerMatrix& sm)
+    : species_pa(sp), dist_mat(dm), seeds(s), r0(r0_), dr(dr_), n_steps(n_steps_),
+      curves(c), sites_mat(sm) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    int n_sites = species_pa.nrow();
+    int n_species = species_pa.ncol();
+
+    for (std::size_t s = begin; s < end; s++) {
+      int seed = seeds[s];
+
+      for (int step = 0; step < n_steps; step++) {
+        double radius = r0 + step * dr;
+        std::set<int> species_seen;
+        int n_included = 0;
+
+        for (int i = 0; i < n_sites; i++) {
+          if (dist_mat(seed, i) <= radius) {
+            n_included++;
+            for (int sp = 0; sp < n_species; sp++) {
+              if (species_pa(i, sp) > 0) species_seen.insert(sp);
+            }
+          }
+        }
+
+        curves(s, step) = species_seen.size();
+        sites_mat(s, step) = n_included;
+      }
+    }
+  }
+};
+
+
 // [[Rcpp::export]]
 List cpp_wavefront_parallel(IntegerMatrix species_pa,
                             NumericMatrix dist_mat,
@@ -257,12 +303,17 @@ List cpp_wavefront_parallel(IntegerMatrix species_pa,
     radius_vals[step] = r0 + step * dr;
   }
 
-  for (int s = 0; s < n_seeds; s++) {
-    List result = cpp_wavefront_single(species_pa, dist_mat, seeds[s], r0, dr, n_steps);
-    IntegerVector sp_count = result["species"];
-    IntegerVector n_sites_inc = result["n_sites"];
-    curves(s, _) = sp_count;
-    sites_mat(s, _) = n_sites_inc;
+  if (n_cores > 1) {
+    WavefrontWorker worker(species_pa, dist_mat, seeds, r0, dr, n_steps, curves, sites_mat);
+    parallelFor(0, n_seeds, worker);
+  } else {
+    for (int s = 0; s < n_seeds; s++) {
+      List result = cpp_wavefront_single(species_pa, dist_mat, seeds[s], r0, dr, n_steps);
+      IntegerVector sp_count = result["species"];
+      IntegerVector n_sites_inc = result["n_sites"];
+      curves(s, _) = sp_count;
+      sites_mat(s, _) = n_sites_inc;
+    }
   }
 
   return List::create(
@@ -504,6 +555,45 @@ IntegerVector cpp_distance_decay_single(IntegerMatrix species_pa,
 }
 
 
+// Parallel worker for distance decay
+struct DistanceDecayWorker : public Worker {
+  const RMatrix<int> species_pa;
+  const RMatrix<double> dist_mat;
+  const RVector<int> seeds;
+  const RVector<double> breaks;
+  RMatrix<int> curves;
+
+  DistanceDecayWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
+                      const IntegerVector& s, const NumericVector& br,
+                      IntegerMatrix& c)
+    : species_pa(sp), dist_mat(dm), seeds(s), breaks(br), curves(c) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    int n_sites = species_pa.nrow();
+    int n_species = species_pa.ncol();
+    int n_breaks = breaks.size();
+
+    for (std::size_t s = begin; s < end; s++) {
+      int seed = seeds[s];
+
+      for (int b = 0; b < n_breaks; b++) {
+        double threshold = breaks[b];
+        std::set<int> species_seen;
+
+        for (int i = 0; i < n_sites; i++) {
+          if (dist_mat(seed, i) <= threshold) {
+            for (int sp = 0; sp < n_species; sp++) {
+              if (species_pa(i, sp) > 0) species_seen.insert(sp);
+            }
+          }
+        }
+        curves(s, b) = species_seen.size();
+      }
+    }
+  }
+};
+
+
 // [[Rcpp::export]]
 IntegerMatrix cpp_distance_decay_parallel(IntegerMatrix species_pa,
                                           NumericMatrix dist_mat,
@@ -516,9 +606,14 @@ IntegerMatrix cpp_distance_decay_parallel(IntegerMatrix species_pa,
   int n_sites = species_pa.nrow();
   IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
 
-  for (int s = 0; s < n_seeds; s++) {
-    IntegerVector curve = cpp_distance_decay_single(species_pa, dist_mat, seeds[s], breaks);
-    curves(s, _) = curve;
+  if (n_cores > 1) {
+    DistanceDecayWorker worker(species_pa, dist_mat, seeds, breaks, curves);
+    parallelFor(0, n_seeds, worker);
+  } else {
+    for (int s = 0; s < n_seeds; s++) {
+      IntegerVector curve = cpp_distance_decay_single(species_pa, dist_mat, seeds[s], breaks);
+      curves(s, _) = curve;
+    }
   }
 
   return curves;

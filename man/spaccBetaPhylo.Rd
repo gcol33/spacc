@@ -59,7 +59,7 @@ length. Partitioned into replacement (turnover) and loss (nestedness)
 components.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ape)
 tree <- rtree(20)
 coords <- data.frame(x = runif(50), y = runif(50))

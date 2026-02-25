@@ -39,7 +39,17 @@ utils::globalVariables(c(
   # ggplot2 aesthetics for new features
   "mean_area", "mean_diversity", "mean_endemism", "mean_richness",
   "endemism_lower", "endemism_upper", "type", "predicted",
-  "coverage", "richness", "target_coverage", "q_label"
+  "coverage", "richness", "target_coverage", "q_label",
+  # Feature 1: Richness estimators
+  "estimator", "estimate", "label",
+  # Feature 2-3: Diversity and evenness profiles
+  "diversity", "regional", "mean_alpha", "sd_alpha", "gamma",
+  "evenness", "E_q", "pielou", "simpson_even", "site",
+  # Feature 4: Beta distance-decay
+  "dissimilarity", "site_i", "site_j", "predicted_decay", "bin_mid", "bin",
+  # Feature 5: Null models / SES
+  "ses", "null_mean", "null_sd", "p_value", "position", "observed",
+  "significance"
 ))
 
 

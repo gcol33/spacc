@@ -73,7 +73,7 @@ species. Requires full tree object.
 }
 }
 \examples{
-\dontrun{
+\donttest{
 library(ape)
 
 # Create random tree

@@ -38,14 +38,11 @@ A ggplot2 object.
 Create visualizations of per-site accumulation metrics.
 }
 \examples{
-\dontrun{
+\donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 metrics <- spaccMetrics(species, coords, metrics = c("slope_10", "auc"))
-
-# Heatmap of initial accumulation rate
 plot(metrics, metric = "slope_10", type = "heatmap")
-
-# Distribution of AUC values
-plot(metrics, metric = "auc", type = "histogram")
 }
 
 }

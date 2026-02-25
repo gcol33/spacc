@@ -15,8 +15,8 @@
 #'   \item{lower, upper}{95% confidence bounds}
 #'
 #' @examples
-#' \dontrun{
-#' # With abundance data
+#' \donttest{
+#' abundance_matrix <- matrix(rpois(50 * 30, 2), nrow = 50)
 #' rare <- rarefy(abundance_matrix)
 #' plot(rare)
 #' }

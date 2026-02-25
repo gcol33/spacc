@@ -39,7 +39,7 @@
 #' @seealso [iNEXT::iNEXT()] for coverage-based rarefaction without spatial structure
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rpois(50 * 30, 2), nrow = 50)
 #'
@@ -205,11 +205,12 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
 #' @seealso [spaccCoverage()], [interpolateCoverage()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rpois(50 * 30, 2), nrow = 50)
 #' cov <- spaccCoverage(species, coords)
-#' ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99, 1.0))
+#' ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99))
 #' print(ext)
-#' plot(ext)
 #' }
 #'
 #' @export

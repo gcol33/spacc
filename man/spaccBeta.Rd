@@ -70,7 +70,7 @@ species composition changes as you expand spatially.
 The sum of turnover and nestedness equals total beta diversity.
 }
 \examples{
-\dontrun{
+\donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 

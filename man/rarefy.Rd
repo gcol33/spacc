@@ -26,8 +26,8 @@ Compute classic individual-based rarefaction curves. This complements
 the sample-based accumulation in \code{\link[=spacc]{spacc()}}.
 }
 \examples{
-\dontrun{
-# With abundance data
+\donttest{
+abundance_matrix <- matrix(rpois(50 * 30, 2), nrow = 50)
 rare <- rarefy(abundance_matrix)
 plot(rare)
 }

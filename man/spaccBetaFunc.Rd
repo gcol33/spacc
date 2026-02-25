@@ -57,7 +57,7 @@ overlap of trait ranges (functional space) between the accumulated pool
 and the newly added site.
 }
 \examples{
-\dontrun{
+\donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rbinom(50 * 20, 1, 0.3), nrow = 50)
 traits <- matrix(rnorm(20 * 3), nrow = 20)

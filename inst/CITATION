@@ -1,0 +1,9 @@
+bibentry(
+  bibtype  = "Manual",
+  title    = "spacc: Fast Spatial Species Accumulation Curves",
+  author   = person("Gilles", "Colling",
+                    comment = c(ORCID = "0000-0003-3070-6066")),
+  year     = "2026",
+  note     = "R package version 0.7.0",
+  url      = "https://github.com/gcol33/spacc"
+)

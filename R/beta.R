@@ -43,7 +43,7 @@
 #' @seealso [betapart::beta.pair()] for pairwise beta diversity
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #'
@@ -299,7 +299,7 @@ as_sf.spacc_beta <- function(x, crs = NULL) {
 #' @seealso [spaccBeta()], [spaccBetaPhylo()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rbinom(50 * 20, 1, 0.3), nrow = 50)
 #' traits <- matrix(rnorm(20 * 3), nrow = 20)
@@ -496,7 +496,7 @@ spaccBetaFunc <- function(x,
 #' @seealso [spaccBeta()], [spaccBetaFunc()]
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ape)
 #' tree <- rtree(20)
 #' coords <- data.frame(x = runif(50), y = runif(50))

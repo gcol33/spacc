@@ -22,13 +22,12 @@
 #' - `"thinning"`: Iteratively remove sites until minimum distance is achieved.
 #'
 #' @examples
-#' \dontrun{
-#' # Grid-based subsampling
-#' keep <- subsample(coords, method = "grid", cell_size = 10)
-#' sac <- spacc(species[keep, ], coords[keep, ])
+#' \donttest{
+#' coords <- data.frame(x = runif(50) * 100, y = runif(50) * 100)
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #'
-#' # Minimum distance thinning
-#' keep <- subsample(coords, method = "thinning", min_dist = 5)
+#' keep <- subsample(coords, method = "grid", cell_size = 20)
+#' sac <- spacc(species[keep, ], coords[keep, ])
 #' }
 #'
 #' @references

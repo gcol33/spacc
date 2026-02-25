@@ -38,12 +38,13 @@ incorporates sampling effort (E) alongside area (A) to provide unbiased
 richness estimates across regions with unequal survey intensity.
 }
 \examples{
-\dontrun{
+\donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 sac <- spacc(species, coords)
-effort <- rpois(nrow(species), 10)  # e.g., number of visits
+effort <- rpois(50, 10)
 ses <- sesars(sac, effort, model = "power")
 print(ses)
-plot(ses)
 }
 
 }

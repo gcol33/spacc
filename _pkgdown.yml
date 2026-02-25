@@ -52,6 +52,8 @@ reference:
   - alphaDiversity
   - gammaDiversity
   - diversityPartition
+  - diversityProfile
+  - evenness
 - title: Hill Numbers
   desc: Diversity accumulation with Hill numbers (q=0,1,2)
   contents: spaccHill
@@ -61,6 +63,7 @@ reference:
   - spaccBeta
   - spaccBetaFunc
   - spaccBetaPhylo
+  - betaDecay
 - title: Phylogenetic & Functional Diversity
   desc: Accumulation of PD and FD metrics
   contents:
@@ -77,6 +80,14 @@ reference:
   contents:
   - spaccMetrics
   - as_sf
+- title: Richness Estimators
+  desc: Non-parametric richness estimation
+  contents:
+  - chao1
+  - chao2
+  - ace
+  - jackknife
+  - bootstrap_richness
 - title: Analytical Methods
   desc: Expected curves without simulation
   contents:
@@ -98,6 +109,7 @@ reference:
   - compare
   - rarefy
   - subsample
+  - ses
 - title: Internal
   desc: Internal functions (not for end users)
   contents:

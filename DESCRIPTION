@@ -1,26 +1,26 @@
 Package: spacc
 Title: Fast Spatial Species Accumulation Curves
-Version: 0.1.0
+Version: 0.7.0
 Authors@R:
     person("Gilles", "Colling", , "gilles.colling051@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0003-3070-6066"))
 Description: High-performance spatial species accumulation curves using
-    nearest-neighbor algorithms. Implements kNN and kNCN sampling methods
-    with a C++ backend for speed. Supports Hill numbers (q=0,1,2), beta
+    nearest-neighbor algorithms. Implements 'kNN' and 'kNCN' sampling methods
+    with a 'C++' backend for speed. Supports Hill numbers (q=0,1,2), beta
     diversity partitioning (turnover/nestedness), coverage-based rarefaction
     and extrapolation, phylogenetic diversity including Faith's PD,
     functional diversity accumulation, diversity-area relationships (DAR),
     endemism-area curves, sampling-effort correction (SESARS), fragmentation
     analysis (SFAR), and EVT-based SAR models. Multiple starting points
     (seeds) provide uncertainty quantification.
-    Methods are described in Chao et al. (2014) <doi:10.1890/13-0133.1>,
-    Baselga (2010) <doi:10.1111/j.1466-8238.2009.00490.x>,
-    Chao and Jost (2012) <doi:10.1890/11-1952.1>,
-    Faith (1992) <doi:10.1016/0006-3207(92)91201-3>,
-    Ma (2018) <doi:10.1002/ece3.4526>,
-    Borda-de-Agua et al. (2025) <doi:10.1038/s41467-025-59239-7>,
-    Hanski et al. (2013) <doi:10.1073/pnas.1311190110>,
-    and Jost (2007) <doi:10.1890/06-1736.1>.
+    Methods are described in 'Chao' et al. (2014) <doi:10.1890/13-0133.1>,
+    'Baselga' (2010) <doi:10.1111/j.1466-8238.2009.00490.x>,
+    'Chao' and 'Jost' (2012) <doi:10.1890/11-1952.1>,
+    'Faith' (1992) <doi:10.1016/0006-3207(92)91201-3>,
+    'Ma' (2018) <doi:10.1002/ece3.4526>,
+    'Borda-de-Agua' et al. (2025) <doi:10.1038/s41467-025-59239-7>,
+    'Hanski' et al. (2013) <doi:10.1073/pnas.1311190110>,
+    and 'Jost' (2007) <doi:10.1890/06-1736.1>.
 License: MIT + file LICENSE
 Language: en-US
 Encoding: UTF-8
@@ -45,13 +45,9 @@ Suggests:
     cli,
     sf,
     areaOfEffect,
-    vegan,
-    mobr,
     ape,
     iNEXT,
     betapart
-Remotes:
-    gcol33/areaOfEffect
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 SystemRequirements: GNU make

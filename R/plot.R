@@ -19,14 +19,11 @@
 #' @return A ggplot2 object.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' sac <- spacc(species, coords)
 #' plot(sac)
-#'
-#' # Grouped
-#' sac_grouped <- spacc(species, coords, groups = status)
-#' plot(sac_grouped)
-#' plot(sac_grouped, facet = TRUE)
 #' }
 #'
 #' @export

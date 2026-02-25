@@ -70,15 +70,11 @@ which requires the \code{ggplot2} package. For more sophisticated spatial
 visualization with study area boundaries, see the \code{areaOfEffect} package.
 }
 \examples{
-\dontrun{
-# Compute per-site metrics
+\donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 metrics <- spaccMetrics(species, coords,
-                        metrics = c("slope_10", "half_richness", "auc"))
-
-# Basic heatmap
-plot(metrics, metric = "slope_10", type = "heatmap")
-
-# Access metric values directly
+                        metrics = c("slope_10", "auc"))
 metrics$metrics$slope_10
 }
 

@@ -1,4 +1,4 @@
-# spacc 0.5.0 (development)
+# spacc 0.7.0 (development)
 
 ## New Features
 

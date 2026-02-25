@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <cmath>
+#include <limits>
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -251,6 +252,173 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
 }
 
 
+// Worker struct for parallel phylo kNN
+// Uses a single packed RMatrix<double> for output (n_seeds * n_metrics rows, n_sites cols)
+// to match the working KnnWorker pattern exactly.
+struct PhyloKnnWorker : public Worker {
+  const RMatrix<int> species_pa;
+  const RMatrix<double> site_dist_mat;
+  const RMatrix<double> phylo_dist_mat;
+  const RVector<int> seeds;
+  RMatrix<double> results;  // packed: row = s * n_metrics + m
+
+  bool do_mpd;
+  bool do_mntd;
+  bool do_pd;
+  int mpd_idx;
+  int mntd_idx;
+  int pd_idx;
+  int n_metrics;
+
+  const bool has_tree;
+  const RMatrix<int> edge_mat;
+  const RVector<double> edge_len;
+  const int tree_n_tips;
+
+  PhyloKnnWorker(const IntegerMatrix& species_pa_,
+                 const NumericMatrix& site_dist_mat_,
+                 const NumericMatrix& phylo_dist_mat_,
+                 const IntegerVector& seeds_,
+                 const std::vector<std::string>& metric_names_,
+                 NumericMatrix& results_,
+                 bool has_tree_,
+                 const IntegerMatrix& edge_mat_,
+                 const NumericVector& edge_len_,
+                 int tree_n_tips_)
+    : species_pa(species_pa_), site_dist_mat(site_dist_mat_),
+      phylo_dist_mat(phylo_dist_mat_), seeds(seeds_),
+      results(results_),
+      do_mpd(false), do_mntd(false), do_pd(false),
+      mpd_idx(-1), mntd_idx(-1), pd_idx(-1),
+      n_metrics(metric_names_.size()),
+      has_tree(has_tree_),
+      edge_mat(edge_mat_), edge_len(edge_len_), tree_n_tips(tree_n_tips_) {
+    for (size_t m = 0; m < metric_names_.size(); m++) {
+      if (metric_names_[m] == "mpd") { do_mpd = true; mpd_idx = m; }
+      else if (metric_names_[m] == "mntd") { do_mntd = true; mntd_idx = m; }
+      else if (metric_names_[m] == "pd") { do_pd = true; pd_idx = m; }
+    }
+  }
+
+  void operator()(std::size_t begin, std::size_t end) {
+    int n_sites = species_pa.nrow();
+    int n_species = species_pa.ncol();
+    const double INF = std::numeric_limits<double>::infinity();
+
+    for (std::size_t s = begin; s < end; s++) {
+      std::vector<bool> visited(n_sites, false);
+      std::vector<bool> species_present(n_species, false);
+
+      int current = seeds[s];
+      visited[current] = true;
+
+      for (int sp = 0; sp < n_species; sp++) {
+        if (species_pa(current, sp) > 0) species_present[sp] = true;
+      }
+
+      if (do_mpd)  results(s * n_metrics + mpd_idx, 0) = calc_mpd_internal(species_present, n_species);
+      if (do_mntd) results(s * n_metrics + mntd_idx, 0) = calc_mntd_internal(species_present, n_species);
+      if (do_pd && has_tree) results(s * n_metrics + pd_idx, 0) = calc_pd_internal(species_present);
+
+      for (int step = 1; step < n_sites; step++) {
+        double min_dist = INF;
+        int next_site = -1;
+        for (int j = 0; j < n_sites; j++) {
+          if (!visited[j] && site_dist_mat(current, j) < min_dist) {
+            min_dist = site_dist_mat(current, j);
+            next_site = j;
+          }
+        }
+
+        current = next_site;
+        visited[current] = true;
+
+        for (int sp = 0; sp < n_species; sp++) {
+          if (species_pa(current, sp) > 0) species_present[sp] = true;
+        }
+
+        if (do_mpd)  results(s * n_metrics + mpd_idx, step) = calc_mpd_internal(species_present, n_species);
+        if (do_mntd) results(s * n_metrics + mntd_idx, step) = calc_mntd_internal(species_present, n_species);
+        if (do_pd && has_tree) results(s * n_metrics + pd_idx, step) = calc_pd_internal(species_present);
+      }
+    }
+  }
+
+private:
+  double calc_mpd_internal(const std::vector<bool>& species_present,
+                           int n_species) const {
+    std::vector<int> present;
+    for (int i = 0; i < n_species; i++) {
+      if (species_present[i]) present.push_back(i);
+    }
+    if (present.size() < 2) return 0.0;
+
+    double sum_dist = 0.0;
+    double count = 0.0;
+    for (size_t i = 0; i < present.size(); i++) {
+      for (size_t j = i + 1; j < present.size(); j++) {
+        sum_dist += phylo_dist_mat(present[i], present[j]);
+        count += 1.0;
+      }
+    }
+    return count == 0 ? 0.0 : sum_dist / count;
+  }
+
+  double calc_mntd_internal(const std::vector<bool>& species_present,
+                            int n_species) const {
+    std::vector<int> present;
+    for (int i = 0; i < n_species; i++) {
+      if (species_present[i]) present.push_back(i);
+    }
+    if (present.size() < 2) return 0.0;
+
+    double sum_nnd = 0.0;
+    const double INF = std::numeric_limits<double>::infinity();
+    for (size_t i = 0; i < present.size(); i++) {
+      int sp_i = present[i];
+      double min_d = INF;
+      for (size_t j = 0; j < present.size(); j++) {
+        if (i != j) {
+          double d = phylo_dist_mat(sp_i, present[j]);
+          if (d < min_d) min_d = d;
+        }
+      }
+      sum_nnd += min_d;
+    }
+    return sum_nnd / present.size();
+  }
+
+  double calc_pd_internal(const std::vector<bool>& species_present) const {
+    int n_edges = edge_mat.nrow();
+    std::vector<bool> edge_used(n_edges, false);
+
+    for (int tip = 0; tip < tree_n_tips; tip++) {
+      if (!species_present[tip]) continue;
+      int current_node = tip + 1;
+
+      while (true) {
+        int found_edge = -1;
+        for (int e = 0; e < n_edges; e++) {
+          if (edge_mat(e, 1) == current_node) {
+            found_edge = e;
+            break;
+          }
+        }
+        if (found_edge < 0) break;
+        edge_used[found_edge] = true;
+        current_node = edge_mat(found_edge, 0);
+      }
+    }
+
+    double pd = 0.0;
+    for (int e = 0; e < n_edges; e++) {
+      if (edge_used[e]) pd += edge_len[e];
+    }
+    return pd;
+  }
+};
+
+
 // [[Rcpp::export]]
 List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
                             NumericMatrix site_dist_mat,
@@ -267,28 +435,60 @@ List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
 
   IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
 
-  // Allocate output: list of matrices, one per metric
-  List out(n_metrics);
-  for (int m = 0; m < n_metrics; m++) {
-    out[m] = NumericMatrix(n_seeds, n_sites);
+  // Check if tree data is available
+  bool has_tree = tree_edge.isNotNull() && tree_edge_length.isNotNull();
+  IntegerMatrix edge_mat;
+  NumericVector edge_len;
+  if (has_tree) {
+    edge_mat = Rcpp::as<IntegerMatrix>(tree_edge);
+    edge_len = Rcpp::as<NumericVector>(tree_edge_length);
+  } else {
+    // Create dummy matrices for worker
+    edge_mat = IntegerMatrix(1, 2);
+    edge_len = NumericVector(1);
   }
-  out.attr("names") = metrics;
 
-  // Sequential for now (parallelization would require more complex setup)
-  for (int s = 0; s < n_seeds; s++) {
-    List single = cpp_phylo_knn_single(species_pa, site_dist_mat,
-                                        phylo_dist_mat, seeds[s], metrics,
-                                        tree_edge, tree_edge_length, tree_n_tips);
+  // Convert metrics to std::vector<std::string>
+  std::vector<std::string> metric_names(n_metrics);
+  for (int m = 0; m < n_metrics; m++) {
+    metric_names[m] = Rcpp::as<std::string>(metrics[m]);
+  }
 
-    for (int m = 0; m < n_metrics; m++) {
-      NumericMatrix mat = out[m];
-      NumericVector curve = single[m];
-      for (int st = 0; st < n_sites; st++) {
-        mat(s, st) = curve[st];
+  // Single packed output matrix: (n_seeds * n_metrics) rows x n_sites cols
+  NumericMatrix packed_results(n_seeds * n_metrics, n_sites);
+
+  if (n_cores > 1) {
+    PhyloKnnWorker worker(species_pa, site_dist_mat, phylo_dist_mat,
+                          seeds, metric_names, packed_results,
+                          has_tree, edge_mat, edge_len, tree_n_tips);
+    parallelFor(0, n_seeds, worker, 1, n_cores);
+  } else {
+    // Sequential fallback
+    for (int s = 0; s < n_seeds; s++) {
+      List single = cpp_phylo_knn_single(species_pa, site_dist_mat,
+                                          phylo_dist_mat, seeds[s], metrics,
+                                          tree_edge, tree_edge_length, tree_n_tips);
+      for (int m = 0; m < n_metrics; m++) {
+        NumericVector curve = single[m];
+        for (int st = 0; st < n_sites; st++) {
+          packed_results(s * n_metrics + m, st) = curve[st];
+        }
       }
-      out[m] = mat;
     }
   }
+
+  // Unpack into per-metric matrices
+  List out(n_metrics);
+  for (int m = 0; m < n_metrics; m++) {
+    NumericMatrix mat(n_seeds, n_sites);
+    for (int s = 0; s < n_seeds; s++) {
+      for (int st = 0; st < n_sites; st++) {
+        mat(s, st) = packed_results(s * n_metrics + m, st);
+      }
+    }
+    out[m] = mat;
+  }
+  out.attr("names") = metrics;
 
   return out;
 }
@@ -466,6 +666,154 @@ List cpp_func_knn_single(IntegerMatrix species_mat,
 }
 
 
+// Worker struct for parallel functional kNN
+// Uses a single packed RMatrix<double> for output to match KnnWorker pattern.
+struct FuncKnnWorker : public Worker {
+  const RMatrix<int> species_mat;
+  const RMatrix<double> site_dist_mat;
+  const RMatrix<double> traits;
+  const RVector<int> seeds;
+  RMatrix<double> results;  // packed: row = s * n_metrics + m
+
+  bool do_fdis;
+  bool do_fric;
+  int fdis_idx;
+  int fric_idx;
+  int n_metrics;
+
+  FuncKnnWorker(const IntegerMatrix& species_mat_,
+                const NumericMatrix& site_dist_mat_,
+                const NumericMatrix& traits_,
+                const IntegerVector& seeds_,
+                const std::vector<std::string>& metric_names_,
+                NumericMatrix& results_)
+    : species_mat(species_mat_), site_dist_mat(site_dist_mat_),
+      traits(traits_), seeds(seeds_), results(results_),
+      do_fdis(false), do_fric(false),
+      fdis_idx(-1), fric_idx(-1),
+      n_metrics(metric_names_.size()) {
+    for (size_t m = 0; m < metric_names_.size(); m++) {
+      if (metric_names_[m] == "fdis") { do_fdis = true; fdis_idx = m; }
+      else if (metric_names_[m] == "fric") { do_fric = true; fric_idx = m; }
+    }
+  }
+
+  void operator()(std::size_t begin, std::size_t end) {
+    int n_sites = species_mat.nrow();
+    int n_species = species_mat.ncol();
+    int n_traits = traits.ncol();
+    const double INF = std::numeric_limits<double>::infinity();
+
+    for (std::size_t s = begin; s < end; s++) {
+      std::vector<bool> visited(n_sites, false);
+      std::vector<double> cumulative(n_species, 0.0);
+      std::vector<bool> species_present(n_species, false);
+      std::vector<double> abundances(n_species, 0.0);
+
+      int current = seeds[s];
+      visited[current] = true;
+
+      for (int sp = 0; sp < n_species; sp++) {
+        cumulative[sp] += species_mat(current, sp);
+        species_present[sp] = cumulative[sp] > 0;
+        abundances[sp] = cumulative[sp];
+      }
+
+      if (do_fdis) results(s * n_metrics + fdis_idx, 0) = calc_fdis_internal(species_present, abundances, n_species, n_traits);
+      if (do_fric) results(s * n_metrics + fric_idx, 0) = calc_fric_internal(species_present, n_species, n_traits);
+
+      for (int step = 1; step < n_sites; step++) {
+        double min_dist = INF;
+        int next_site = -1;
+        for (int j = 0; j < n_sites; j++) {
+          if (!visited[j] && site_dist_mat(current, j) < min_dist) {
+            min_dist = site_dist_mat(current, j);
+            next_site = j;
+          }
+        }
+
+        current = next_site;
+        visited[current] = true;
+
+        for (int sp = 0; sp < n_species; sp++) {
+          cumulative[sp] += species_mat(current, sp);
+          species_present[sp] = cumulative[sp] > 0;
+          abundances[sp] = cumulative[sp];
+        }
+
+        if (do_fdis) results(s * n_metrics + fdis_idx, step) = calc_fdis_internal(species_present, abundances, n_species, n_traits);
+        if (do_fric) results(s * n_metrics + fric_idx, step) = calc_fric_internal(species_present, n_species, n_traits);
+      }
+    }
+  }
+
+private:
+  double calc_fdis_internal(const std::vector<bool>& species_present,
+                            const std::vector<double>& abundances,
+                            int n_species, int n_traits) const {
+    std::vector<int> present;
+    double total_abund = 0.0;
+    for (int i = 0; i < n_species; i++) {
+      if (species_present[i]) {
+        present.push_back(i);
+        total_abund += abundances[i];
+      }
+    }
+    if (present.size() < 2 || total_abund == 0) return 0.0;
+
+    std::vector<double> centroid(n_traits, 0.0);
+    for (size_t i = 0; i < present.size(); i++) {
+      int sp = present[i];
+      double w = abundances[sp] / total_abund;
+      for (int t = 0; t < n_traits; t++) {
+        centroid[t] += traits(sp, t) * w;
+      }
+    }
+
+    double sum_dist = 0.0;
+    for (size_t i = 0; i < present.size(); i++) {
+      int sp = present[i];
+      double dist_sq = 0.0;
+      for (int t = 0; t < n_traits; t++) {
+        double diff = traits(sp, t) - centroid[t];
+        dist_sq += diff * diff;
+      }
+      sum_dist += std::sqrt(dist_sq) * (abundances[sp] / total_abund);
+    }
+    return sum_dist;
+  }
+
+  double calc_fric_internal(const std::vector<bool>& species_present,
+                            int n_species, int n_traits) const {
+    std::vector<int> present;
+    for (int i = 0; i < n_species; i++) {
+      if (species_present[i]) present.push_back(i);
+    }
+    if (present.size() <= (size_t)n_traits) return 0.0;
+
+    const double INF = std::numeric_limits<double>::infinity();
+    double volume = 1.0;
+    for (int t = 0; t < n_traits; t++) {
+      double min_val = INF;
+      double max_val = -INF;
+      for (size_t i = 0; i < present.size(); i++) {
+        double val = traits(present[i], t);
+        if (val < min_val) min_val = val;
+        if (val > max_val) max_val = val;
+      }
+      double range = max_val - min_val;
+      if (range > 0) {
+        volume *= range;
+      } else {
+        volume = 0.0;
+        break;
+      }
+    }
+    return volume;
+  }
+};
+
+
 // [[Rcpp::export]]
 List cpp_func_knn_parallel(IntegerMatrix species_mat,
                            NumericMatrix site_dist_mat,
@@ -479,25 +827,43 @@ List cpp_func_knn_parallel(IntegerMatrix species_mat,
 
   IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
 
-  List out(n_metrics);
+  std::vector<std::string> metric_names(n_metrics);
   for (int m = 0; m < n_metrics; m++) {
-    out[m] = NumericMatrix(n_seeds, n_sites);
+    metric_names[m] = Rcpp::as<std::string>(metrics[m]);
   }
-  out.attr("names") = metrics;
 
-  for (int s = 0; s < n_seeds; s++) {
-    List single = cpp_func_knn_single(species_mat, site_dist_mat,
-                                       traits, seeds[s], metrics);
+  // Single packed output matrix: (n_seeds * n_metrics) rows x n_sites cols
+  NumericMatrix packed_results(n_seeds * n_metrics, n_sites);
 
-    for (int m = 0; m < n_metrics; m++) {
-      NumericMatrix mat = out[m];
-      NumericVector curve = single[m];
-      for (int st = 0; st < n_sites; st++) {
-        mat(s, st) = curve[st];
+  if (n_cores > 1) {
+    FuncKnnWorker worker(species_mat, site_dist_mat, traits,
+                         seeds, metric_names, packed_results);
+    parallelFor(0, n_seeds, worker, 1, n_cores);
+  } else {
+    for (int s = 0; s < n_seeds; s++) {
+      List single = cpp_func_knn_single(species_mat, site_dist_mat,
+                                         traits, seeds[s], metrics);
+      for (int m = 0; m < n_metrics; m++) {
+        NumericVector curve = single[m];
+        for (int st = 0; st < n_sites; st++) {
+          packed_results(s * n_metrics + m, st) = curve[st];
+        }
       }
-      out[m] = mat;
     }
   }
+
+  // Unpack into per-metric matrices
+  List out(n_metrics);
+  for (int m = 0; m < n_metrics; m++) {
+    NumericMatrix mat(n_seeds, n_sites);
+    for (int s = 0; s < n_seeds; s++) {
+      for (int st = 0; st < n_sites; st++) {
+        mat(s, st) = packed_results(s * n_metrics + m, st);
+      }
+    }
+    out[m] = mat;
+  }
+  out.attr("names") = metrics;
 
   return out;
 }
