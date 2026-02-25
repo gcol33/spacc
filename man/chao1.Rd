@@ -12,13 +12,15 @@ across sites.}
 }
 \value{
 An object of class \code{spacc_estimate} with components:
+\describe{
 \item{estimator}{Name of the estimator (\code{"chao1"})}
 \item{estimate}{Estimated total richness}
 \item{se}{Standard error of the estimate}
-\item{lower}{Lower 95\\% confidence bound}
-\item{upper}{Upper 95\\% confidence bound}
+\item{lower}{Lower 95 percent confidence bound}
+\item{upper}{Upper 95 percent confidence bound}
 \item{S_obs}{Observed species richness}
 \item{details}{List with \code{f1} (singletons) and \code{f2} (doubletons)}
+}
 }
 \description{
 Estimate total species richness from abundance data using the Chao1

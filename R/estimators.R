@@ -8,13 +8,15 @@
 #'   across sites.
 #'
 #' @return An object of class `spacc_estimate` with components:
+#' \describe{
 #'   \item{estimator}{Name of the estimator (`"chao1"`)}
 #'   \item{estimate}{Estimated total richness}
 #'   \item{se}{Standard error of the estimate}
-#'   \item{lower}{Lower 95\% confidence bound}
-#'   \item{upper}{Upper 95\% confidence bound}
+#'   \item{lower}{Lower 95 percent confidence bound}
+#'   \item{upper}{Upper 95 percent confidence bound}
 #'   \item{S_obs}{Observed species richness}
 #'   \item{details}{List with `f1` (singletons) and `f2` (doubletons)}
+#' }
 #'
 #' @details
 #' The Chao1 estimator is:
