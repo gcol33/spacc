@@ -2,13 +2,19 @@
 #'
 #' Compute spatial accumulation curves with sample coverage tracking.
 #' Allows standardization by completeness (coverage) rather than sample size,
-#' following Chao & Jost (2012).
+#' following Chao & Jost (2012) or the sample-based estimator of Chiu (2023).
 #'
 #' @param x A site-by-species matrix with abundance data.
 #' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
 #' @param method Character. Accumulation method. Default `"knn"`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
+#' @param coverage Character. Coverage estimator to use: `"chao"` (default)
+#'   for the individual-based Chao & Jost (2012) estimator using
+#'   singletons/doubletons, or `"chiu"` for the sample-based Chiu (2023)
+#'   estimator using incidence frequency counts (Q1/Q2) and unique-species
+#'   abundance (G1). The Chiu estimator is recommended for spatially aggregated
+#'   data where sampling units are plots/sites rather than independent individuals.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
@@ -21,12 +27,22 @@
 #'   \item{richness}{Matrix of species richness (n_seeds x n_sites)}
 #'   \item{individuals}{Matrix of individual counts}
 #'   \item{coverage}{Matrix of coverage estimates}
+#'   \item{coverage_type}{Coverage estimator used (`"chao"` or `"chiu"`)}
 #'   \item{coords, n_seeds, n_sites, method}{Parameters used}
 #'
 #' @details
-#' Sample coverage (Chao & Jost 2012) estimates the proportion of the total
-#' community abundance represented by observed species. It provides a measure
-#' of sampling completeness that is independent of sample size.
+#' Sample coverage estimates the proportion of the total community abundance
+#' represented by observed species. It provides a measure of sampling
+#' completeness that is independent of sample size.
+#'
+#' The **Chao-Jost (2012)** estimator counts singletons (f1) and doubletons
+#' (f2) in the cumulative abundance vector. It assumes individuals are sampled
+#' independently, which may not hold for plot-based spatial data.
+#'
+#' The **Chiu (2023)** estimator uses incidence frequency counts instead:
+#' Q1 (species in exactly 1 site), Q2 (species in exactly 2 sites), and G1
+#' (total abundance of Q1 species). It gives near-unbiased coverage estimates
+#' when organisms are spatially aggregated across sampling units.
 #'
 #' Coverage-based rarefaction allows fair comparison of diversity across
 #' communities with different abundances by standardizing to equal completeness
@@ -35,6 +51,9 @@
 #' @references
 #' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
 #' standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+#'
+#' Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
+#' Ecology, 104, e4099.
 #'
 #' @seealso [iNEXT::iNEXT()] for coverage-based rarefaction without spatial structure
 #'
@@ -46,6 +65,9 @@
 #' cov <- spaccCoverage(species, coords)
 #' plot(cov)
 #'
+#' # Sample-based coverage (recommended for spatial data)
+#' cov_chiu <- spaccCoverage(species, coords, coverage = "chiu")
+#'
 #' # Interpolate richness at 90% and 95% coverage
 #' interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 #' }
@@ -56,6 +78,7 @@ spaccCoverage <- function(x,
                           n_seeds = 50L,
                           method = "knn",
                           distance = c("euclidean", "haversine"),
+                          coverage = c("chao", "chiu"),
                           parallel = TRUE,
                           n_cores = NULL,
                           progress = TRUE,
@@ -63,6 +86,7 @@ spaccCoverage <- function(x,
                           map = FALSE) {
 
   distance <- match.arg(distance)
+  coverage <- match.arg(coverage)
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -89,9 +113,14 @@ spaccCoverage <- function(x,
   # Need abundance data for coverage calculation
   storage.mode(x) <- "integer"
 
-  if (progress) cli_info(sprintf("Computing coverage-based accumulation (%d seeds)", n_seeds))
+  # Convert coverage type to integer for C++
+  coverage_type <- if (coverage == "chiu") 1L else 0L
 
-  result <- cpp_knn_coverage_parallel(x, dist_mat, n_seeds, n_cores, progress)
+  cov_label <- if (coverage == "chiu") "Chiu 2023" else "Chao-Jost 2012"
+  if (progress) cli_info(sprintf("Computing coverage-based accumulation (%d seeds, %s)", n_seeds, cov_label))
+
+  result <- cpp_knn_coverage_parallel(x, dist_mat, n_seeds, n_cores, progress,
+                                      coverage_type)
 
   if (progress) cli_success("Done")
 
@@ -99,7 +128,8 @@ spaccCoverage <- function(x,
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site coverage map values (all sites as seeds)")
-    map_result <- cpp_knn_coverage_parallel(x, dist_mat, n_sites, n_cores, progress)
+    map_result <- cpp_knn_coverage_parallel(x, dist_mat, n_sites, n_cores, progress,
+                                            coverage_type)
 
     site_values <- data.frame(
       site_id = seq_len(n_sites),
@@ -124,6 +154,7 @@ spaccCoverage <- function(x,
       n_species = n_species,
       method = method,
       distance = distance,
+      coverage_type = coverage,
       call = match.call()
     ),
     class = "spacc_coverage"
@@ -430,8 +461,13 @@ plot.spacc_coverage_ext <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
 
 #' @export
 print.spacc_coverage <- function(x, ...) {
-  cat(sprintf("spacc coverage: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
+  cov_label <- if (!is.null(x$coverage_type) && x$coverage_type == "chiu") {
+    "Chiu 2023"
+  } else {
+    "Chao-Jost 2012"
+  }
+  cat(sprintf("spacc coverage (%s): %d sites, %d species, %d seeds\n",
+              cov_label, x$n_sites, x$n_species, x$n_seeds))
 
   mean_final_cov <- mean(x$coverage[, x$n_sites])
   mean_final_rich <- mean(x$richness[, x$n_sites])

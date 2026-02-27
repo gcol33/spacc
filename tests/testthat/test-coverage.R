@@ -332,3 +332,142 @@ test_that("as_sf.spacc_coverage errors without map data", {
 
   expect_error(as_sf(cov), "map")
 })
+
+
+# ============================================================================
+# Chiu (2023) sample-based coverage estimator
+# ============================================================================
+
+test_that("calc_chiu_coverage returns correct values", {
+  # Q1=2, Q2=1, G1=8, n+=100, T=10
+  # a0_hat = (9/10) * 8 * 2 / (2*1) = 7.2
+  # C = 100 / 107.2 ~ 0.9328
+  abundances <- c(5, 3, 20, 30, 42)
+  incidences <- as.integer(c(1, 1, 2, 5, 8))
+  C <- spacc:::calc_chiu_coverage(abundances, incidences, 10L)
+  expect_equal(C, 100 / 107.2, tolerance = 0.001)
+})
+
+
+test_that("calc_chiu_coverage handles edge cases", {
+  # No uniques -> coverage = 1
+  C <- spacc:::calc_chiu_coverage(c(10, 20), as.integer(c(3, 5)), 5L)
+  expect_equal(C, 1.0)
+
+  # Single site -> coverage = 0
+  C <- spacc:::calc_chiu_coverage(c(5, 3), as.integer(c(1, 1)), 1L)
+  expect_equal(C, 0.0)
+})
+
+
+test_that("spaccCoverage with coverage='chiu' returns correct structure", {
+  skip_on_cran()
+
+  set.seed(123)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- spaccCoverage(species, coords, n_seeds = 5,
+                          coverage = "chiu",
+                          parallel = FALSE, progress = FALSE)
+
+  expect_s3_class(result, "spacc_coverage")
+  expect_equal(result$coverage_type, "chiu")
+  expect_equal(result$n_sites, 20)
+  expect_equal(result$n_seeds, 5)
+  expect_equal(dim(result$richness), c(5, 20))
+  expect_equal(dim(result$coverage), c(5, 20))
+
+  # Coverage should be between 0 and 1
+
+  expect_true(all(result$coverage >= 0 & result$coverage <= 1))
+})
+
+
+test_that("spaccCoverage chiu coverage increases with accumulation", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rpois(30 * 15, 2), nrow = 30)
+
+  result <- spaccCoverage(species, coords, n_seeds = 3,
+                          coverage = "chiu",
+                          parallel = FALSE, progress = FALSE)
+
+  # Final coverage should be >= initial coverage
+  for (s in 1:3) {
+    curve <- result$coverage[s, ]
+    expect_true(curve[length(curve)] >= curve[1])
+  }
+})
+
+
+test_that("spaccCoverage default coverage is 'chao'", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  result <- spaccCoverage(species, coords, n_seeds = 3,
+                          parallel = FALSE, progress = FALSE)
+
+  expect_equal(result$coverage_type, "chao")
+})
+
+
+test_that("spaccCoverage print shows coverage type", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(15), y = runif(15))
+  species <- matrix(rpois(15 * 8, 3), nrow = 15)
+
+  result_chiu <- spaccCoverage(species, coords, n_seeds = 3,
+                                coverage = "chiu",
+                                parallel = FALSE, progress = FALSE)
+
+  expect_output(print(result_chiu), "Chiu 2023")
+
+  result_chao <- spaccCoverage(species, coords, n_seeds = 3,
+                                coverage = "chao",
+                                parallel = FALSE, progress = FALSE)
+
+  expect_output(print(result_chao), "Chao-Jost 2012")
+})
+
+
+test_that("interpolateCoverage works with chiu coverage", {
+  skip_on_cran()
+
+  set.seed(456)
+  coords <- data.frame(x = runif(30), y = runif(30))
+  species <- matrix(rpois(30 * 15, 3), nrow = 30)
+
+  cov_result <- spaccCoverage(species, coords, n_seeds = 5,
+                               coverage = "chiu",
+                               parallel = FALSE, progress = FALSE)
+
+  interp <- interpolateCoverage(cov_result, target = c(0.8, 0.9, 0.95))
+
+  expect_equal(ncol(interp), 3)
+  expect_equal(nrow(interp), 5)
+})
+
+
+test_that("spaccCoverage chiu works with parallel", {
+  skip_on_cran()
+
+  set.seed(42)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 3), nrow = 20)
+
+  result <- spaccCoverage(species, coords, n_seeds = 5,
+                          coverage = "chiu",
+                          parallel = TRUE, n_cores = 2,
+                          progress = FALSE, seed = 1)
+
+  expect_s3_class(result, "spacc_coverage")
+  expect_true(all(result$coverage >= 0 & result$coverage <= 1))
+})

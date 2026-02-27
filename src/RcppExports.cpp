@@ -51,22 +51,36 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calc_chiu_coverage
+double calc_chiu_coverage(NumericVector abundances, IntegerVector incidences, int T_sites);
+RcppExport SEXP _spacc_calc_chiu_coverage(SEXP abundancesSEXP, SEXP incidencesSEXP, SEXP T_sitesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type incidences(incidencesSEXP);
+    Rcpp::traits::input_parameter< int >::type T_sites(T_sitesSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_chiu_coverage(abundances, incidences, T_sites));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_knn_coverage_single
-List cpp_knn_coverage_single(IntegerMatrix species_mat, NumericMatrix dist_mat, int seed);
-RcppExport SEXP _spacc_cpp_knn_coverage_single(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP seedSEXP) {
+List cpp_knn_coverage_single(IntegerMatrix species_mat, NumericMatrix dist_mat, int seed, int coverage_type);
+RcppExport SEXP _spacc_cpp_knn_coverage_single(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP seedSEXP, SEXP coverage_typeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_coverage_single(species_mat, dist_mat, seed));
+    Rcpp::traits::input_parameter< int >::type coverage_type(coverage_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_coverage_single(species_mat, dist_mat, seed, coverage_type));
     return rcpp_result_gen;
 END_RCPP
 }
 // cpp_knn_coverage_parallel
-List cpp_knn_coverage_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_coverage_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+List cpp_knn_coverage_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, int n_cores, bool progress, int coverage_type);
+RcppExport SEXP _spacc_cpp_knn_coverage_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP coverage_typeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -75,7 +89,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_coverage_parallel(species_mat, dist_mat, n_seeds, n_cores, progress));
+    Rcpp::traits::input_parameter< int >::type coverage_type(coverage_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_coverage_parallel(species_mat, dist_mat, n_seeds, n_cores, progress, coverage_type));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -696,8 +711,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_beta_knn_single", (DL_FUNC) &_spacc_cpp_beta_knn_single, 4},
     {"_spacc_cpp_beta_knn_parallel", (DL_FUNC) &_spacc_cpp_beta_knn_parallel, 6},
     {"_spacc_calc_coverage", (DL_FUNC) &_spacc_calc_coverage, 1},
-    {"_spacc_cpp_knn_coverage_single", (DL_FUNC) &_spacc_cpp_knn_coverage_single, 3},
-    {"_spacc_cpp_knn_coverage_parallel", (DL_FUNC) &_spacc_cpp_knn_coverage_parallel, 5},
+    {"_spacc_calc_chiu_coverage", (DL_FUNC) &_spacc_calc_chiu_coverage, 3},
+    {"_spacc_cpp_knn_coverage_single", (DL_FUNC) &_spacc_cpp_knn_coverage_single, 4},
+    {"_spacc_cpp_knn_coverage_parallel", (DL_FUNC) &_spacc_cpp_knn_coverage_parallel, 6},
     {"_spacc_interpolate_at_coverage", (DL_FUNC) &_spacc_interpolate_at_coverage, 3},
     {"_spacc_cpp_distance_matrix", (DL_FUNC) &_spacc_cpp_distance_matrix, 3},
     {"_spacc_calc_hill_number", (DL_FUNC) &_spacc_calc_hill_number, 2},

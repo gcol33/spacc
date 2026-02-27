@@ -10,6 +10,7 @@ spaccCoverage(
   n_seeds = 50L,
   method = "knn",
   distance = c("euclidean", "haversine"),
+  coverage = c("chao", "chiu"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
@@ -28,6 +29,13 @@ spaccCoverage(
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}
 
+\item{coverage}{Character. Coverage estimator to use: \code{"chao"} (default)
+for the individual-based Chao & Jost (2012) estimator using
+singletons/doubletons, or \code{"chiu"} for the sample-based Chiu (2023)
+estimator using incidence frequency counts (Q1/Q2) and unique-species
+abundance (G1). The Chiu estimator is recommended for spatially aggregated
+data where sampling units are plots/sites rather than independent individuals.}
+
 \item{parallel}{Logical. Use parallel processing? Default \code{TRUE}.}
 
 \item{n_cores}{Integer. Number of cores.}
@@ -45,17 +53,27 @@ An object of class \code{spacc_coverage} containing:
 \item{richness}{Matrix of species richness (n_seeds x n_sites)}
 \item{individuals}{Matrix of individual counts}
 \item{coverage}{Matrix of coverage estimates}
+\item{coverage_type}{Coverage estimator used (\code{"chao"} or \code{"chiu"})}
 \item{coords, n_seeds, n_sites, method}{Parameters used}
 }
 \description{
 Compute spatial accumulation curves with sample coverage tracking.
 Allows standardization by completeness (coverage) rather than sample size,
-following Chao & Jost (2012).
+following Chao & Jost (2012) or the sample-based estimator of Chiu (2023).
 }
 \details{
-Sample coverage (Chao & Jost 2012) estimates the proportion of the total
-community abundance represented by observed species. It provides a measure
-of sampling completeness that is independent of sample size.
+Sample coverage estimates the proportion of the total community abundance
+represented by observed species. It provides a measure of sampling
+completeness that is independent of sample size.
+
+The \strong{Chao-Jost (2012)} estimator counts singletons (f1) and doubletons
+(f2) in the cumulative abundance vector. It assumes individuals are sampled
+independently, which may not hold for plot-based spatial data.
+
+The \strong{Chiu (2023)} estimator uses incidence frequency counts instead:
+Q1 (species in exactly 1 site), Q2 (species in exactly 2 sites), and G1
+(total abundance of Q1 species). It gives near-unbiased coverage estimates
+when organisms are spatially aggregated across sampling units.
 
 Coverage-based rarefaction allows fair comparison of diversity across
 communities with different abundances by standardizing to equal completeness
@@ -69,6 +87,9 @@ species <- matrix(rpois(50 * 30, 2), nrow = 50)
 cov <- spaccCoverage(species, coords)
 plot(cov)
 
+# Sample-based coverage (recommended for spatial data)
+cov_chiu <- spaccCoverage(species, coords, coverage = "chiu")
+
 # Interpolate richness at 90\% and 95\% coverage
 interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 }
@@ -77,6 +98,9 @@ interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 \references{
 Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
 standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+
+Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
+Ecology, 104, e4099.
 }
 \seealso{
 \code{\link[iNEXT:iNEXT]{iNEXT::iNEXT()}} for coverage-based rarefaction without spatial structure

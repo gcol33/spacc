@@ -17,7 +17,7 @@ utils::globalVariables(c(
   "distance", "i", "j", "metric", "q_label", "group", "n", "expected",
   ".data",
   # C++ functions from RcppExports.R
-  "calc_coverage", "calc_faith_pd", "calc_fdis", "calc_fric_approx",
+  "calc_chiu_coverage", "calc_coverage", "calc_faith_pd", "calc_fdis", "calc_fric_approx",
   "calc_hill_number", "calc_mntd", "calc_mpd",
   "cpp_beta_knn_parallel", "cpp_beta_knn_single",
   "cpp_collector_single", "cpp_cone_parallel", "cpp_cone_single",

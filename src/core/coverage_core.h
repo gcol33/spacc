@@ -77,6 +77,61 @@ double calc_chao_coverage(const std::vector<T>& abundances) {
   return std::max(0.0, std::min(1.0, C));
 }
 
+// Calculate Chiu (2023) sample-based coverage estimator
+// Uses incidence frequency counts (Q1, Q2) and abundance of uniques (G1)
+// instead of individual-based singletons/doubletons.
+// Near-unbiased for plot-based (spatially aggregated) data.
+//
+// Parameters:
+//   abundances  - cumulative abundance per species (length = n_species)
+//   incidences  - number of sampling units each species occurs in (length = n_species)
+//   T           - number of accumulated sampling units (sites)
+//
+// Returns value in [0, 1] where 1 = complete coverage
+template<typename T>
+double calc_chiu_coverage(const std::vector<T>& abundances,
+                          const std::vector<int>& incidences,
+                          int T_sites) {
+  if (T_sites <= 1) return 0.0;
+
+  int n_plus = 0;  // total individuals across all accumulated sites
+  int Q1 = 0;      // species detected in exactly 1 unit
+  int Q2 = 0;      // species detected in exactly 2 units
+  int G1 = 0;      // total abundance of species detected in exactly 1 unit
+
+  for (size_t i = 0; i < abundances.size(); i++) {
+    int a = static_cast<int>(abundances[i]);
+    if (a == 0) continue;
+    n_plus += a;
+    int q = incidences[i];
+    if (q == 1) {
+      Q1++;
+      G1 += a;
+    }
+    if (q == 2) Q2++;
+  }
+
+  if (n_plus == 0) return 0.0;
+
+  // Cap Q1 and Q2 at minimum 1 to avoid division by zero
+  int Q1_safe = std::max(1, Q1);
+  int Q2_safe = std::max(1, Q2);
+
+  // Chiu (2023) formula:
+  // a0_hat = ((T-1)/T) * G1 * Q1 / (2 * Q2)
+  // C = n+ / (n+ + a0_hat)
+  // When Q1 == 0 (no uniques), coverage is 1.0
+  if (Q1 == 0) return 1.0;
+
+  double a0_hat = (static_cast<double>(T_sites - 1) / T_sites) *
+                  static_cast<double>(G1) * Q1_safe /
+                  (2.0 * Q2_safe);
+
+  double C = static_cast<double>(n_plus) / (n_plus + a0_hat);
+
+  return std::max(0.0, std::min(1.0, C));
+}
+
 // Calculate coverage deficit (1 - coverage)
 // Represents the proportion of species not yet observed
 template<typename T>
