@@ -4,7 +4,7 @@
 #' @useDynLib spacc, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 #' @importFrom RcppParallel RcppParallelLibs
-#' @importFrom stats quantile sd coef confint predict nls nls.control AIC anova dist median runif lm
+#' @importFrom stats quantile sd coef confint predict nls nls.control AIC BIC anova dist median runif lm approx
 #' @importFrom parallel detectCores
 NULL
 
@@ -58,7 +58,9 @@ utils::globalVariables(c(
   "mean_gamma", "mean_alpha", "mean_beta",
   "gamma_lower", "gamma_upper", "alpha_lower", "alpha_upper",
   "beta_lower", "beta_upper",
-  "eigenvalue", "moran_i", "vector", "r_squared", "score"
+  "eigenvalue", "moran_i", "vector", "r_squared", "score",
+  # compareModels plot aesthetics
+  "converged"
 ))
 
 

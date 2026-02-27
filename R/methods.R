@@ -134,6 +134,109 @@ as.data.frame.spacc <- function(x, row.names = NULL, optional = FALSE, ...) {
 }
 
 
+#' Predict from Empirical Accumulation Curve
+#'
+#' Interpolate the mean empirical accumulation curve at arbitrary site counts
+#' using linear interpolation. Unlike the predict method for `spacc_fit`
+#' objects, this does not use a fitted model; it interpolates the observed
+#' curve directly.
+#'
+#' @param object A `spacc` object.
+#' @param n Numeric vector of site counts at which to interpolate. Defaults to
+#'   25\%, 50\%, and 100\% of total sites.
+#' @param ci Logical. If `TRUE` (default), return a data frame with columns
+#'   `n`, `mean`, `lower`, `upper`. If `FALSE`, return a named numeric vector.
+#' @param ci_level Confidence level for the interval (default 0.95).
+#' @param warn Logical. Warn when `n` values fall outside the observed range
+#'   (default `TRUE`).
+#' @param ... Ignored.
+#'
+#' @return A data frame (if `ci = TRUE`) or named numeric vector (if `ci = FALSE`).
+#'   Out-of-range values return `NA`.
+#'
+#' @examples
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+#' sac <- spacc(species, coords, n_seeds = 10, progress = FALSE)
+#' predict(sac, n = c(10, 25, 50))
+#' predict(sac, n = c(10, 25), ci = FALSE)
+#' }
+#'
+#' @export
+predict.spacc <- function(object, n = NULL, ci = TRUE,
+                          ci_level = 0.95, warn = TRUE, ...) {
+
+  if (is_grouped(object)) {
+    summaries <- summary(object, ci_level = ci_level)
+    results <- lapply(names(summaries), function(g) {
+      s <- summaries[[g]]
+      n_default <- if (is.null(n)) {
+        ns <- length(s$sites)
+        unique(c(floor(ns / 4), floor(ns / 2), ns))
+      } else {
+        n
+      }
+      res <- .predict_from_summary(s, n_default, ci = ci, warn = warn)
+      if (ci) {
+        res$group <- g
+      } else {
+        names(res) <- paste0(g, ".", names(res))
+      }
+      res
+    })
+    if (ci) {
+      return(do.call(rbind, results))
+    } else {
+      return(unlist(results))
+    }
+  }
+
+  summ <- summary(object, ci_level = ci_level)
+
+  if (is.null(n)) {
+    ns <- length(summ$sites)
+    n <- unique(c(floor(ns / 4), floor(ns / 2), ns))
+  }
+
+  .predict_from_summary(summ, n, ci = ci, warn = warn)
+}
+
+
+# Internal interpolation helper
+.predict_from_summary <- function(summ, n, ci, warn) {
+  sites <- summ$sites
+
+  # Warn about out-of-range
+  out_of_range <- n < min(sites) | n > max(sites)
+  if (warn && any(out_of_range)) {
+    warning(sprintf(
+      "n values outside observed range [%d, %d] will return NA: %s",
+      min(sites), max(sites),
+      paste(n[out_of_range], collapse = ", ")
+    ))
+  }
+
+  interp_mean <- stats::approx(sites, summ$mean, xout = n, rule = 1)$y
+
+  if (!ci) {
+    out <- interp_mean
+    names(out) <- n
+    return(out)
+  }
+
+  interp_lower <- stats::approx(sites, summ$lower, xout = n, rule = 1)$y
+  interp_upper <- stats::approx(sites, summ$upper, xout = n, rule = 1)$y
+
+  data.frame(
+    n = n,
+    mean = interp_mean,
+    lower = interp_lower,
+    upper = interp_upper
+  )
+}
+
+
 #' @export
 as.data.frame.spacc_fit <- function(x, row.names = NULL, optional = FALSE, ...) {
   # x$data has columns x (sites) and y (observed mean)

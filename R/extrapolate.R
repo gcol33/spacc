@@ -272,3 +272,224 @@ plot.spacc_fit <- function(x, extrapolate_to = NULL, ...) {
     ) +
     ggplot2::theme_minimal(base_size = 12)
 }
+
+
+#' Compare Multiple SAR Models
+#'
+#' Fit all (or a subset of) asymptotic species-area models and compare them
+#' using AIC, BIC, delta-AIC, and Akaike weights.
+#'
+#' @param object A `spacc` object.
+#' @param models Character vector of models to fit. Defaults to all six:
+#'   `"michaelis-menten"`, `"lomolino"`, `"asymptotic"`, `"weibull"`,
+#'   `"logistic"`, `"evt"`.
+#' @param ... Additional arguments passed to [extrapolate()].
+#'
+#' @return An object of class `spacc_model_compare` containing:
+#'   \item{table}{Data frame with model comparison statistics}
+#'   \item{fits}{Named list of `spacc_fit` objects}
+#'   \item{best_model}{Name of the best model by AIC}
+#'   \item{data}{Mean-curve data frame used for fitting}
+#'   \item{spacc}{Original spacc object}
+#'
+#' @examples
+#' \donttest{
+#' coords <- data.frame(x = runif(50), y = runif(50))
+#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+#' sac <- spacc(species, coords)
+#' cm <- compareModels(sac)
+#' print(cm)
+#' }
+#'
+#' @export
+compareModels <- function(object,
+                          models = c("michaelis-menten", "lomolino",
+                                     "asymptotic", "weibull",
+                                     "logistic", "evt"),
+                          ...) {
+
+  stopifnot("object must be a spacc object" = inherits(object, "spacc"))
+  models <- match.arg(models, several.ok = TRUE)
+
+  # Fit each model
+  fits <- stats::setNames(
+    lapply(models, function(m) {
+      extrapolate(object, model = m, ...)
+    }),
+    models
+  )
+
+  # Build comparison table
+  tbl <- data.frame(
+    model = models,
+    asymptote = vapply(fits, function(f) f$asymptote, numeric(1)),
+    AIC = vapply(fits, function(f) {
+      if (!is.null(f$fit)) stats::AIC(f$fit) else NA_real_
+    }, numeric(1)),
+    BIC = vapply(fits, function(f) {
+      if (!is.null(f$fit)) stats::BIC(f$fit) else NA_real_
+    }, numeric(1)),
+    n_params = vapply(fits, function(f) {
+      if (!is.null(f$fit)) length(stats::coef(f$fit)) else NA_integer_
+    }, numeric(1)),
+    converged = vapply(fits, function(f) !is.null(f$fit), logical(1)),
+    stringsAsFactors = FALSE
+  )
+
+  # Delta-AIC and Akaike weights (only for converged models)
+  aic_vals <- tbl$AIC
+  min_aic <- min(aic_vals, na.rm = TRUE)
+  tbl$delta_AIC <- aic_vals - min_aic
+  raw_weights <- exp(-0.5 * tbl$delta_AIC)
+  tbl$AIC_weight <- raw_weights / sum(raw_weights, na.rm = TRUE)
+
+  # Sort by AIC
+  tbl <- tbl[order(tbl$AIC, na.last = TRUE), ]
+  rownames(tbl) <- NULL
+
+  # Best model
+  best <- if (any(tbl$converged)) tbl$model[1] else NA_character_
+
+  # Mean-curve data
+  summ <- summary(object)
+  df <- data.frame(x = summ$sites, y = summ$mean)
+
+  structure(
+    list(
+      table = tbl,
+      fits = fits,
+      best_model = best,
+      data = df,
+      spacc = object
+    ),
+    class = "spacc_model_compare"
+  )
+}
+
+
+#' @export
+print.spacc_model_compare <- function(x, ...) {
+  cat("SAR Model Comparison\n")
+  cat(strrep("-", 30), "\n")
+
+  tbl <- x$table
+  for (i in seq_len(nrow(tbl))) {
+    star <- if (!is.na(x$best_model) && tbl$model[i] == x$best_model) " *" else ""
+    if (tbl$converged[i]) {
+      cat(sprintf("  %-20s AIC: %8.1f  dAIC: %6.1f  w: %.3f  S_max: %6.1f%s\n",
+                  tbl$model[i], tbl$AIC[i], tbl$delta_AIC[i],
+                  tbl$AIC_weight[i], tbl$asymptote[i], star))
+    } else {
+      cat(sprintf("  %-20s (failed to converge)\n", tbl$model[i]))
+    }
+  }
+  cat(strrep("-", 30), "\n")
+  if (!is.na(x$best_model)) {
+    cat(sprintf("Best model: %s\n", x$best_model))
+  }
+  invisible(x)
+}
+
+
+#' @export
+summary.spacc_model_compare <- function(object, ...) {
+  best <- object$best_model
+  if (!is.na(best) && !is.null(object$fits[[best]]$fit)) {
+    summary(object$fits[[best]]$fit)
+  } else {
+    print(object)
+  }
+}
+
+
+#' @export
+coef.spacc_model_compare <- function(object, ...) {
+  best <- object$best_model
+  if (!is.na(best) && !is.null(object$fits[[best]]$fit)) {
+    stats::coef(object$fits[[best]]$fit)
+  } else {
+    NA
+  }
+}
+
+
+#' @export
+predict.spacc_model_compare <- function(object, n = NULL, ...) {
+  best <- object$best_model
+  if (!is.na(best)) {
+    predict(object$fits[[best]], n = n, ...)
+  } else {
+    NA
+  }
+}
+
+
+#' @export
+as.data.frame.spacc_model_compare <- function(x, row.names = NULL, optional = FALSE, ...) {
+  x$table
+}
+
+
+#' @export
+plot.spacc_model_compare <- function(x, extrapolate_to = NULL, ...) {
+  check_suggests("ggplot2")
+
+  df_obs <- x$data
+
+  if (is.null(extrapolate_to)) {
+    extrapolate_to <- max(df_obs$x) * 1.5
+  }
+
+  pred_x <- seq(1, extrapolate_to, length.out = 200)
+
+  # Build prediction data for all converged models
+  pred_list <- lapply(x$fits, function(fit) {
+    if (is.null(fit$fit)) return(NULL)
+    data.frame(
+      x = pred_x,
+      y = predict(fit, n = pred_x),
+      model = fit$model,
+      stringsAsFactors = FALSE
+    )
+  })
+  pred_df <- do.call(rbind, Filter(Negate(is.null), pred_list))
+
+  if (is.null(pred_df) || nrow(pred_df) == 0) {
+    stop("No models converged")
+  }
+
+  # Mark best model
+  pred_df$best <- pred_df$model == x$best_model
+
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_point(
+      data = df_obs,
+      ggplot2::aes(x = x, y = y),
+      color = "#2E7D32", alpha = 0.5
+    ) +
+    ggplot2::geom_line(
+      data = df_obs,
+      ggplot2::aes(x = x, y = y),
+      color = "#2E7D32"
+    ) +
+    ggplot2::geom_line(
+      data = pred_df[!pred_df$best, ],
+      ggplot2::aes(x = x, y = y, color = model),
+      linetype = "dashed", alpha = 0.5, linewidth = 0.5
+    ) +
+    ggplot2::geom_line(
+      data = pred_df[pred_df$best, ],
+      ggplot2::aes(x = x, y = y, color = model),
+      linewidth = 1.2
+    ) +
+    ggplot2::labs(
+      x = "Sites sampled",
+      y = "Cumulative species",
+      title = "SAR Model Comparison",
+      subtitle = sprintf("Best model: %s", x$best_model),
+      color = "Model"
+    ) +
+    ggplot2::theme_minimal(base_size = 12)
+
+  p
+}

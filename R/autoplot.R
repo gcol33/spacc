@@ -116,3 +116,10 @@ autoplot.spacc_mem_partition <- function(object, ...) {
   check_suggests("ggplot2")
   plot(object, ...)
 }
+
+
+#' @rawNamespace S3method(ggplot2::autoplot, spacc_model_compare)
+autoplot.spacc_model_compare <- function(object, ...) {
+  check_suggests("ggplot2")
+  plot(object, ...)
+}
