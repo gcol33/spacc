@@ -22,9 +22,11 @@ test_that("support = 'auto' splits by country", {
 
   species <- matrix(rbinom(n * 15, 1, 0.4), nrow = n)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
-                  support = "auto", distance = "haversine",
-                  seed = 42, progress = FALSE)
+  result <- suppressWarnings(
+    spacc(species, coords, n_seeds = 3, method = "knn",
+          support = "auto", distance = "haversine",
+          seed = 42, progress = FALSE)
+  )
 
   expect_s3_class(result, "spacc")
   expect_true(spacc:::is_grouped(result))
@@ -58,9 +60,11 @@ test_that("support = 'auto' with groups produces compound names", {
   species <- matrix(rbinom(n * 10, 1, 0.4), nrow = n)
   groups <- rep(c("birds", "mammals"), each = 5)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
-                  support = "auto", distance = "haversine",
-                  groups = groups, seed = 42, progress = FALSE)
+  result <- suppressWarnings(
+    spacc(species, coords, n_seeds = 3, method = "knn",
+          support = "auto", distance = "haversine",
+          groups = groups, seed = 42, progress = FALSE)
+  )
 
   expect_s3_class(result, "spacc")
   expect_true(spacc:::is_grouped(result))

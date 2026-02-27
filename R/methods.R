@@ -243,8 +243,8 @@ as.data.frame.spacc_fit <- function(x, row.names = NULL, optional = FALSE, ...) 
   data.frame(
     sites = x$data$x,
     observed = x$data$y,
-    predicted = stats::predict(x$fit, newdata = data.frame(x = x$data$x)),
-    asymptote = x$asymptote,
+    predicted = unname(stats::predict(x$fit, newdata = data.frame(x = x$data$x))),
+    asymptote = unname(x$asymptote),
     model = x$model
   )
 }
