@@ -143,7 +143,7 @@ as.data.frame.spacc <- function(x, row.names = NULL, optional = FALSE, ...) {
 #'
 #' @param object A `spacc` object.
 #' @param n Numeric vector of site counts at which to interpolate. Defaults to
-#'   25\%, 50\%, and 100\% of total sites.
+#'   25%, 50%, and 100% of total sites.
 #' @param ci Logical. If `TRUE` (default), return a data frame with columns
 #'   `n`, `mean`, `lower`, `upper`. If `FALSE`, return a named numeric vector.
 #' @param ci_level Confidence level for the interval (default 0.95).

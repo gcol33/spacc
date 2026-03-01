@@ -30,7 +30,9 @@ the number of unseen ones.
 This vignette covers:
 
 1. Classical estimators (Chao1/2, ACE, jackknife, bootstrap)
+
 2. Improved estimators (iChao1, iChao2)
+
 3. Sample completeness profiles
 
 ## Data setup
@@ -53,7 +55,7 @@ error, and 95% confidence interval.
 
 ```{r chao1}
 chao1(species)
-ace(species)
+spacc::ace(species)
 ```
 
 ### Incidence-based: Chao2 and jackknife
@@ -76,7 +78,7 @@ bootstrap_richness(species, n_boot = 100)
 estimators <- list(
   chao1(species),
   chao2(species),
-  ace(species),
+  spacc::ace(species),
   jackknife(species, order = 1),
   jackknife(species, order = 2),
   bootstrap_richness(species, n_boot = 100)
@@ -119,9 +121,7 @@ The `completenessProfile()` function shows how sample completeness (the
 proportion of the community represented) changes with accumulation:
 
 ```{r completeness, eval = requireNamespace("ggplot2", quietly = TRUE)}
-coords <- data.frame(x = runif(50), y = runif(50))
-
-cp <- completenessProfile(species, coords, n_seeds = 10, progress = FALSE)
+cp <- completenessProfile(species)
 plot(cp)
 ```
 

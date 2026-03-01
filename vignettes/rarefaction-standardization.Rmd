@@ -26,7 +26,9 @@ Comparing diversity across sites with unequal sampling effort requires
 standardization. **spacc** offers three approaches:
 
 1. **Individual-based rarefaction**: Subsample to equal number of individuals
+
 2. **Coverage-based rarefaction**: Standardize by sample completeness
+
 3. **Spatial coverage tracking**: Monitor coverage along accumulation curves
 
 This vignette compares these methods and provides guidance on when to use each.
@@ -55,10 +57,8 @@ The `rarefy()` function subsamples curves to a common number of
 individuals, removing the abundance bias:
 
 ```{r rarefy, eval = requireNamespace("ggplot2", quietly = TRUE)}
-sac <- spacc(species, coords, n_seeds = 10, progress = FALSE)
-
 # Rarefy to minimum observed abundance
-rare <- rarefy(sac)
+rare <- rarefy(species)
 print(rare)
 ```
 
@@ -69,10 +69,10 @@ plot(rare)
 You can also rarefy Hill number curves:
 
 ```{r rarefy-hill, eval = requireNamespace("ggplot2", quietly = TRUE)}
-hill <- spaccHill(species, coords, q = c(0, 1, 2),
-                   n_seeds = 10, progress = FALSE)
-rare_hill <- rarefy(hill, target = 100)
-print(rare_hill)
+# Rarefy at different diversity orders
+rare_q1 <- rarefy(species, q = 1)
+rare_q2 <- rarefy(species, q = 2)
+print(rare_q1)
 ```
 
 ## Coverage-based standardization
@@ -89,7 +89,7 @@ plot(cov_result)
 ### Interpolation at fixed coverage
 
 ```{r interpolate}
-interp <- interpolateCoverage(cov_result, target_coverage = c(0.8, 0.9, 0.95))
+interp <- interpolateCoverage(cov_result, target = c(0.8, 0.9, 0.95))
 print(interp)
 ```
 

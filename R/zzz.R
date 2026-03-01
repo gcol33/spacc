@@ -60,7 +60,8 @@ utils::globalVariables(c(
   "beta_lower", "beta_upper",
   "eigenvalue", "moran_i", "vector", "r_squared", "score",
   # compareModels plot aesthetics
-  "converged"
+  "converged",
+  "model"
 ))
 
 

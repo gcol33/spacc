@@ -24,7 +24,7 @@
 #'   \item{zeta_sd}{Standard deviations per order}
 #'   \item{orders}{The k values}
 #'   \item{n_samples}{Number of samples per order}
-#'   \item{ratio}{Zeta ratio: zeta_k / zeta_{k-1}}
+#'   \item{ratio}{Zeta ratio: zeta_k / zeta_(k-1)}
 #'   \item{decline}{Data.frame with exponential and power-law fit statistics}
 #'   \item{method}{Method used}
 #'   \item{n_sites}{Number of sites}

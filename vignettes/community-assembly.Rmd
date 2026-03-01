@@ -26,6 +26,7 @@ Understanding how communities change across space requires tools that quantify
 turnover at different scales. **spacc** provides three complementary approaches:
 
 1. **Beta distance-decay**: How does compositional similarity decay with distance?
+
 2. **Zeta diversity**: How does the number of shared species change with the
    number of sites compared?
 3. **SES null models**: Are observed patterns different from random expectations?
@@ -55,6 +56,9 @@ for (sp in seq_len(n_species)) {
   species[, sp] <- rpois(n_sites, lambda = prob * 3)
 }
 colnames(species) <- paste0("sp", seq_len(n_species))
+
+# Build accumulation curve (used later for SES null models)
+sac <- spacc(species, coords, n_seeds = 10, progress = FALSE)
 ```
 
 ## Beta distance-decay
@@ -63,8 +67,7 @@ The `betaDecay()` function fits models to the relationship between
 compositional dissimilarity and geographic distance:
 
 ```{r decay, eval = requireNamespace("ggplot2", quietly = TRUE)}
-sac <- spacc(species, coords, n_seeds = 10, progress = FALSE)
-decay <- betaDecay(sac)
+decay <- betaDecay(species, coords)
 plot(decay)
 ```
 

@@ -10,7 +10,7 @@
 \item{object}{A \code{spacc} object.}
 
 \item{n}{Numeric vector of site counts at which to interpolate. Defaults to
-25\\%, 50\\%, and 100\\% of total sites.}
+25\%, 50\%, and 100\% of total sites.}
 
 \item{ci}{Logical. If \code{TRUE} (default), return a data frame with columns
 \code{n}, \code{mean}, \code{lower}, \code{upper}. If \code{FALSE}, return a named numeric vector.}
