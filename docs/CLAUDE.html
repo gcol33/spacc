@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,11 @@
     <li><a class="dropdown-item" href="articles/diversity.html">Diversity Accumulation</a></li>
     <li><a class="dropdown-item" href="articles/extrapolation.html">Extrapolation and Species-Area Models</a></li>
     <li><a class="dropdown-item" href="articles/spatial-analysis.html">Spatial Analysis: Endemism, Fragmentation, and SAR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
+    <li><a class="dropdown-item" href="articles/richness-estimation.html">Richness Estimation and Completeness</a></li>
+    <li><a class="dropdown-item" href="articles/community-assembly.html">Community Assembly and Turnover</a></li>
+    <li><a class="dropdown-item" href="articles/rarefaction-standardization.html">Rarefaction and Standardization</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -89,7 +94,17 @@
 <ul><li>Only add <code>//</code> roxygen comments to C++ functions that are <code>@export</code>ed in NAMESPACE.</li>
 <li>All internal C++ wrapper functions must be listed in <code><a href="https://rdrr.io/r/utils/globalVariables.html" class="external-link">utils::globalVariables()</a></code> in <code>R/zzz.R</code> — a partial list causes unlisted ones to fail R CMD check.</li>
 <li>In tests, call internal C++ wrappers with <code>spacc:::func()</code>, not bare <code>func()</code>.</li>
-</ul></div>
+</ul><div class="section level3">
+<h3 id="c-testing-catch2">C++ Testing (Catch2)<a class="anchor" aria-label="anchor" href="#c-testing-catch2"></a></h3>
+<p>Pure C++ algorithms are in <code>src/core/</code> headers and can be tested independently of R:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="bu">cd</span> src/tests</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="ex">./run_tests.bat</span>          <span class="co"># Windows: compile and run tests</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">make</span> all                 <span class="co"># Unix: compile and run tests</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="ex">./run_coverage.bat</span>       <span class="co"># Windows: run with gcov coverage</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">make</span> coverage            <span class="co"># Unix: run with gcov coverage</span></span></code></pre></div>
+<p>Core headers (<code>src/core/</code>): - <code>types.h</code> - Common type definitions - <code>distance_core.h</code> - Euclidean/Haversine distance - <code>beta_core.h</code> - Baselga beta diversity partitioning - <code>hill_core.h</code> - Hill numbers (q=0,1,2) - <code>coverage_core.h</code> - Chao sample coverage - <code>accumulation_core.h</code> - kNN/kNCN accumulation algorithms</p>
+</div>
+</div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
 <div class="section level3">
