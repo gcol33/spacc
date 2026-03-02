@@ -5,6 +5,7 @@
 #include <set>
 #include "kdtree_adapter.h"
 #include "balltree.h"
+#include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -129,19 +130,10 @@ IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa,
                                bool progress = false) {
   int n_sites = species_pa.nrow();
   IntegerMatrix curves(n_seeds, n_sites);
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
-
-  if (n_cores > 1) {
-    KnnWorker worker(species_pa, dist_mat, seeds, curves);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector curve = cpp_knn_single(species_pa, dist_mat, seeds[s]);
-      curves(s, _) = curve;
-    }
-  }
-
+  IntegerVector seeds = sample_seeds(n_sites, n_seeds);
+  KnnWorker worker(species_pa, dist_mat, seeds, curves);
+  dispatch_parallel(n_seeds, n_cores, worker, curves,
+    [&](int s) { return cpp_knn_single(species_pa, dist_mat, seeds[s]); });
   return curves;
 }
 
@@ -155,17 +147,9 @@ IntegerMatrix cpp_knn_parallel_seeds(IntegerMatrix species_pa,
   int n_sites = species_pa.nrow();
   int n_seeds = seeds.size();
   IntegerMatrix curves(n_seeds, n_sites);
-
-  if (n_cores > 1) {
-    KnnWorker worker(species_pa, dist_mat, seeds, curves);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector curve = cpp_knn_single(species_pa, dist_mat, seeds[s]);
-      curves(s, _) = curve;
-    }
-  }
-
+  KnnWorker worker(species_pa, dist_mat, seeds, curves);
+  dispatch_parallel(n_seeds, n_cores, worker, curves,
+    [&](int s) { return cpp_knn_single(species_pa, dist_mat, seeds[s]); });
   return curves;
 }
 

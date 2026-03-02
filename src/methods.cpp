@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <random>
+#include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -176,18 +177,10 @@ IntegerMatrix cpp_gaussian_parallel(IntegerMatrix species_pa,
                                     bool progress = false) {
   int n_sites = species_pa.nrow();
   IntegerMatrix curves(n_seeds, n_sites);
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
-
-  if (n_cores > 1) {
-    GaussianWorker worker(species_pa, dist_mat, seeds, sigma, curves);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector curve = cpp_gaussian_single(species_pa, dist_mat, seeds[s], sigma);
-      curves(s, _) = curve;
-    }
-  }
-
+  IntegerVector seeds = sample_seeds(n_sites, n_seeds);
+  GaussianWorker worker(species_pa, dist_mat, seeds, sigma, curves);
+  dispatch_parallel(n_seeds, n_cores, worker, curves,
+    [&](int s) { return cpp_gaussian_single(species_pa, dist_mat, seeds[s], sigma); });
   return curves;
 }
 
@@ -406,18 +399,10 @@ IntegerMatrix cpp_radius_parallel(IntegerMatrix species_pa,
                                   bool progress = false) {
   int n_sites = species_pa.nrow();
   IntegerMatrix curves(n_seeds, n_sites);
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
-
-  if (n_cores > 1) {
-    RadiusWorker worker(species_pa, dist_mat, seeds, curves);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector curve = cpp_radius_single(species_pa, dist_mat, seeds[s]);
-      curves(s, _) = curve;
-    }
-  }
-
+  IntegerVector seeds = sample_seeds(n_sites, n_seeds);
+  RadiusWorker worker(species_pa, dist_mat, seeds, curves);
+  dispatch_parallel(n_seeds, n_cores, worker, curves,
+    [&](int s) { return cpp_radius_single(species_pa, dist_mat, seeds[s]); });
   return curves;
 }
 
@@ -604,17 +589,9 @@ IntegerMatrix cpp_distance_decay_parallel(IntegerMatrix species_pa,
   int n_breaks = breaks.size();
   IntegerMatrix curves(n_seeds, n_breaks);
   int n_sites = species_pa.nrow();
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
-
-  if (n_cores > 1) {
-    DistanceDecayWorker worker(species_pa, dist_mat, seeds, breaks, curves);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector curve = cpp_distance_decay_single(species_pa, dist_mat, seeds[s], breaks);
-      curves(s, _) = curve;
-    }
-  }
-
+  IntegerVector seeds = sample_seeds(n_sites, n_seeds);
+  DistanceDecayWorker worker(species_pa, dist_mat, seeds, breaks, curves);
+  dispatch_parallel(n_seeds, n_cores, worker, curves,
+    [&](int s) { return cpp_distance_decay_single(species_pa, dist_mat, seeds[s], breaks); });
   return curves;
 }

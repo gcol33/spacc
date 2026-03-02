@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -86,16 +87,8 @@ IntegerMatrix cpp_random_parallel(IntegerMatrix species_pa,
     orders(s, _) = order;
   }
 
-  if (n_cores > 1) {
-    RandomWorker worker(species_pa, orders, curves);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector order = orders(s, _);
-      IntegerVector curve = cpp_random_single(species_pa, order);
-      curves(s, _) = curve;
-    }
-  }
-
+  RandomWorker worker(species_pa, orders, curves);
+  dispatch_parallel(n_seeds, n_cores, worker, curves,
+    [&](int s) { IntegerVector order = orders(s, _); return cpp_random_single(species_pa, order); });
   return curves;
 }

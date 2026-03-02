@@ -3,6 +3,7 @@
 #include <RcppParallel.h>
 #include <vector>
 #include <algorithm>
+#include "core/coverage_core.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -13,100 +14,25 @@ using namespace RcppParallel;
 
 // [[Rcpp::export]]
 double calc_coverage(NumericVector abundances) {
-  int n = 0;   // total individuals
-  int f1 = 0;  // singletons
-  int f2 = 0;  // doubletons
-
+  std::vector<int> v(abundances.size());
   for (int i = 0; i < abundances.size(); i++) {
-    int a = (int)abundances[i];
-    n += a;
-    if (a == 1) f1++;
-    if (a == 2) f2++;
+    v[i] = (int)abundances[i];
   }
-
-  if (n == 0) return 0.0;
-  if (n == 1) return 0.0;
-
-  double C;
-  if (f2 > 0) {
-    // Chao & Jost estimator with doubletons
-    C = 1.0 - ((double)f1 / n) * (((double)(n - 1) * f1) /
-                                   ((double)(n - 1) * f1 + 2.0 * f2));
-  } else if (f1 > 0) {
-    // Without doubletons
-    C = 1.0 - ((double)f1 / n) * ((double)(n - 1) / n);
-  } else {
-    C = 1.0;
-  }
-
-  return std::max(0.0, std::min(1.0, C));
+  return spacc::calc_chao_coverage(v);
 }
 
 
-// Internal version for std::vector
-double calc_coverage_internal(const std::vector<int>& abundances) {
-  int n = 0;
-  int f1 = 0;
-  int f2 = 0;
-
-  for (size_t i = 0; i < abundances.size(); i++) {
-    int a = abundances[i];
-    n += a;
-    if (a == 1) f1++;
-    if (a == 2) f2++;
-  }
-
-  if (n == 0) return 0.0;
-  if (n == 1) return 0.0;
-
-  double C;
-  if (f2 > 0) {
-    C = 1.0 - ((double)f1 / n) * (((double)(n - 1) * f1) /
-                                   ((double)(n - 1) * f1 + 2.0 * f2));
-  } else if (f1 > 0) {
-    C = 1.0 - ((double)f1 / n) * ((double)(n - 1) / n);
-  } else {
-    C = 1.0;
-  }
-
-  return std::max(0.0, std::min(1.0, C));
+// Internal version for std::vector — delegates to core
+inline double calc_coverage_internal(const std::vector<int>& abundances) {
+  return spacc::calc_chao_coverage(abundances);
 }
 
 
-// Internal Chiu (2023) sample-based coverage
-// abundances: cumulative abundance per species
-// incidences: number of sampling units each species occurs in
-// T_sites: number of accumulated sampling units
-double calc_chiu_coverage_internal(const std::vector<int>& abundances,
-                                   const std::vector<int>& incidences,
-                                   int T_sites) {
-  if (T_sites <= 1) return 0.0;
-
-  int n_plus = 0;
-  int Q1 = 0;
-  int Q2 = 0;
-  int G1 = 0;
-
-  for (size_t i = 0; i < abundances.size(); i++) {
-    int a = abundances[i];
-    if (a == 0) continue;
-    n_plus += a;
-    int q = incidences[i];
-    if (q == 1) { Q1++; G1 += a; }
-    if (q == 2) Q2++;
-  }
-
-  if (n_plus == 0) return 0.0;
-  if (Q1 == 0) return 1.0;
-
-  int Q1_safe = std::max(1, Q1);
-  int Q2_safe = std::max(1, Q2);
-
-  double a0_hat = ((double)(T_sites - 1) / T_sites) *
-                  (double)G1 * Q1_safe / (2.0 * Q2_safe);
-
-  double C = (double)n_plus / (n_plus + a0_hat);
-  return std::max(0.0, std::min(1.0, C));
+// Internal Chiu (2023) sample-based coverage — delegates to core
+inline double calc_chiu_coverage_internal(const std::vector<int>& abundances,
+                                          const std::vector<int>& incidences,
+                                          int T_sites) {
+  return spacc::calc_chiu_coverage(abundances, incidences, T_sites);
 }
 
 

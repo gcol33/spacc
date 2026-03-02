@@ -4,78 +4,19 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include "core/hill_core.h"
+#include "core/coverage_core.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
 
-// ============================================================================
-// LOCAL COPIES OF INTERNAL FUNCTIONS
-// (originals are file-scope static in hill.cpp and coverage.cpp)
-// ============================================================================
-
-static double hc_calc_hill(const std::vector<double>& abundances, double q) {
-  double N = 0.0;
-  int S = 0;
-
-  for (size_t i = 0; i < abundances.size(); i++) {
-    if (abundances[i] > 0) {
-      N += abundances[i];
-      S++;
-    }
-  }
-
-  if (N == 0 || S == 0) return 0.0;
-
-  if (q == 0) {
-    return (double)S;
-  } else if (std::abs(q - 1.0) < 1e-10) {
-    double H = 0.0;
-    for (size_t i = 0; i < abundances.size(); i++) {
-      if (abundances[i] > 0) {
-        double p = abundances[i] / N;
-        H -= p * std::log(p);
-      }
-    }
-    return std::exp(H);
-  } else {
-    double sum_pq = 0.0;
-    for (size_t i = 0; i < abundances.size(); i++) {
-      if (abundances[i] > 0) {
-        double p = abundances[i] / N;
-        sum_pq += std::pow(p, q);
-      }
-    }
-    return std::pow(sum_pq, 1.0 / (1.0 - q));
-  }
+// Thin wrappers around core implementations (single source of truth)
+static inline double hc_calc_hill(const std::vector<double>& abundances, double q) {
+  return spacc::calc_hill_number(abundances, q);
 }
 
-
-static double hc_calc_coverage(const std::vector<int>& abundances) {
-  int n = 0;
-  int f1 = 0;
-  int f2 = 0;
-
-  for (size_t i = 0; i < abundances.size(); i++) {
-    int a = abundances[i];
-    n += a;
-    if (a == 1) f1++;
-    if (a == 2) f2++;
-  }
-
-  if (n == 0) return 0.0;
-  if (n == 1) return 0.0;
-
-  double C;
-  if (f2 > 0) {
-    C = 1.0 - ((double)f1 / n) * (((double)(n - 1) * f1) /
-                                   ((double)(n - 1) * f1 + 2.0 * f2));
-  } else if (f1 > 0) {
-    C = 1.0 - ((double)f1 / n) * ((double)(n - 1) / n);
-  } else {
-    C = 1.0;
-  }
-
-  return std::max(0.0, std::min(1.0, C));
+static inline double hc_calc_coverage(const std::vector<int>& abundances) {
+  return spacc::calc_chao_coverage(abundances);
 }
 
 

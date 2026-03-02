@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include "core/hill_core.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -14,80 +15,14 @@ using namespace RcppParallel;
 
 // [[Rcpp::export]]
 double calc_hill_number(NumericVector abundances, double q) {
-  double N = 0.0;
-  int S = 0;
-
-  for (int i = 0; i < abundances.size(); i++) {
-    if (abundances[i] > 0) {
-      N += abundances[i];
-      S++;
-    }
-  }
-
-  if (N == 0 || S == 0) return 0.0;
-
-  if (q == 0) {
-    // Species richness
-    return (double)S;
-  } else if (std::abs(q - 1.0) < 1e-10) {
-    // Shannon diversity (limit as q -> 1): exp(H)
-    double H = 0.0;
-    for (int i = 0; i < abundances.size(); i++) {
-      if (abundances[i] > 0) {
-        double p = abundances[i] / N;
-        H -= p * std::log(p);
-      }
-    }
-    return std::exp(H);
-  } else {
-    // General Hill number: (sum(p_i^q))^(1/(1-q))
-    double sum_pq = 0.0;
-    for (int i = 0; i < abundances.size(); i++) {
-      if (abundances[i] > 0) {
-        double p = abundances[i] / N;
-        sum_pq += std::pow(p, q);
-      }
-    }
-    return std::pow(sum_pq, 1.0 / (1.0 - q));
-  }
+  std::vector<double> v(abundances.begin(), abundances.end());
+  return spacc::calc_hill_number(v, q);
 }
 
 
-// Internal version for std::vector
-double calc_hill_internal(const std::vector<double>& abundances, double q) {
-  double N = 0.0;
-  int S = 0;
-
-  for (size_t i = 0; i < abundances.size(); i++) {
-    if (abundances[i] > 0) {
-      N += abundances[i];
-      S++;
-    }
-  }
-
-  if (N == 0 || S == 0) return 0.0;
-
-  if (q == 0) {
-    return (double)S;
-  } else if (std::abs(q - 1.0) < 1e-10) {
-    double H = 0.0;
-    for (size_t i = 0; i < abundances.size(); i++) {
-      if (abundances[i] > 0) {
-        double p = abundances[i] / N;
-        H -= p * std::log(p);
-      }
-    }
-    return std::exp(H);
-  } else {
-    double sum_pq = 0.0;
-    for (size_t i = 0; i < abundances.size(); i++) {
-      if (abundances[i] > 0) {
-        double p = abundances[i] / N;
-        sum_pq += std::pow(p, q);
-      }
-    }
-    return std::pow(sum_pq, 1.0 / (1.0 - q));
-  }
+// Internal version for std::vector — delegates to core
+inline double calc_hill_internal(const std::vector<double>& abundances, double q) {
+  return spacc::calc_hill_number(abundances, q);
 }
 
 
