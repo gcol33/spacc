@@ -123,7 +123,7 @@ for pairwise beta diversity
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 
@@ -132,5 +132,5 @@ plot(beta)
 
 # Compare Sorensen vs Jaccard
 beta_jac <- spaccBeta(species, coords, index = "jaccard")
-} # }
+# }
 ```

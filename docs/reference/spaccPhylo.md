@@ -130,7 +130,7 @@ communities: an example for rain forest trees. American Naturalist, 156,
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 library(ape)
 
 # Create random tree
@@ -142,5 +142,5 @@ colnames(species) <- tree$tip.label
 
 phylo <- spaccPhylo(species, coords, tree, metric = c("mpd", "mntd"))
 plot(phylo)
-} # }
+# }
 ```

@@ -120,11 +120,11 @@ Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rpois(50 * 30, 2), nrow = 50)
 
 dar <- dar(species, coords, q = c(0, 1, 2))
 plot(dar)
-} # }
+# }
 ```

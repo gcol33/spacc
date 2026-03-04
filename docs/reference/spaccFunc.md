@@ -121,7 +121,7 @@ functional diversity analysis
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rpois(50 * 20, 2), nrow = 50)
 
@@ -132,5 +132,5 @@ colnames(species) <- rownames(traits)
 
 func <- spaccFunc(species, coords, traits, metric = c("fdis", "fric"))
 plot(func)
-} # }
+# }
 ```

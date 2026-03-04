@@ -23,6 +23,14 @@ Alpha, beta, and gamma diversity partitioning
   : Gamma Diversity (Regional)
 - [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)
   : Alpha-Beta-Gamma Diversity Partitioning
+- [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+  : Diversity Profile
+- [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfilePhylo.md)
+  : Phylogenetic Diversity Profile
+- [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfileFunc.md)
+  : Functional Diversity Profile
+- [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md)
+  : Evenness Profiles
 
 ## Hill Numbers
 
@@ -30,6 +38,10 @@ Diversity accumulation with Hill numbers (q=0,1,2)
 
 - [`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md)
   : Spatial Accumulation with Hill Numbers
+- [`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md)
+  : Spatial Hill Numbers at Standardized Coverage
+- [`spaccHillBeta()`](https://gillescolling.com/spacc/reference/spaccHillBeta.md)
+  : Spatial Hill Number Beta Diversity
 
 ## Beta Diversity
 
@@ -41,6 +53,17 @@ Spatial beta diversity with turnover/nestedness partitioning
   : Functional Beta Diversity Accumulation
 - [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md)
   : Phylogenetic Beta Diversity Accumulation
+
+## Community Turnover
+
+Distance-decay, zeta diversity, and null models
+
+- [`betaDecay()`](https://gillescolling.com/spacc/reference/betaDecay.md)
+  : Beta Distance-Decay
+- [`zetaDiversity()`](https://gillescolling.com/spacc/reference/zetaDiversity.md)
+  : Zeta Diversity
+- [`ses()`](https://gillescolling.com/spacc/reference/ses.md) :
+  Standardized Effect Size (SES) via Null Models
 
 ## Phylogenetic & Functional Diversity
 
@@ -70,6 +93,36 @@ Extract metrics per starting site for heatmap visualization
   : Per-Site Accumulation Metrics
 - [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) :
   Convert spacc_metrics to sf
+
+## Richness Estimators
+
+Non-parametric richness estimation
+
+- [`chao1()`](https://gillescolling.com/spacc/reference/chao1.md) :
+  Chao1 Richness Estimator
+- [`chao2()`](https://gillescolling.com/spacc/reference/chao2.md) :
+  Chao2 Richness Estimator
+- [`iChao1()`](https://gillescolling.com/spacc/reference/iChao1.md) :
+  Improved Chao1 (iChao1) Richness Estimator
+- [`iChao2()`](https://gillescolling.com/spacc/reference/iChao2.md) :
+  Improved Chao2 (iChao2) Richness Estimator
+- [`ace()`](https://gillescolling.com/spacc/reference/ace.md) : ACE
+  Richness Estimator
+- [`jackknife()`](https://gillescolling.com/spacc/reference/jackknife.md)
+  : Jackknife Richness Estimator
+- [`bootstrap_richness()`](https://gillescolling.com/spacc/reference/bootstrap_richness.md)
+  : Bootstrap Richness Estimator
+- [`completenessProfile()`](https://gillescolling.com/spacc/reference/completenessProfile.md)
+  : Sample Completeness Profile
+
+## Spatial Structure
+
+Spatial eigenvectors and variance partitioning
+
+- [`spatialEigenvectors()`](https://gillescolling.com/spacc/reference/spatialEigenvectors.md)
+  : Spatial Eigenvectors (PCNM/dbMEM)
+- [`spatialPartition()`](https://gillescolling.com/spacc/reference/spatialPartition.md)
+  : Spatial Variance Partitioning with MEMs
 
 ## Analytical Methods
 
@@ -118,7 +171,19 @@ Internal functions (not for end users)
   : Analytical Accumulation Methods
 - [`c(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/c.spacc.md)
   : Combine spacc Objects
+- [`c(`*`<spacc_beta>`*`)`](https://gillescolling.com/spacc/reference/c.spacc_beta.md)
+  : Combine spacc_beta Objects
+- [`c(`*`<spacc_coverage>`*`)`](https://gillescolling.com/spacc/reference/c.spacc_coverage.md)
+  : Combine spacc_coverage Objects
+- [`c(`*`<spacc_hill>`*`)`](https://gillescolling.com/spacc/reference/c.spacc_hill.md)
+  : Combine spacc_hill Objects
+- [`compareModels()`](https://gillescolling.com/spacc/reference/compareModels.md)
+  : Compare Multiple SAR Models
+- [`predict(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc.md)
+  : Predict from Empirical Accumulation Curve
 - [`plot(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc.md)
   : Plot Spatial SAC
 - [`plot(`*`<spacc_metrics>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc_metrics.md)
   : Plot spacc_metrics
+- [`autoplot.spacc`](https://gillescolling.com/spacc/reference/autoplot.spacc.md)
+  : Autoplot Methods for spacc Objects

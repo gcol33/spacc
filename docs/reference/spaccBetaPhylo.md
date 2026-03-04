@@ -99,7 +99,7 @@ iNEXT.beta3D standardization. Ecological Monographs, 93, e1588.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 library(ape)
 tree <- rtree(20)
 coords <- data.frame(x = runif(50), y = runif(50))
@@ -108,5 +108,5 @@ colnames(species) <- tree$tip.label
 
 beta_phylo <- spaccBetaPhylo(species, coords, tree)
 plot(beta_phylo)
-} # }
+# }
 ```

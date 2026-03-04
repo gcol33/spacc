@@ -1,282 +1,389 @@
 # spacc Feature Plan
 
-Planned features for spacc v0.2.0, based on a review of the spatial
-accumulation / SAR / diversity literature. Each feature extends the
-existing C++ backend and S3 class system.
+## Implemented (v0.2.0–v0.8.0)
+
+All features from the original plan are now implemented:
+
+| \#  | Feature                           | Status | Version |
+|-----|-----------------------------------|--------|---------|
+| 1   | Faith’s PD accumulation           | Done   | v0.5.0  |
+| 2   | Coverage-based extrapolation      | Done   | v0.6.0  |
+| 3   | Diversity-Area Relationship (DAR) | Done   | v0.5.0  |
+| 4   | EVT SAR model                     | Done   | v0.7.0  |
+| 5   | Functional/phylogenetic beta      | Done   | v0.6.0  |
+| 6   | SESARS                            | Done   | v0.6.0  |
+| 7   | SFAR                              | Done   | v0.6.0  |
+| 8   | Endemism-area                     | Done   | v0.6.0  |
 
 ------------------------------------------------------------------------
 
-## 1. Faith’s Phylogenetic Diversity Accumulation
+## Planned Features (v0.9.0+)
 
-**Status**: Stub exists in
+Based on a literature review of methods published 2023–2026. Each
+feature improves an existing module or adds a new analytical capability.
+
+------------------------------------------------------------------------
+
+### 1. Sample-Based Coverage Estimator
+
+**Status**: Not implemented
+
+**Builds on**:
+[`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
+
+**What**: The current Good-Turing coverage estimator assumes independent
+random sampling, which is inappropriate for spatially structured data
+(kNN neighborhoods, plot-based surveys). Chiu (2023) derived a corrected
+estimator for sample-based (non-independently sampled) abundance data
+that accounts for spatial autocorrelation.
+
+**Implementation**: - Add `method = "sample-based"` option to
+[`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
+alongside the current `"individual-based"` default - Implement Chiu’s
+modified Good-Turing formula that adjusts for non-independence between
+sampling units - The correction factor depends on the number of sampling
+units and the frequency distribution of species across units (not
+individuals) - Returns the same `spacc_coverage` object; the adjusted
+coverage values feed into downstream
+[`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
+and
+[`extrapolateCoverage()`](https://gillescolling.com/spacc/reference/extrapolateCoverage.md)
+
+**References**: - Chiu, C.H. (2023). Sample coverage for sample-based
+abundance data. *Ecology*, 104, e4099.
+
+**Complexity**: Low (formula change within existing function)
+
+------------------------------------------------------------------------
+
+### 2. Coverage-Standardized Beta Diversity
+
+**Status**: Not implemented
+
+**Builds on**:
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md),
+[`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md),
+[`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md)
+
+**What**:
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+computes beta diversity at fixed spatial scales (site counts).
+Coverage-based standardization removes sampling intensity artifacts,
+yielding pure compositional differentiation. The iNEXT.beta3D framework
+unifies taxonomic, phylogenetic, and functional beta diversity under
+Hill numbers, with coverage-based rarefaction and extrapolation.
+
+**Implementation**: - Add `standardize = "coverage"` argument to
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+(default `"none"` preserves current behavior) - At each accumulation
+step, standardize alpha and gamma diversity to equal coverage before
+computing beta - Compute four dissimilarity indices (Jaccard-type and
+Sorensen-type turnover, and their complements) as functions of
+coverage - Extend to
+[`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md)
+and
+[`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md)
+with the same `standardize` argument - New plot panel showing beta
+diversity vs. coverage rather than vs. site count
+
+**References**: - Chao, A., Chiu, C.H., Villeger, S., et al. (2023).
+Rarefaction and extrapolation with beta diversity under a framework of
+Hill numbers: the iNEXT.beta3D standardization. *Ecological Monographs*,
+93, e1588.
+
+**CRAN packages**:
+[iNEXT.beta3D](https://cran.r-project.org/package=iNEXT.beta3D)
+
+**Complexity**: High (requires coverage computation at each accumulation
+step for each beta component)
+
+------------------------------------------------------------------------
+
+### 3. Aggregated Functional Diversity Index (K)
+
+**Status**: Not implemented
+
+**Builds on**:
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
+
+**What**: A single composite functional diversity metric that is the
+geometric mean of four independent FD facets: functional richness,
+biomass evenness, trait evenness, and dispersion. Each facet and K range
+from 0 to 1 (uniform distribution = maximum diversity). Overcomes
+limitations of existing indices that fail for simple communities or lack
+clear interpretation.
+
+**Implementation**: - Add `metric = "K"` option to
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
+alongside existing `"FDis"` and `"FRic"` - At each accumulation step,
+compute the four facets from the trait matrix of accumulated species -
+Return the geometric mean as a single normalized trajectory - The
+\[0,1\] normalization makes cross-site and cross-dataset comparison
+straightforward - New `spacc_func` column or separate output for the
+composite index
+
+**References**: - Wojcik, R., et al. (2025). An aggregated overall
+functional diversity index. *Methods in Ecology and Evolution*, 16,
+215–227.
+
+**Complexity**: Medium (new metric computation, reuses existing trait
+handling)
+
+------------------------------------------------------------------------
+
+### 4. EvoHeritage (Generalized Phylogenetic Diversity)
+
+**Status**: Not implemented
+
+**Builds on**:
 [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
-(“not yet implemented”)
 
-**What**: Accumulate Faith’s PD (sum of branch lengths connecting
-species in the sample) as sites are added spatially. Currently
+**What**: Generalizes Faith’s PD by accounting for both accumulation and
+attrition of evolutionary features along phylogenetic branches. Unlike
+PD (which assumes features only accumulate), EvoHeritage incorporates
+gradual loss of features through processes other than extinction
+(convergent evolution, trait lability). The metric smoothly interpolates
+between species richness (high attrition rate) and Faith’s PD (zero
+attrition) via a single parameter.
+
+**Implementation**: - Add `metric = "evoheritage"` option to
 [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
-supports MPD and MNTD but not PD.
-
-**Implementation**: - Accept a `phylo` object (ape), not just a distance
-matrix - At each accumulation step, compute the total branch length of
-the minimum spanning subtree connecting all observed species - C++
-function `cpp_phylo_pd_knn_parallel` operating on an edge matrix
-representation - Returns PD curve alongside existing MPD/MNTD in the
+alongside `"PD"`, `"MPD"`, `"MNTD"` - Accept an attrition rate parameter
+`phi` (0 = Faith’s PD, Inf = species richness) - At each accumulation
+step, compute the EvoHeritage score by weighting each branch by its
+expected feature retention - Default `phi` could be estimated from trait
+data if available - Returns EvoHeritage accumulation curve in the
 `spacc_phylo` object
 
-**References**: - Faith, D.P. (1992). Conservation evaluation and
-phylogenetic diversity. *Biological Conservation*, 61, 1–10. - Webb,
-C.O. (2000). Exploring the phylogenetic structure of ecological
-communities. *The American Naturalist*, 156, 145–155.
+**References**: - Rosauer, D.F., et al. (2024). EvoHeritage: a
+generalization of phylogenetic diversity. *Systematic Biology*, 73,
+158–174.
 
 **Depends on**: ape (already in Suggests)
 
+**Complexity**: Medium (new metric, requires branch-level weighting)
+
 ------------------------------------------------------------------------
 
-## 2. Coverage-Based Extrapolation
+### 5. Multi-Resolution Beta Partitioning
 
-**Status**:
-[`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
-and
-[`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
-exist for interpolation only
+**Status**: Not implemented
 
-**What**: Extend coverage-based rarefaction to extrapolation beyond the
-observed sample, following the Chao & Jost (2012) and Chao et al. (2014)
-framework. Allow users to predict diversity at target coverage levels
-that exceed the empirical maximum.
+**Builds on**:
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+
+**What**: Partition beta diversity (turnover vs. nestedness) at two
+spatial resolutions simultaneously: site-level pairwise and
+habitat-level pooled assemblages. Reveals whether observed turnover
+arises from fine-scale species replacement or coarse-scale biotic
+homogenization – patterns invisible at a single spatial grain.
+
+**Implementation**: - Add `scale = c("site", "habitat")` argument to
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md),
+or a new `multiscaleBeta()` function - Accept a `habitat` grouping
+vector that assigns sites to broader spatial units (e.g., landscape
+patches, regions) - Compute beta decomposition at both resolutions and
+return a paired result - Plot method shows turnover/nestedness at both
+scales side by side - New class `spacc_beta_multiscale` or extend
+`spacc_beta` with a `scale` attribute
+
+**References**: - Jones, M.M., et al. (2025). Multi-resolution beta
+diversity partitioning. *Diversity and Distributions*, 31, e70080.
+
+**Complexity**: Medium (two-level aggregation of existing beta
+computation)
+
+------------------------------------------------------------------------
+
+### 6. Shift-and-Rotate Null Models
+
+**Status**: Not implemented
+
+**Builds on**:
+[`sesars()`](https://gillescolling.com/spacc/reference/sesars.md),
+[`ses()`](https://gillescolling.com/spacc/reference/ses.md)
+
+**What**: Current null models for SES computation break
+species-environment associations by permuting species across sites,
+which destroys spatial autocorrelation. Shift-and-Rotate (S&R) generates
+spatially realistic null expectations by randomly translating and
+rotating the sampling area within environmental layers. Works with any
+sampling design (unlike torus translation which requires regular grids)
+and preserves the spatial covariance structure.
+
+**Implementation**: - Add `null_model = "shift_rotate"` option to
+[`ses()`](https://gillescolling.com/spacc/reference/ses.md) and
+[`sesars()`](https://gillescolling.com/spacc/reference/sesars.md)
+alongside the current `"swap"` and `"frequency"` methods - Accept an
+`env` argument (raster or matrix of environmental predictors) - For each
+null iteration: randomly translate (dx, dy) and rotate (theta) the
+sampling coordinates within the environmental layer extent, then extract
+environmental values at the shifted positions - Compare observed
+diversity metrics against the distribution of shifted-environment
+expectations - Falls back to standard permutation if no environmental
+data provided
+
+**References**: - Ridder, J., Hardy, O.J. & Ovaskainen, O. (2024).
+Shift-and-Rotate: a novel null model approach for testing joint
+species-environment associations. *Methods in Ecology and Evolution*,
+15, 1885–1898.
+
+**Complexity**: Medium (coordinate transformation + raster extraction
+per null iteration)
+
+------------------------------------------------------------------------
+
+### 7. Spatial Interaction Accumulation
+
+**Status**: Not implemented
+
+**Builds on**: New module
+
+**What**: Extend spatial accumulation from species to species
+*interactions*. Track how network complexity (number of unique
+interactions, connectance, modularity) builds as the spatial
+neighborhood expands. Relevant for pollination networks, food webs, and
+host-parasite systems where interaction diversity matters alongside
+species diversity.
 
 **Implementation**: - New function
-`extrapolateCoverage(object, target_coverage, q = 0)` operating on
-`spacc_coverage` objects - For q = 0: Chao1/Chao2 asymptotic estimator +
-coverage-based extrapolation formula - For q = 1, 2: Closed-form Hill
-number extrapolation (Chao et al. 2014, eq. 5–6) - Seamless
-interpolation/extrapolation curve with a visual marker at the reference
-sample - New class `spacc_coverage_ext` extending `spacc_coverage`
+`spaccNetwork(x, coords, interactions, ...)` where `interactions` is an
+edge list or interaction matrix - At each accumulation step, compute
+network metrics for the subnetwork formed by species present in
+accumulated sites - Metrics: interaction richness, connectance, links
+per species, modularity (optional) - Coverage-based rarefaction and
+extrapolation for network data following the iNEXT.link framework - New
+class `spacc_network` with print/summary/plot methods - Plot:
+Interaction accumulation curve alongside species accumulation for
+comparison
 
-**References**: - Chao, A. & Jost, L. (2012). Coverage-based rarefaction
-and extrapolation: standardizing samples by completeness rather than
-size. *Ecology*, 93, 2533–2547. - Chao, A., Gotelli, N.J., Hsieh, T.C.,
-et al. (2014). Rarefaction and extrapolation with Hill numbers: a
-framework for sampling and estimation in species diversity studies.
-*Ecological Monographs*, 84, 45–67. - Hsieh, T.C., Ma, K.H. & Chao, A.
-(2016). iNEXT: an R package for rarefaction and extrapolation of species
-diversity (Hill numbers). *Methods in Ecology and Evolution*, 7,
-1451–1456.
+**References**: - Chiu, C.H., Chao, A., Vogel, S., Kriegel, P. & Thorn,
+S. (2023). Quantifying and estimating ecological network diversity based
+on incomplete sampling data. *Philosophical Transactions of the Royal
+Society B*, 378, 20220183.
 
-**CRAN packages**: [iNEXT](https://cran.r-project.org/package=iNEXT),
-[SpadeR](https://cran.r-project.org/package=SpadeR)
+**CRAN packages**: [iNEXT.link](https://github.com/AnneChao/iNEXT.link),
+[bipartite](https://cran.r-project.org/package=bipartite)
+
+**Complexity**: High (new data type, network metrics at each step)
 
 ------------------------------------------------------------------------
 
-## 3. Diversity-Area Relationship (DAR)
+### 8. Functional Diversity-Area Relationships (FDARs)
 
 **Status**: Not implemented
 
-**What**: Extend the classic SAR (species vs. area) to the DAR
-framework, plotting Hill numbers of any order q against cumulative area
-rather than cumulative site count. This captures how *effective*
-diversity — not just richness — scales with area.
+**Builds on**:
+[`dar()`](https://gillescolling.com/spacc/reference/dar.md),
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
 
-**Implementation**: - New function `dar(object, coords, q = c(0, 1, 2))`
-that converts the site-based accumulation from
-[`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md)
-into an area-based relationship - Area estimation via Voronoi
-tessellation (sf) or convex hull of accumulated sites at each step -
-Optionally accept a cell_size argument for grid-based area estimation -
-New class `spacc_dar` with plot method showing diversity-area curves for
-each q - Log-log transformation option for power-law fitting
+**What**: Extend the DAR framework from Hill numbers to multiple
+functional diversity facets (FRic, FDiv, FEve, FDis) simultaneously.
+Shows how different FD facets scale differently with area – FRic tracks
+species richness closely, but standardized FD metrics reveal independent
+scaling behaviors driven by trait filtering vs. competitive exclusion.
 
-**References**: - Ma, Z.S. (2018). DAR (diversity-area relationship):
-extending classic SAR (species-area relationship) for biodiversity and
-biogeography analyses. *Ecology and Evolution*, 8, 10023–10038. -
-Arrhenius, O. (1921). Species and area. *Journal of Ecology*, 9, 95–99.
+**Implementation**: - New function
+`fdar(object, traits, q = c(0, 1, 2))` or extend
+[`dar()`](https://gillescolling.com/spacc/reference/dar.md) with
+`type = "functional"` - At each accumulation step, compute FRic, FDiv,
+FEve from the trait matrix of accumulated species - Area estimation via
+Voronoi tessellation (reuse from
+[`dar()`](https://gillescolling.com/spacc/reference/dar.md)) - Plot:
+Multi-panel FD-area curves for each facet, optionally with log-log
+transformation - Power-law fitting for each facet separately
 
-**CRAN packages**: [vegan](https://cran.r-project.org/package=vegan)
-(SAR fitting), [mobsim](https://cran.r-project.org/package=mobsim)
-(divar function)
+**References**: - Dias, R.A., et al. (2025). Spatial scaling of multiple
+dimensions of functional diversity. *Functional Ecology*, 39, 1065–1078.
+
+**Complexity**: Medium (extends existing DAR machinery with new metrics)
 
 ------------------------------------------------------------------------
 
-## 4. Extreme Value Theory SAR Model
+### 9. Intraspecific Trait Variability in Functional Diversity
 
 **Status**: Not implemented
 
-**What**: Add an EVT-based model to
-[`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
-that captures the characteristic three-phase SAR pattern (rapid rise,
-plateau, second rise) observed in log-log space. Standard asymptotic
-models (Michaelis-Menten, etc.) cannot capture this triphasic shape.
+**Builds on**:
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md),
+[`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md)
 
-**Implementation**: - Add `"evt"` as a new model option in
-[`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md) -
-The EVT model treats the SAR as a mixture of species-specific
-minimum-distance distributions - Fit via maximum likelihood using a
-Generalized Extreme Value (GEV) mixture - Parameters: location (mu),
-scale (sigma), shape (xi) per species group, or a simplified
-two-component mixture - Return `spacc_fit` object as usual, with
-additional diagnostics for phase transitions - Log-log residual plot to
-visualize the three phases
+**What**: Current functional diversity computation uses species-level
+mean traits. Incorporating intraspecific trait variability (ITV) makes
+functional accumulation curves more realistic, especially for widespread
+species whose traits vary across the spatial extent of a study. Uses
+probabilistic hypervolumes rather than point representations in trait
+space.
 
-**References**: - Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et
-al. (2025). Modelling the species-area relationship using extreme value
-theory. *Nature Communications*, 16, 4045. - Scheather, S.J. &
-Hettmansperger, T.P. (2009). Extreme value theory. In *The Species-Area
-Relationship* (eds Storch, D., Marquet, P.A. & Brown, J.H.), Cambridge
-University Press.
+**Implementation**: - Add `itv = TRUE` option to
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
+and
+[`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md) -
+Accept a traits object with per-individual or per-population
+measurements (not just species means) - Compute kernel density
+hypervolumes at each accumulation step using the accumulated
+individuals’ trait values - FRic becomes the hypervolume volume; FDis
+becomes the mean distance to centroid in probability space - Falls back
+to species means when `itv = FALSE` (default, current behavior)
 
-**CRAN packages**: [evd](https://cran.r-project.org/package=evd),
-[extRemes](https://cran.r-project.org/package=extRemes)
+**References**: - Palacio, F.X., et al. (2025). Integrating
+intraspecific trait variability in functional diversity. *Ecological
+Monographs*, 95, e70024.
 
-------------------------------------------------------------------------
+**Depends on**:
+[hypervolume](https://cran.r-project.org/package=hypervolume) (Suggests)
 
-## 5. Functional Beta Diversity Accumulation
-
-**Status**: Not implemented (taxonomic beta exists via
-[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md))
-
-**What**: Extend beta diversity partitioning from taxonomic to
-functional and phylogenetic dimensions. Decompose
-functional/phylogenetic beta diversity into turnover and nestedness
-components as sites accumulate spatially.
-
-**Implementation**: - Extend
-[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-with a `type` parameter: `"taxonomic"` (default, current behavior),
-`"functional"`, `"phylogenetic"` - Functional beta: Requires traits
-matrix, computes functional Sorensen/Jaccard based on trait space
-overlap (convex hull or kernel density) - Phylogenetic beta: Requires
-phylo object, uses PhyloSor or UniFrac-based decomposition -
-Turnover/nestedness partitioning following Baselga (2010, 2012) extended
-to multiple facets - C++ backend `cpp_beta_func_knn_parallel` and
-`cpp_beta_phylo_knn_parallel` - Returns `spacc_beta` object with type
-attribute; plot method adjusts labels accordingly
-
-**References**: - Baselga, A. (2010). Partitioning the turnover and
-nestedness components of beta diversity. *Global Ecology and
-Biogeography*, 19, 134–143. - Baselga, A. (2012). The relationship
-between species replacement, dissimilarity derived from nestedness, and
-nestedness. *Global Ecology and Biogeography*, 21, 1223–1232. - Chao,
-A., Chiu, C.H., Vill'eger, S., et al. (2023). Rarefaction and
-extrapolation with beta diversity under a framework of Hill numbers: the
-iNEXT.beta3D standardization. *Ecological Monographs*, 93, e1588. -
-Cardoso, P., Rigal, F. & Carvalho, J.C. (2015). BAT – Biodiversity
-Assessment Tools, an R package for the measurement and estimation of
-alpha and beta taxon, phylogenetic and functional diversity. *Methods in
-Ecology and Evolution*, 6, 232–236.
-
-**CRAN packages**:
-[betapart](https://cran.r-project.org/package=betapart) (already in
-Suggests),
-[iNEXT.beta3D](https://cran.r-project.org/package=iNEXT.beta3D),
-[BAT](https://cran.r-project.org/package=BAT)
+**Complexity**: High (per-individual trait tracking, hypervolume
+computation at each step)
 
 ------------------------------------------------------------------------
 
-## 6. Sampling Effort SAR (SESARS)
+### 10. Phylogenetic/Functional Redundancy
 
 **Status**: Not implemented
 
-**What**: Model the joint effect of sampling effort and area on species
-richness. Standard SARs assume complete sampling within each area unit;
-SESARS corrects for unequal survey intensity across sites — common in
-atlas data, citizen science datasets, and multi-year monitoring.
+**Builds on**:
+[`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md),
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
 
-**Implementation**: - New function `sesars(object, effort)` where
-`effort` is a numeric vector (e.g., sampling hours, number of visits,
-trap-nights per site) - Fits a joint model: S ~ f(A, E) where A =
-cumulative area and E = cumulative effort - Model options:
-multiplicative power-law `S = c * A^z * E^w`, or additive with separate
-area and effort terms - Predict richness at standardized effort levels -
-New class `spacc_sesars` with print/summary/plot methods - Plot: 3D
-surface or 2D slices at fixed effort levels
+**What**: Track whether spatial accumulation adds genuinely novel
+evolutionary lineages or functionally distinct species, versus redundant
+ones. Redundancy = ratio of taxonomic Hill diversity to
+phylogenetic/functional Hill diversity. High redundancy means new
+species are closely related or functionally similar to those already
+accumulated.
 
-**References**: - Ribas, C.R., Sobrinho, T.G., Schoereder, J.H., et
-al. (2012). How large is large enough for insects? Forest fragment size
-and sampling effort for insects. *Environmental Entomology*, 41,
-965–972. - Sousa-Baena, M.S., Garcia, L.C. & Peterson, A.T. (2014).
-Completeness of digital accessible knowledge of the plants of Brazil.
-*PLoS ONE*, 9, e84068. - Dennstadt, F., Horak, J. & Martin, M.D. (2019).
-Predictive sampling effort and species-area relationship models for
-estimating richness in fragmented landscapes. *Diversity and
-Distributions*, 26, 1112–1123.
+**Implementation**: - New function `redundancy(spacc_hill, spacc_phylo)`
+or `redundancy(spacc_hill, spacc_func)` - At each accumulation step,
+compute R = D_tax / D_phylo (or D_func) - R \> 1 indicates
+phylogenetic/functional clustering (redundancy); R \< 1 indicates
+overdispersion (complementarity) - Plot: Redundancy trajectory overlaid
+on the accumulation curve - Alternatively, integrate as a
+`metric = "redundancy"` option in
+[`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
+and
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
 
-**CRAN packages**: [sars](https://cran.r-project.org/package=sars) (SAR
-model fitting)
+**References**: - Alberdi, A. (2024). hilldiv2: Hill diversity with
+phylogenetic and functional redundancy. GitHub package. - Cadotte, M.W.
+& Davies, T.J. (2016). *Phylogenies in Ecology*. Princeton University
+Press.
 
-------------------------------------------------------------------------
-
-## 7. Species-Fragmented Area Relationship (SFAR)
-
-**Status**: Not implemented
-
-**What**: Extend the power-law SAR to separately quantify the effects of
-habitat loss (total area reduction) and fragmentation (splitting into
-patches). The SFAR adds a fragmentation term to the classic SAR,
-allowing users to disentangle these two drivers of species loss.
-
-**Implementation**: - New function `sfar(object, patches)` where
-`patches` is an sf polygon layer or a grouping vector assigning sites to
-habitat fragments - Model: `S = c * A^z * n^(-f)` where A = total area,
-n = number of fragments, f = fragmentation exponent - Alternatively:
-Hanski et al. metapopulation-informed extension with patch isolation -
-Fit via nls or maximum likelihood - New class `spacc_sfar` with
-print/summary/plot methods - Plot: Observed vs predicted richness, with
-separate area and fragmentation effect curves
-
-**References**: - Hanski, I., Zurita, G.A., Bellocq, M.I. & Rybicki, J.
-(2013). Species-fragmented area relationship. *Proceedings of the
-National Academy of Sciences*, 110, 12715–12720. - Rybicki, J. & Hanski,
-I. (2013). Species-area relationships and extinctions caused by habitat
-loss and fragmentation. *Ecology Letters*, 16, 27–38.
-
-**CRAN packages**: [sars](https://cran.r-project.org/package=sars)
-
-------------------------------------------------------------------------
-
-## 8. Endemism-Area Relationship
-
-**Status**: Not implemented
-
-**What**: Compute the number of endemic species (species found *only*
-within the accumulated area) as a function of cumulative area or site
-count. Complements the standard SAR by tracking how many species are
-unique to each spatial extent — critical for conservation
-prioritization.
-
-**Implementation**: - New function `spaccEndemism(x, coords, ...)` or
-add `metric = "endemism"` option to
-[`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md) -
-At each accumulation step, count species present in the accumulated set
-but absent from all remaining (unvisited) sites - This is the
-complement: endemic_k = species in sites 1..k that are absent from sites
-k+1..n - C++ function `cpp_knn_endemism_parallel` tracking both
-cumulative and exclusive species counts - New class `spacc_endemism` or
-extend `spacc` with an endemism column - Plot: Endemism curve overlaid
-on or alongside the standard SAC
-
-**References**: - Hobohm, C. (ed.) (2014). *Endemism in Vascular
-Plants*. Springer. - Kier, G., Kreft, H., Lee, T.M., et al. (2009). A
-global assessment of endemism and species richness across island and
-mainland regions. *Proceedings of the National Academy of Sciences*,
-106, 9322–9327. - May, F., Gerstner, K., McGlinn, D.J., et al. (2018).
-mobsim: An R package for the simulation and measurement of biodiversity
-across spatial scales. *Methods in Ecology and Evolution*, 9, 1401–1408.
-
-**CRAN packages**: [mobsim](https://cran.r-project.org/package=mobsim)
-(endemic species in divar)
+**Complexity**: Low (ratio of existing outputs)
 
 ------------------------------------------------------------------------
 
 ## Implementation Priority
 
-| \# | Feature | Complexity | Builds on |
-|----|----|----|----|
-| 1 | Faith’s PD accumulation | Low | [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md), ape |
-| 2 | Coverage-based extrapolation | Medium | [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md), [`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md) |
-| 3 | Diversity-Area Relationship | Medium | [`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md), sf |
-| 4 | EVT SAR model | Medium | [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md) |
-| 5 | Functional/phylogenetic beta | High | [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md), [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md), [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md) |
-| 6 | SESARS | Medium | [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md), new effort data |
-| 7 | SFAR | Medium | New, sf patches |
-| 8 | Endemism-area | Low | [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) C++ backend |
+| \# | Feature | Complexity | Builds on | Priority |
+|----|----|----|----|----|
+| 1 | Sample-based coverage estimator | Low | [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md) | High |
+| 10 | Phylo/functional redundancy | Low | [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md), [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | High |
+| 3 | Aggregated FD index (K) | Medium | [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | High |
+| 4 | EvoHeritage | Medium | [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md) | High |
+| 5 | Multi-resolution beta | Medium | [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md) | Medium |
+| 6 | Shift-and-Rotate null models | Medium | [`ses()`](https://gillescolling.com/spacc/reference/ses.md), [`sesars()`](https://gillescolling.com/spacc/reference/sesars.md) | Medium |
+| 8 | Functional DAR | Medium | [`dar()`](https://gillescolling.com/spacc/reference/dar.md), [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | Medium |
+| 2 | Coverage-standardized beta | High | [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md) | Medium |
+| 9 | Intraspecific trait variability | High | [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | Low |
+| 7 | Spatial interaction accumulation | High | New module | Low |

@@ -154,6 +154,11 @@ uses phylogenetic distances to weight beta diversity (Chao et al. 2023):
 ``` r
 
 library(ape)
+#> 
+#> Attaching package: 'ape'
+#> The following object is masked from 'package:spacc':
+#> 
+#>     ace
 tree <- rcoal(n_species, tip.label = colnames(species))
 
 beta_phylo <- spaccBetaPhylo(pa, coords, tree, n_seeds = 20, progress = FALSE)

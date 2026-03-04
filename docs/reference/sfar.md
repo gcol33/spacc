@@ -76,11 +76,12 @@ extinctions caused by habitat loss and fragmentation. Ecology Letters,
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 sac <- spacc(species, coords)
 patches <- kmeans(coords, centers = 5)$cluster
 sfar_result <- sfar(sac, patches)
 print(sfar_result)
-plot(sfar_result)
-} # }
+# }
 ```

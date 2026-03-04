@@ -27,15 +27,12 @@ An sf object with POINT geometries and metric columns.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 metrics <- spaccMetrics(species, coords)
-
-# Convert to sf with UTM projection
-metrics_sf <- as_sf(metrics, crs = 32631)
-
-# Use with areaOfEffect for spatial analysis
-if (requireNamespace("areaOfEffect", quietly = TRUE)) {
-  result <- areaOfEffect::aoe(metrics_sf, support = study_area)
+if (requireNamespace("sf", quietly = TRUE)) {
+  metrics_sf <- as_sf(metrics)
 }
-} # }
+# }
 ```

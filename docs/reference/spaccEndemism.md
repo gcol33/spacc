@@ -13,6 +13,7 @@ spaccEndemism(
   n_seeds = 50L,
   method = "knn",
   distance = c("euclidean", "haversine"),
+  map = FALSE,
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
@@ -42,6 +43,14 @@ spaccEndemism(
 
   Character. Distance method: `"euclidean"` or `"haversine"`.
 
+- map:
+
+  Logical. If `TRUE`, compute per-site endemism by running accumulation
+  from each site as seed. Stores a `site_values` data.frame enabling
+  `plot(type = "map")` and
+  [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md).
+  Default `FALSE`.
+
 - parallel:
 
   Logical. Use parallel processing? Default `TRUE`.
@@ -69,6 +78,10 @@ An object of class `spacc_endemism` containing:
 - endemism:
 
   Matrix of endemic species count (n_seeds x n_sites)
+
+- site_values:
+
+  Per-site endemism data.frame (if `map = TRUE`)
 
 - coords, n_seeds, n_sites, method:
 
@@ -103,11 +116,11 @@ spatial scales. Methods in Ecology and Evolution, 9, 1401-1408.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 
 end <- spaccEndemism(species, coords, n_seeds = 30)
 plot(end)
-} # }
+# }
 ```

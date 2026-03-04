@@ -77,8 +77,8 @@ spacc(
 
   Character. Nearest-neighbor backend for `knn` and `kncn`:
 
-  - `"auto"` (default): Uses exact (brute-force) for ≤500 sites, spatial
-    tree for \>500 sites.
+  - `"auto"` (default): Uses exact (brute-force) for \<=500 sites,
+    spatial tree for \>500 sites.
 
   - `"exact"`: Always use brute-force with precomputed distance matrix.
 
@@ -202,29 +202,17 @@ Transactions of the Royal Society B, 366, 2426-2437.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+
 # Basic usage
 sac <- spacc(species, coords)
 plot(sac)
 
 # Different methods
 sac_knn <- spacc(species, coords, method = "knn")
-sac_gauss <- spacc(species, coords, method = "gaussian", sigma = 10)
-sac_cone <- spacc(species, coords, method = "cone", cone_width = pi/6)
-
-# Compare to null model
 sac_rand <- spacc(species, coords, method = "random")
 comp <- compare(sac_knn, sac_rand)
-
-# With spatial support (seeds from France, accumulate into neighbors)
-sac_france <- spacc(species, coords, support = "France")
-
-# Hard boundary (France only, no halo)
-sac_france_only <- spacc(species, coords, support = "France", include_halo = FALSE)
-
-# Grouped accumulation (e.g., native vs alien)
-status <- ifelse(grepl("alien", colnames(species)), "alien", "native")
-sac_grouped <- spacc(species, coords, groups = status, seed = 42)
-plot(sac_grouped)  # Overlaid curves per group
-} # }
+# }
 ```

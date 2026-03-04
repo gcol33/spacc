@@ -140,7 +140,7 @@ non-spatial Hill number rarefaction
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 # Compare diversity at different orders
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rpois(50 * 30, 2), nrow = 50)
@@ -150,5 +150,5 @@ plot(hill)
 
 # Extract summary at final site
 summary(hill)
-} # }
+# }
 ```

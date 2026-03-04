@@ -70,12 +70,10 @@ SFAR model (Hanski et al. 2013), which quantifies how habitat
 fragmentation (number of fragments) reduces species richness beyond what
 area loss alone predicts:
 
-``` math
-\log(S) = c + z \cdot \log(A) + f \cdot \log(n)
-```
+\\\log(S) = c + z \cdot \log(A) + f \cdot \log(n)\\
 
-where $`S`$ is species richness, $`A`$ is total area, $`n`$ is number of
-fragments, and $`f`$ is the fragmentation exponent.
+where \\S\\ is species richness, \\A\\ is total area, \\n\\ is number of
+fragments, and \\f\\ is the fragmentation exponent.
 
 ``` r
 
@@ -109,7 +107,7 @@ Relationship.](spatial-analysis_files/figure-html/plot-sfar-1.svg)
 
 Species-Fragmented Area Relationship.
 
-A negative fragmentation exponent $`f`$ indicates that splitting habitat
+A negative fragmentation exponent \\f\\ indicates that splitting habitat
 into more fragments reduces species richness beyond the area effect.
 
 ## Sampling-Effort Corrected SAR (SESARS)
@@ -119,9 +117,7 @@ species-area relationship corrected for variation in sampling effort
 across sites, avoiding the bias that arises when species-poor areas are
 also under-sampled:
 
-``` math
-\log(S) = c + z \cdot \log(A) + e \cdot \log(E)
-```
+\\\log(S) = c + z \cdot \log(A) + e \cdot \log(E)\\
 
 ``` r
 
@@ -170,8 +166,6 @@ met <- spaccMetrics(species, coords,
 ``` r
 
 plot(met, metric = "slope_10", type = "heatmap")
-#> Warning in viridisLite::viridis(n, alpha, begin, end, direction, option):
-#> Option 'v' does not exist. Defaulting to 'viridis'.
 ```
 
 ![Spatial heatmap of initial accumulation

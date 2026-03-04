@@ -3,12 +3,11 @@ template:
   bootstrap: 5
   bootswatch: sandstone
   light-switch: yes
-  includes:
-    in_header: pkgdown/mathjax-config.html
+  math-rendering: mathjax
 figures:
   dev: svglite
   fig.ext: svg
-  bg: "#F5F6F8"
+  bg: '#F5F6F8'
 home:
   title: spacc
   description: Fast Spatial Species Accumulation Curves
@@ -30,8 +29,7 @@ navbar:
 articles:
 - title: Getting Started
   navbar: Getting Started
-  contents:
-  - quickstart
+  contents: quickstart
 - title: Practical Guides
   navbar: Guides
   contents:
@@ -141,6 +139,11 @@ reference:
   - starts_with("interpolate_at")
   - analytical
   - c.spacc
+  - c.spacc_beta
+  - c.spacc_coverage
+  - c.spacc_hill
+  - compareModels
+  - predict.spacc
   - plot.spacc
   - plot.spacc_metrics
   - autoplot.spacc

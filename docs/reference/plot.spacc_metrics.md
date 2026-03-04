@@ -49,7 +49,10 @@ plot(
 
 - palette:
 
-  Character. Color palette for heatmap. Default `"viridis"`.
+  Character. Color palette for heatmap. One of `"magma"` (A),
+  `"inferno"` (B), `"plasma"` (C), `"viridis"` (D, default), `"cividis"`
+  (E), `"rocket"` (F), `"mako"` (G), `"turbo"` (H). Single letters also
+  accepted.
 
 - ...:
 
@@ -62,13 +65,10 @@ A ggplot2 object.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 metrics <- spaccMetrics(species, coords, metrics = c("slope_10", "auc"))
-
-# Heatmap of initial accumulation rate
 plot(metrics, metric = "slope_10", type = "heatmap")
-
-# Distribution of AUC values
-plot(metrics, metric = "auc", type = "histogram")
-} # }
+# }
 ```

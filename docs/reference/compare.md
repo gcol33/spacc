@@ -9,6 +9,7 @@ compare(
   x,
   y,
   method = c("permutation", "bootstrap", "auc"),
+  normalize = FALSE,
   n_perm = 999L,
   ...
 )
@@ -28,6 +29,13 @@ compare(
 
   Character. Comparison method: `"permutation"` (default),
   `"bootstrap"`, or `"auc"` (area under curve difference).
+
+- normalize:
+
+  Logical. If `TRUE`, each seed's curve is divided by its final value
+  before computing AUC, so that curves are compared on a \[0, 1\] scale
+  (proportion of total species). This compares the **shape** of
+  accumulation rather than absolute species counts. Default `FALSE`.
 
 - n_perm:
 
@@ -61,6 +69,10 @@ An object of class `spacc_comp` containing:
 
   Comparison method used
 
+- normalized:
+
+  Whether curves were normalized before comparison
+
 ## References
 
 Colwell, R.K., Mao, C.X. & Chang, J. (2004). Interpolating,
@@ -74,12 +86,14 @@ Biological Diversity: Frontiers in Measurement and Assessment, pp.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-sac_native <- spacc(native_species, coords)
-sac_alien <- spacc(alien_species, coords)
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+sp_a <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+sp_b <- matrix(rbinom(50 * 30, 1, 0.5), nrow = 50)
 
-comp <- compare(sac_native, sac_alien)
+sac_a <- spacc(sp_a, coords, n_seeds = 10)
+sac_b <- spacc(sp_b, coords, n_seeds = 10)
+comp <- compare(sac_a, sac_b)
 print(comp)
-plot(comp)
-} # }
+# }
 ```

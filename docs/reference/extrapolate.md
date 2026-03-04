@@ -70,12 +70,11 @@ relationship. Nature Communications, 16, 5346.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 sac <- spacc(species, coords)
-fit <- extrapolate(sac, model = "lomolino")
-
+fit <- extrapolate(sac)
 print(fit)
-plot(fit)
-predict(fit, n = c(100, 500, 1000))
-} # }
+# }
 ```
