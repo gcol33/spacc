@@ -287,7 +287,7 @@ plot.spacc_zeta <- function(x, type = c("decline", "ratio"),
         title = "Zeta Diversity Decline",
         subtitle = sprintf("%d sites, %s method", x$n_sites, x$method)
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
     if (log_scale) {
       p <- p + ggplot2::scale_y_log10()
@@ -306,7 +306,7 @@ plot.spacc_zeta <- function(x, type = c("decline", "ratio"),
         title = "Zeta Ratio",
         subtitle = "Constant = exponential decline, increasing = power-law"
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 
   p

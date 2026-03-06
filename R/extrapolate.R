@@ -270,7 +270,7 @@ plot.spacc_fit <- function(x, extrapolate_to = NULL, ...) {
       title = "Species Accumulation with Extrapolation",
       subtitle = sprintf("Model: %s, AIC: %.1f", x$model, x$aic)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 
@@ -489,7 +489,7 @@ plot.spacc_model_compare <- function(x, extrapolate_to = NULL, ...) {
       subtitle = sprintf("Best model: %s", x$best_model),
       color = "Model"
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 
   p
 }

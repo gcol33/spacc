@@ -596,7 +596,7 @@ plot.spacc_ses <- function(x, type = c("curve", "histogram", "map"),
         y = "Standardized Effect Size",
         title = sprintf("SES: %s (%s null model)", x$metric, x$null_model)
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
     return(p)
 
@@ -614,6 +614,6 @@ plot.spacc_ses <- function(x, type = c("curve", "histogram", "map"),
         y = "Count",
         title = sprintf("SES Distribution: %s", x$metric)
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 }

@@ -248,7 +248,7 @@ plot.spacc_hill_coverage <- function(x, xaxis = c("coverage", "sites"),
   }
 
   p +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 

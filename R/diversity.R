@@ -294,7 +294,7 @@ plot.spacc_alpha <- function(x, type = c("map", "histogram"), q = NULL,
       ggplot2::geom_histogram(bins = 30, fill = "#4CAF50", color = "white", alpha = 0.8) +
       ggplot2::labs(x = sprintf("Alpha diversity (q = %s)", q), y = "Count",
                     title = sprintf("Distribution: alpha diversity (q = %s)", q)) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 }
 
@@ -341,7 +341,7 @@ plot.spacc_partition <- function(x, type = c("map", "bar"), q = NULL,
       ggplot2::geom_col(position = "dodge") +
       ggplot2::labs(x = "Diversity order", y = "Effective species", fill = "Component",
                     title = "Diversity Partitioning") +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 }
 
@@ -607,7 +607,7 @@ plot.spacc_profile <- function(x, type = c("profile", "map"),
       y = y_label,
       title = title_label
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 

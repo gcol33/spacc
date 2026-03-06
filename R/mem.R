@@ -396,7 +396,7 @@ plot.spacc_mem <- function(x, type = c("eigenvalues", "moran", "map"),
       ggplot2::geom_col(fill = "#4CAF50") +
       ggplot2::labs(x = "Eigenvector", y = "Eigenvalue",
                     title = sprintf("Spatial Eigenvalues (%s)", toupper(x$method))) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
   } else if (type == "moran") {
     df <- data.frame(
@@ -408,7 +408,7 @@ plot.spacc_mem <- function(x, type = c("eigenvalues", "moran", "map"),
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
       ggplot2::labs(x = "Eigenvector", y = "Moran's I",
                     title = "Moran's I per Eigenvector") +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
   } else {
     # Map: show first n_vectors as spatial maps
@@ -433,7 +433,7 @@ plot.spacc_mem <- function(x, type = c("eigenvalues", "moran", "map"),
       ggplot2::labs(x = "x", y = "y", color = "Score",
                     title = "Spatial Eigenvector Maps") +
       ggplot2::coord_equal() +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 }
 
@@ -480,6 +480,6 @@ plot.spacc_mem_partition <- function(x, ...) {
     ggplot2::labs(x = NULL, y = expression(R^2),
                   title = "Spatial Variance Partitioning") +
     ggplot2::ylim(0, 1) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "none")
 }

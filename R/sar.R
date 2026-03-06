@@ -215,7 +215,7 @@ plot.spacc_dar <- function(x, log_scale = FALSE, ci = TRUE, ci_alpha = 0.2, ...)
       fill = "Order",
       title = "Diversity-Area Relationship (DAR)"
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 
   if (log_scale) {
@@ -364,7 +364,7 @@ plot.spacc_sesars <- function(x, ...) {
       title = "SESARS: Effort-Corrected Species-Area Relationship",
       subtitle = sprintf("Model: %s, R2 = %.3f", x$model, x$r_squared)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 
@@ -505,7 +505,7 @@ plot.spacc_sfar <- function(x, ...) {
       subtitle = sprintf("z = %.3f, f = %.3f, %d fragments",
                           x$coef["z"], x$coef["f"], x$n_patches)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 
@@ -781,7 +781,7 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
       color = NULL, fill = NULL,
       title = "Spatial Endemism Accumulation"
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 

@@ -80,7 +80,7 @@ plot.spacc <- function(x,
         color = "Group",
         fill = "Group"
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
     if (facet) {
       p <- p + ggplot2::facet_wrap(~ group, scales = "free_x")
@@ -152,7 +152,7 @@ plot.spacc <- function(x,
       subtitle = sprintf("%s, %d seeds, %.0f%% CI",
                         x$method, x$n_seeds, ci_level * 100)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 
   p
 }

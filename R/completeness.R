@@ -243,7 +243,7 @@ plot.spacc_completeness <- function(x, type = c("profile", "comparison", "map"),
         title = "Sample Completeness Profile",
         subtitle = sprintf("%d sites, %d species", x$n_sites, x$n_species)
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
   } else if (type == "comparison") {
     df <- data.frame(
@@ -265,7 +265,7 @@ plot.spacc_completeness <- function(x, type = c("profile", "comparison", "map"),
         title = "Observed vs Estimated Diversity",
         subtitle = sprintf("%d sites, %d species", x$n_sites, x$n_species)
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
 
   } else if (type == "map") {
     if (is.null(x$per_site) || is.null(x$coords)) {

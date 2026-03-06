@@ -701,7 +701,7 @@ plot.spacc_wavefront <- function(x, ci = TRUE, ci_alpha = 0.3,
       title = "Wavefront Species Accumulation",
       subtitle = sprintf("%d seeds, r0=%.1f, dr=%.2f", x$n_seeds, x$r0, x$dr)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 
@@ -818,7 +818,7 @@ plot.spacc_decay <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
       title = "Distance-Decay Relationship",
       subtitle = sprintf("%d focal points", x$n_seeds)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 

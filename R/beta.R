@@ -245,7 +245,7 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
       color = "Component",
       title = "Spatial Beta Diversity Accumulation"
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 

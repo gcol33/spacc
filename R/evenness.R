@@ -296,7 +296,7 @@ plot.spacc_evenness <- function(x, type = c("profile", "map", "histogram"),
       ggplot2::ggplot(df, ggplot2::aes(x = .data[["evenness"]])) +
         ggplot2::geom_histogram(bins = 30, fill = "#4CAF50", color = "white", alpha = 0.8) +
         ggplot2::labs(x = label, y = "Count", title = paste("Distribution:", label)) +
-        ggplot2::theme_minimal(base_size = 12)
+        spacc_theme()
     )
   }
 
@@ -323,7 +323,7 @@ plot.spacc_evenness <- function(x, type = c("profile", "map", "histogram"),
       y = "Evenness (E_q = D_q / D_0)",
       title = "Evenness Profile"
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 
   p
 }

@@ -186,7 +186,7 @@ plot.spacc_dist <- function(x, type = c("histogram", "heatmap"), ...) {
         x = sprintf("Distance (%s)", attr(x, "method")),
         y = "Count"
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   } else {
     df <- expand.grid(i = seq_len(nrow(x)), j = seq_len(ncol(x)))
     df$distance <- as.vector(x)
@@ -199,6 +199,6 @@ plot.spacc_dist <- function(x, type = c("histogram", "heatmap"), ...) {
         y = "Site"
       ) +
       ggplot2::coord_equal() +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 }

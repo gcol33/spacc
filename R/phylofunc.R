@@ -415,7 +415,7 @@ plot.spacc_phylo <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 
       fill = "Metric",
       title = "Spatial Phylogenetic Diversity Accumulation"
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 
@@ -497,7 +497,7 @@ plot.spacc_func <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0
       fill = "Metric",
       title = "Spatial Functional Diversity Accumulation"
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 

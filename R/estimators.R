@@ -676,5 +676,5 @@ plot.spacc_estimate <- function(x, ...) {
       x = NULL, y = "Species richness",
       title = sprintf("Richness Estimation: %s", x$estimator)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }

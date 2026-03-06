@@ -352,5 +352,5 @@ plot.spacc_beta_decay <- function(x, bins = TRUE, model = NULL, ...) {
       title = "Beta Distance-Decay",
       subtitle = if (!is.na(show_model)) paste("Model:", show_model) else NULL
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }

@@ -232,7 +232,7 @@ plot.spacc_hill <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0
       fill = "Order",
       title = "Spatial Hill Number Accumulation"
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 
@@ -438,7 +438,7 @@ plot.spacc_hill_beta <- function(x, component = c("beta", "gamma", "alpha", "all
         title = sprintf("Hill %s Diversity along Accumulation",
                          tools::toTitleCase(component))
       ) +
-      ggplot2::theme_minimal(base_size = 12) +
+      spacc_theme() +
       ggplot2::theme(legend.position = "bottom")
 
   } else {
@@ -466,7 +466,7 @@ plot.spacc_hill_beta <- function(x, component = c("beta", "gamma", "alpha", "all
         color = "Component", fill = "Component",
         title = "Hill Number Diversity Partitioning"
       ) +
-      ggplot2::theme_minimal(base_size = 12) +
+      spacc_theme() +
       ggplot2::theme(legend.position = "bottom")
   }
 }

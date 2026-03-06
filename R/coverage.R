@@ -453,7 +453,7 @@ plot.spacc_coverage_ext <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
       title = "Coverage-Based Extrapolation",
       subtitle = sprintf("Observed coverage: %.1f%%", x$observed_coverage * 100)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 
   p
 }
@@ -544,7 +544,7 @@ plot.spacc_coverage <- function(x, type = c("curve", "map"),
       y = "Species richness",
       title = "Coverage-Based Spatial Accumulation"
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 

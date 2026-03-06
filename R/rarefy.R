@@ -220,7 +220,7 @@ plot.spacc_rare <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
       title = "Individual-Based Rarefaction Curve",
       subtitle = sprintf("%d individuals, %d species%s", x$n_total, x$n_species, q_label)
     ) +
-    ggplot2::theme_minimal(base_size = 12)
+    spacc_theme()
 }
 
 

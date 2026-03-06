@@ -240,7 +240,7 @@ plot_spatial_map <- function(df, value_col, title, subtitle = NULL,
       subtitle = subtitle
     ) +
     ggplot2::coord_equal() +
-    ggplot2::theme_minimal(base_size = 12) +
+    spacc_theme() +
     ggplot2::theme(legend.position = "right")
 
   p
@@ -322,7 +322,7 @@ plot.spacc_metrics <- function(x, metric = NULL, type = c("heatmap", "points", "
         title = sprintf("Distribution: %s", metric),
         subtitle = sprintf("%d sites, %s method", x$n_sites, x$method)
       ) +
-      ggplot2::theme_minimal(base_size = 12)
+      spacc_theme()
   }
 
   p

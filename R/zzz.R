@@ -92,3 +92,11 @@ cli_success <- function(msg) {
     cat("v", msg, "\n")
   }
 }
+
+# Internal ggplot2 theme: minimal with no grid, transparent background
+spacc_theme <- function(base_size = 12) {
+  ggplot2::theme_minimal(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid = ggplot2::element_blank()
+    )
+}
