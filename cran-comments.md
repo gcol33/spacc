@@ -1,15 +1,12 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
-
-* This is a new release.
+0 errors | 0 warnings | 0 notes
 
 ## Test environments
 
-* local: Windows 11, R 4.5.2
-* win-builder: R-devel (pending)
-* mac-builder: R-release (pending)
+- Windows 11 (local), R 4.5.2
+- GitHub Actions: Ubuntu (R-release, R-devel), macOS (R-release), Windows (R-release)
 
-## Downstream dependencies
+## First submission
 
-No reverse dependencies.
+This is the first CRAN submission of spacc.
