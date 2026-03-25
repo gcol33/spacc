@@ -210,6 +210,13 @@ beta_sf <- as_sf(beta, crs = 32631)
 
 ## Documentation
 
+- [Getting Started](https://gillescolling.com/spacc/articles/quickstart.html) - Basic concepts and spatial accumulation
+- [Diversity Accumulation](https://gillescolling.com/spacc/articles/diversity.html) - Hill numbers, beta diversity, coverage
+- [Extrapolation](https://gillescolling.com/spacc/articles/extrapolation.html) - Asymptotic models and species-area relationships
+- [Spatial Analysis](https://gillescolling.com/spacc/articles/spatial-analysis.html) - Endemism, fragmentation, and SAR
+- [Community Assembly](https://gillescolling.com/spacc/articles/community-assembly.html) - Assembly and turnover
+- [Richness Estimation](https://gillescolling.com/spacc/articles/richness-estimation.html) - Completeness and estimators
+- [Rarefaction](https://gillescolling.com/spacc/articles/rarefaction-standardization.html) - Rarefaction and standardization
 - [Function Reference](https://gillescolling.com/spacc/reference/)
 
 ## Support
