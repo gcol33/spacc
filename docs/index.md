@@ -128,7 +128,7 @@ sf/GIS integration.
 
 ``` r
 
-# install.packages("pak")
+install.packages("pak")
 pak::pak("gcol33/spacc")
 ```
 
