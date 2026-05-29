@@ -1,89 +1,111 @@
 # spacc
 
+*species accumulating in the neighbourhood*
+
 [![R-CMD-check](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml)
 [![codecov](https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg)](https://app.codecov.io/gh/gcol33/spacc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Fast Spatial Species Accumulation Curves with C++ Performance**
+**Spatial species accumulation curves built by nearest-neighbour expansion in C++.**
 
-The `spacc` package computes species accumulation curves and diversity metrics. It supports both classical random-order SACs (`method = "random"`) and spatially-explicit methods that respect the spatial arrangement of sites using nearest-neighbor algorithms. All methods use a C++ backend (Rcpp/RcppParallel) for speed.
-
-## Quick Start
+Pick a starting site, then walk outward to its nearest neighbours, counting new species
+as you go. `spacc` does that from many starting points (Rcpp/RcppParallel backend), so the
+curve carries a confidence ribbon showing how richness depends on *where* you begin.
+The classical curve in `vegan::specaccum()` shuffles sites in random order and never sees
+the map. `spacc` reproduces that random-order curve and adds the spatial one, so you can
+read the gap between them.
 
 ```r
 library(spacc)
 
-coords <- data.frame(x = runif(100), y = runif(100))
-species <- matrix(rpois(100 * 50, 2), nrow = 100)
+coords  <- data.frame(x = runif(100), y = runif(100))
+species <- matrix(rbinom(100 * 50, 1, 0.3), nrow = 100)
 
-# Spatial accumulation curve
-sac <- spacc(species, coords, method = "knn", n_seeds = 50)
+# spatial accumulation: walk outward by nearest neighbour
+sac <- spacc(species, coords, method = "knn", n_seeds = 100)
 plot(sac)
-
-# Diversity partitioning
-part <- diversityPartition(species, q = c(0, 1, 2))
-print(part)
 ```
 
-## Statement of Need
+## Spatial order, not random order
 
-Species accumulation curves are fundamental tools for understanding sampling completeness and comparing biodiversity. `spacc` computes both classical random-order SACs and spatially-explicit SACs that respect the spatial arrangement of sites. Comparing the two reveals how spatial structure affects observed diversity. Applications include:
-
-- biodiversity assessment for spatially structured surveys,
-- community ecology and scale-dependent diversity patterns,
-- invasion modeling with wavefront and directional methods,
-- conservation planning to identify high-diversity areas.
-
-## Performance
-
-`spacc` automatically selects the fastest backend for nearest-neighbor queries:
-
-| Backend | Distance | Method | When |
-|---------|----------|--------|------|
-| **k-d tree** ([nanoflann](https://github.com/jlblancoc/nanoflann)) | Euclidean | O(log n) per query | >500 sites (auto) |
-| **Ball tree** (custom) | Haversine | O(log n) per query | >500 sites + `distance = "haversine"` |
-| **Exact** (brute-force) | Any | O(n) per query | ≤500 sites (auto) |
-
-Override with `backend = "kdtree"` or `backend = "exact"`. The ball tree uses haversine distance natively — no coordinate projection needed for geographic data.
+`vegan::specaccum()` accumulates sites in random or collector order, so geography drops out.
+`spacc()` keeps it: each curve follows nearest-neighbour expansion from a real seed site, and
+the spread across seeds is the spatial signal. Run both and compare them directly.
 
 ```r
-# Geographic coordinates with haversine distance
-sac <- spacc(species, coords_lonlat, distance = "haversine", n_seeds = 50)
+sac        <- spacc(species, coords, method = "knn",    n_seeds = 100)
+sac_random <- spacc(species, coords, method = "random", n_seeds = 100)
 
-# Force tree backend for smaller datasets
+comp <- compare(sac, sac_random)   # permutation, bootstrap, or AUC test
+plot(comp)
+```
+
+Seven expansion methods are available: `knn` and `kncn` (nearest-neighbour and
+nearest-centroid walks), `radius`, `gaussian`, and `cone` (distance- and direction-weighted
+growth), `random` (the classical null), and `collector` (data order). Geographic coordinates
+use `distance = "haversine"` with no projection step.
+
+## Backend selection
+
+Nearest-neighbour queries pick a backend by site count, overridable with `backend`.
+
+| Backend | Distance | Cost per query | When |
+|---|---|---|---|
+| Exact (brute force) | any | O(n) | <= 500 sites (auto) |
+| k-d tree ([nanoflann](https://github.com/jlblancoc/nanoflann)) | Euclidean | O(log n) | > 500 sites (auto) |
+| Ball tree | Haversine | O(log n) | > 500 sites, `distance = "haversine"` |
+
+```r
+sac <- spacc(species, coords_lonlat, distance = "haversine", n_seeds = 50)
 sac <- spacc(species, coords, backend = "kdtree", n_seeds = 50)
 ```
 
-## Features
+## Diversity beyond richness
 
-### Accumulation Curves
+Accumulation works for more than species counts. Each function carries the spatial ordering
+through to a different diversity measure, with `map = TRUE` and `as_sf()` for GIS output.
 
-- **`spacc()`**: Spatial accumulation with 7 methods (`knn`, `kncn`, `random`, `radius`, `gaussian`, `cone`, `collector`), grouped accumulation (`groups`), and spatiotemporal distance (`time`, `w_space`, `w_time`)
-- **`spaccHill()`**: Hill number accumulation (q = 0, 1, 2)
-- **`spaccBeta()`**: Beta diversity with turnover/nestedness partitioning (Baselga 2010)
-- **`spaccCoverage()`**: Coverage-based rarefaction (Chao & Jost 2012)
-- **`spaccPhylo()`**: Phylogenetic diversity accumulation (MPD, MNTD)
-- **`spaccFunc()`**: Functional diversity accumulation (FDis, FRic)
-- **`wavefront()`**: Expanding radius accumulation for invasion modeling
-- **`distanceDecay()`**: Species richness vs distance from focal points
+- **`spaccHill()`**: Hill numbers (q = 0, 1, 2) along the accumulation, extending the iNEXT
+  framework to spatial order.
+- **`spaccBeta()`**: beta diversity with turnover and nestedness components (Baselga 2010).
+- **`spaccCoverage()`**: coverage-based rarefaction via the Good-Turing estimator (Chao & Jost 2012).
+- **`spaccPhylo()` / `spaccFunc()`**: phylogenetic (MPD, MNTD) and functional (FDis, FRic) accumulation.
+- **`alphaDiversity()` / `gammaDiversity()` / `diversityPartition()`**: local, regional, and
+  alpha-beta-gamma decomposition (Jost 2007).
 
-### Diversity
+```r
+hill <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 50, map = TRUE)
+plot(hill)                       # accumulation curves
+plot(hill, type = "map", q = 0)  # per-site richness map
 
-- **`alphaDiversity()`**: Per-site Hill numbers (local diversity)
-- **`gammaDiversity()`**: Pooled Hill numbers (regional diversity)
-- **`diversityPartition()`**: Alpha-beta-gamma decomposition (Jost 2007)
-- **`spaccMetrics()`**: Per-site accumulation metrics (slope, AUC, half-richness)
+beta <- spaccBeta(species, coords, index = "sorensen", n_seeds = 50)
+plot(beta, partition = TRUE)     # turnover vs nestedness
+```
 
-All diversity and accumulation functions support spatial mapping via `map = TRUE`, `plot(x, type = "map")`, and `as_sf()` for sf/GIS integration.
+## Grouped and spatiotemporal accumulation
 
-### Analysis
+Split species into groups (native vs alien, families, any factor) and accumulate each under
+the **same** spatial site ordering, or add a temporal axis to weight space against time.
 
-- **`extrapolate()`**: Fit asymptotic models (5 options)
-- **`compare()`**: Statistical comparison between curves
-- **`rarefy()`**: Rarefaction to common sampling effort
-- **`subsample()`**: Spatial subsampling of sites
-- **`coleman()`**, **`mao_tau()`**, **`spatialRarefaction()`**: Analytical (non-simulation) methods
-- **`distances()`**: Pre-compute distance matrices
+```r
+# same spatial walk, separate curve per group
+sac_grouped <- spacc(species, coords, groups = status, seed = 42)
+plot(sac_grouped, facet = TRUE)
+
+# sites sampled across years: weighted space-time distance
+sac_st <- spacc(species, coords, method = "knn",
+                time = site_years, w_space = 1, w_time = 0.5)
+```
+
+## Fitting and standardizing
+
+- **`extrapolate()`**: asymptotic richness models (Michaelis-Menten, Lomolino, Weibull,
+  logistic, EVT).
+- **`compare()`**: permutation, bootstrap, or AUC tests between curves.
+- **`rarefy()` / `subsample()`**: rarefaction to common effort, spatial subsampling.
+- **`coleman()` / `mao_tau()` / `spatialRarefaction()`**: analytical (non-simulation) curves.
+- **`as_spacc()`**: bring an existing `vegan::specaccum()` object into the same plotting and
+  comparison machinery.
 
 ## Installation
 
@@ -92,140 +114,27 @@ install.packages("pak")
 pak::pak("gcol33/spacc")
 ```
 
-## Usage Examples
-
-### Spatial Accumulation
-
-```r
-coords <- data.frame(x = runif(100), y = runif(100))
-species <- matrix(rbinom(100 * 50, 1, 0.3), nrow = 100)
-
-sac <- spacc(species, coords, method = "knn", n_seeds = 100)
-plot(sac)
-
-# Compare spatial vs random
-sac_random <- spacc(species, coords, method = "random", n_seeds = 100)
-comp <- compare(sac, sac_random)
-plot(comp)
-```
-
-### Grouped Accumulation
-
-```r
-# Compare native vs alien species (same spatial ordering)
-status <- ifelse(grepl("alien", colnames(species)), "alien", "native")
-sac_grouped <- spacc(species, coords, groups = status, seed = 42)
-plot(sac_grouped)                # Overlaid curves per group
-plot(sac_grouped, facet = TRUE)  # Faceted panels
-
-# Manual grouping with c()
-sac_a <- spacc(species_a, coords, seed = 42)
-sac_b <- spacc(species_b, coords, seed = 42)
-plot(c(native = sac_a, alien = sac_b))
-```
-
-### Spatiotemporal Accumulation
-
-```r
-# Sites sampled across years — weighted space-time distance
-sac_st <- spacc(species, coords, method = "knn",
-                time = site_years, w_space = 1, w_time = 0.5)
-plot(sac_st)
-
-# Emphasize temporal proximity over spatial
-sac_st2 <- spacc(species, coords, method = "knn",
-                 time = site_years, w_space = 0.2, w_time = 1)
-```
-
-### Diversity Partitioning
-
-```r
-species <- matrix(rpois(100 * 50, 2), nrow = 100)
-
-part <- diversityPartition(species, q = c(0, 1, 2))
-part
-#> Alpha-Beta-Gamma Diversity Partitioning
-#> 100 sites, 50 species
-#>
-#>  q alpha  beta gamma
-#>  0 12.45  4.01    50
-#>  1  8.23  3.12 25.68
-#>  2  6.54  2.87 18.77
-
-# Per-site alpha with spatial mapping
-alpha <- alphaDiversity(species, q = c(0, 1, 2), coords = coords)
-plot(alpha, type = "map", q = 0)
-```
-
-### Hill Number & Beta Diversity Accumulation
-
-```r
-hill <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 50, map = TRUE)
-plot(hill)                         # Accumulation curves
-plot(hill, type = "map", q = 0)    # Spatial map
-
-beta <- spaccBeta(species, coords, index = "sorensen", n_seeds = 50, map = TRUE)
-plot(beta, partition = TRUE)
-plot(beta, type = "map")
-```
-
-### Coverage-Based Rarefaction
-
-```r
-cov <- spaccCoverage(species, coords, n_seeds = 50, map = TRUE)
-plot(cov, xaxis = "coverage")
-plot(cov, type = "map", metric = "final_coverage")
-```
-
-### Phylogenetic & Functional Diversity
-
-```r
-library(ape)
-tree <- rtree(50)
-colnames(species) <- tree$tip.label
-
-phylo <- spaccPhylo(species, coords, tree,
-                    metric = c("mpd", "mntd"), map = TRUE)
-plot(phylo, type = "map", metric = "mpd")
-
-traits <- matrix(rnorm(50 * 3), nrow = 50)
-rownames(traits) <- colnames(species)
-func <- spaccFunc(species, coords, traits,
-                  metric = c("fdis", "fric"), map = TRUE)
-plot(func, type = "map", metric = "fdis")
-```
-
-### Spatial Mapping with sf
-
-```r
-# Convert any diversity measure to sf for GIS integration
-metrics <- spaccMetrics(species, coords,
-                        metrics = c("slope_10", "half_richness", "auc"))
-metrics_sf <- as_sf(metrics, crs = 32631)
-
-# Works for all diversity types
-hill_sf <- as_sf(hill, crs = 32631)
-beta_sf <- as_sf(beta, crs = 32631)
-```
-
 ## Documentation
 
-- [Getting Started](https://gillescolling.com/spacc/articles/quickstart.html) - Basic concepts and spatial accumulation
-- [Diversity Accumulation](https://gillescolling.com/spacc/articles/diversity.html) - Hill numbers, beta diversity, coverage
-- [Extrapolation](https://gillescolling.com/spacc/articles/extrapolation.html) - Asymptotic models and species-area relationships
-- [Spatial Analysis](https://gillescolling.com/spacc/articles/spatial-analysis.html) - Endemism, fragmentation, and SAR
-- [Community Assembly](https://gillescolling.com/spacc/articles/community-assembly.html) - Assembly and turnover
-- [Richness Estimation](https://gillescolling.com/spacc/articles/richness-estimation.html) - Completeness and estimators
-- [Rarefaction](https://gillescolling.com/spacc/articles/rarefaction-standardization.html) - Rarefaction and standardization
+- [Getting Started](https://gillescolling.com/spacc/articles/quickstart.html)
+- [Diversity Accumulation](https://gillescolling.com/spacc/articles/diversity.html)
+- [Extrapolation](https://gillescolling.com/spacc/articles/extrapolation.html)
+- [Spatial Analysis](https://gillescolling.com/spacc/articles/spatial-analysis.html)
+- [Community Assembly](https://gillescolling.com/spacc/articles/community-assembly.html)
+- [Richness Estimation](https://gillescolling.com/spacc/articles/richness-estimation.html)
+- [Rarefaction](https://gillescolling.com/spacc/articles/rarefaction-standardization.html)
 - [Function Reference](https://gillescolling.com/spacc/reference/)
 
 ## Support
 
 > "Software is like sex: it's better when it's free." — Linus Torvalds
 
-I'm a PhD student who builds R packages in my free time because I believe good tools should be free and open. I started these projects for my own work and figured others might find them useful too.
+I'm a PhD student who builds R packages in my free time because I believe good tools
+should be free and open. I started these projects for my own work and figured others
+might find them useful too.
 
-If this package saved you some time, buying me a coffee is a nice way to say thanks. It helps with my coffee addiction.
+If this package saved you some time, buying me a coffee is a nice way to say thanks.
+It helps with my coffee addiction.
 
 [![Buy Me A Coffee](https://img.shields.io/badge/-Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gcol33)
 
