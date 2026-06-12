@@ -1,5 +1,7 @@
 # spacc
 
+> Small exact engines for scientific computing in R.
+
 *species accumulating in the neighbourhood*
 
 [![R-CMD-check](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml)
