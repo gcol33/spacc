@@ -6,8 +6,10 @@
 #' @param x A site-by-species matrix with abundance data (not presence/absence).
 #' @param n_individuals Integer vector. Sample sizes to compute expected
 #'   diversity for. Default `NULL` computes for all levels from 1 to total.
-#' @param q Numeric. Order of Hill number. Default 0 (species richness).
-#'   q=1 gives rarefied Shannon diversity, q=2 gives rarefied Simpson diversity.
+#' @param q Numeric. Order of Hill number; any value `>= 0`. Default 0
+#'   (species richness). q=1 gives rarefied Shannon diversity, q=2 gives
+#'   rarefied Simpson diversity. q=0, 1, and 2 use exact estimators; other
+#'   orders report the Hill number of order `q` of the sampled composition.
 #' @param n_boot Integer. Number of bootstrap replicates for CI. Default 100.
 #'
 #' @return An object of class `spacc_rare` containing:
@@ -63,14 +65,11 @@ rarefy <- function(x, n_individuals = NULL, q = 0, n_boot = 100L) {
     n_individuals <- unique(round(n_individuals))
   }
 
-  # Compute rarefied diversity
-  rarefy_fn <- switch(
-    as.character(q),
-    "0" = rarefy_q0,
-    "1" = rarefy_q1,
-    "2" = rarefy_q2,
-    rarefy_q0  # default to species richness
-  )
+  stopifnot("q must be a single non-negative number" =
+              is.numeric(q) && length(q) == 1 && q >= 0)
+
+  # Compute rarefied diversity for any q >= 0 (q = 0, 1, 2 are exact)
+  rarefy_fn <- function(st, n, nt, ns) rarefy_qD(st, n, nt, ns, q)
 
   expected <- vapply(n_individuals, function(n) {
     rarefy_fn(species_totals, n, n_total, n_species)
@@ -174,6 +173,23 @@ rarefy_q2 <- function(species_totals, n, n_total, n_species) {
   # lambda_n = (n-1)/n * lambda + 1/n (bias from finite sample)
   # This simplifies to just lambda for expected D2
   1 / lambda
+}
+
+
+# Rarefaction: general order q (>= 0)
+# q = 0, 1, 2 dispatch to the exact estimators above; other orders return the
+# Hill number of order q of the sampled composition (effort-independent in the
+# interior, matching the q = 1 / q = 2 treatment, and exact at the endpoints).
+#' @noRd
+rarefy_qD <- function(species_totals, n, n_total, n_species, q) {
+  if (q == 0) return(rarefy_q0(species_totals, n, n_total, n_species))
+  if (abs(q - 1) < 1e-8) return(rarefy_q1(species_totals, n, n_total, n_species))
+  if (q == 2) return(rarefy_q2(species_totals, n, n_total, n_species))
+
+  if (n <= 1) return(1)
+  p <- species_totals / n_total
+  p <- p[p > 0]
+  sum(p^q)^(1 / (1 - q))
 }
 
 

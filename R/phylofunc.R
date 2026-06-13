@@ -10,6 +10,9 @@
 #'   - `"mpd"`: Mean Pairwise Distance
 #'   - `"mntd"`: Mean Nearest Taxon Distance
 #'   - `"pd"`: Faith's Phylogenetic Diversity (requires tree, not distance matrix)
+#'   - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
+#'     phylogenetic distance). Pass abundance data for weighting; with
+#'     presence/absence it reduces to the equal-weight form.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
 #' @param method Character. Accumulation method. Default `"knn"`.
 #' @param distance Character. Site distance method: `"euclidean"` or `"haversine"`.
@@ -77,7 +80,7 @@ spaccPhylo <- function(x,
                        map = FALSE) {
 
   distance <- match.arg(distance)
-  metric <- match.arg(metric, c("mpd", "mntd", "pd"), several.ok = TRUE)
+  metric <- match.arg(metric, c("mpd", "mntd", "pd", "rao"), several.ok = TRUE)
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -125,8 +128,10 @@ spaccPhylo <- function(x,
 
   stopifnot("Phylo distance matrix must match species" = ncol(phylo_dist_mat) == n_species)
 
-  # Convert to presence/absence
-  species_pa <- (x > 0) * 1L
+  # Keep abundances as integers. Presence metrics (mpd/mntd/pd) read
+  # cumulative > 0, so binarising is unnecessary; Rao uses the abundance
+  # weights. (Matches spaccFunc input handling.)
+  species_pa <- x
   storage.mode(species_pa) <- "integer"
 
   if (progress) cli_info(sprintf("Computing phylogenetic diversity (%s, %d seeds)",
@@ -200,6 +205,8 @@ spaccPhylo <- function(x,
 #' @param metric Character vector. Metrics to compute:
 #'   - `"fdis"`: Functional Dispersion (mean distance to centroid)
 #'   - `"fric"`: Functional Richness (convex hull volume approximation)
+#'   - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
+#'     Euclidean trait distance)
 #' @param n_seeds Integer. Number of random starting points. Default 50.
 #' @param method Character. Accumulation method. Default `"knn"`.
 #' @param distance Character. Site distance method: `"euclidean"` or `"haversine"`.
@@ -260,7 +267,7 @@ spaccFunc <- function(x,
                       map = FALSE) {
 
   distance <- match.arg(distance)
-  metric <- match.arg(metric, c("fdis", "fric"), several.ok = TRUE)
+  metric <- match.arg(metric, c("fdis", "fric", "rao"), several.ok = TRUE)
 
   if (!is.null(seed)) set.seed(seed)
 

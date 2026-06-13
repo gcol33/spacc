@@ -1,6 +1,6 @@
 Package: spacc
 Title: Fast Spatial Species Accumulation Curves
-Version: 0.7.1
+Version: 0.8.0
 Authors@R:
     person("Gilles", "Colling", , "gilles.colling051@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0003-3070-6066"))

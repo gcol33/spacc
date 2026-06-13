@@ -1,3 +1,29 @@
+# spacc 0.8.0
+
+## New Features
+
+### Rao's Quadratic Entropy (v0.8.0)
+- `spaccPhylo()` and `spaccFunc()` gain a `"rao"` metric: abundance-weighted
+  mean pairwise distance (phylogenetic cophenetic distance, or Euclidean trait
+  distance), accumulated along the spatial curve.
+- `spaccPhylo()` no longer binarises its input, so abundance data now weights
+  Rao; presence metrics (MPD/MNTD/PD) are unchanged.
+- Exact-math recovery tests against the Rao definition `sum_i sum_j p_i p_j d_ij`.
+
+### Custom Diversity Metrics (v0.8.0)
+- `spaccDiversity()` accumulates any user-supplied index along a spatial
+  ordering: at each step the cumulative community is passed to a function that
+  returns a scalar. Supports `knn`, `kncn`, `random`, `radius`, and
+  `collector` orderings, abundance or incidence input, and extra arguments.
+- Returns a `spacc_diversity` object inheriting `spacc`, so the standard
+  `summary()`, `plot()`, `as.data.frame()`, and `predict()` methods apply.
+
+### Arbitrary-Order Rarefaction (v0.8.0)
+- `rarefy()` now accepts any `q >= 0` (q = 0, 1, 2 keep their exact estimators;
+  other orders report the Hill number of order `q`) instead of silently
+  falling back to richness.
+
+
 # spacc 0.7.1
 
 ## New Features

@@ -145,12 +145,24 @@ cpp_kncn_metrics_parallel <- function(species_pa, x_coords, y_coords, n_cores = 
     .Call(`_spacc_cpp_kncn_metrics_parallel`, species_pa, x_coords, y_coords, n_cores, progress)
 }
 
+cpp_knn_order <- function(dist_mat, seeds) {
+    .Call(`_spacc_cpp_knn_order`, dist_mat, seeds)
+}
+
+cpp_kncn_order <- function(x, y, seeds) {
+    .Call(`_spacc_cpp_kncn_order`, x, y, seeds)
+}
+
 calc_mpd <- function(dist_mat, species_present, abundance_weighted = FALSE, abundances = numeric()) {
     .Call(`_spacc_calc_mpd`, dist_mat, species_present, abundance_weighted, abundances)
 }
 
 calc_mntd <- function(dist_mat, species_present, abundance_weighted = FALSE, abundances = numeric()) {
     .Call(`_spacc_calc_mntd`, dist_mat, species_present, abundance_weighted, abundances)
+}
+
+calc_rao <- function(dist_mat, abundances) {
+    .Call(`_spacc_calc_rao`, dist_mat, abundances)
 }
 
 calc_faith_pd <- function(edge, edge_length, n_tips, species_present) {
@@ -171,6 +183,10 @@ calc_fdis <- function(traits, species_present, abundances) {
 
 calc_fric_approx <- function(traits, species_present) {
     .Call(`_spacc_calc_fric_approx`, traits, species_present)
+}
+
+calc_rao_traits <- function(traits, abundances) {
+    .Call(`_spacc_calc_rao_traits`, traits, abundances)
 }
 
 cpp_func_knn_single <- function(species_mat, site_dist_mat, traits, seed, metrics) {

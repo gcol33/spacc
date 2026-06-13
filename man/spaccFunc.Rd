@@ -30,6 +30,8 @@ spaccFunc(
 \itemize{
 \item \code{"fdis"}: Functional Dispersion (mean distance to centroid)
 \item \code{"fric"}: Functional Richness (convex hull volume approximation)
+\item \code{"rao"}: Rao's quadratic entropy (abundance-weighted mean pairwise
+Euclidean trait distance)
 }}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}

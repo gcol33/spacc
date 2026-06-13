@@ -104,6 +104,30 @@ double calc_mntd(NumericMatrix dist_mat,
 }
 
 
+// Rao's quadratic entropy: Q = sum_i sum_j p_i p_j d_ij, with
+// p_i the relative abundance of species i and d_ij a pairwise distance
+// (phylogenetic or functional). Absent species contribute zero.
+// [[Rcpp::export]]
+double calc_rao(NumericMatrix dist_mat, NumericVector abundances) {
+  int n_species = dist_mat.nrow();
+
+  double total = 0.0;
+  for (int i = 0; i < n_species; i++) total += abundances[i];
+  if (total <= 0.0) return 0.0;
+
+  double q = 0.0;
+  for (int i = 0; i < n_species; i++) {
+    if (abundances[i] <= 0.0) continue;
+    double pi = abundances[i] / total;
+    for (int j = i + 1; j < n_species; j++) {
+      if (abundances[j] <= 0.0) continue;
+      q += pi * (abundances[j] / total) * dist_mat(i, j);
+    }
+  }
+  return 2.0 * q;  // symmetric pairs (i, j) and (j, i); diagonal is zero
+}
+
+
 // [[Rcpp::export]]
 double calc_faith_pd(IntegerMatrix edge,
                      NumericVector edge_length,
@@ -195,6 +219,8 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
       results(m, 0) = calc_mpd(phylo_dist_mat, species_present, false, NumericVector());
     } else if (metric == "mntd") {
       results(m, 0) = calc_mntd(phylo_dist_mat, species_present, false, NumericVector());
+    } else if (metric == "rao") {
+      results(m, 0) = calc_rao(phylo_dist_mat, NumericVector(cumulative.begin(), cumulative.end()));
     } else if (metric == "pd" && has_tree) {
       results(m, 0) = calc_faith_pd(edge_mat, edge_len, tree_n_tips, species_present);
     } else {
@@ -229,6 +255,8 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
         results(m, step) = calc_mpd(phylo_dist_mat, species_present, false, NumericVector());
       } else if (metric == "mntd") {
         results(m, step) = calc_mntd(phylo_dist_mat, species_present, false, NumericVector());
+      } else if (metric == "rao") {
+        results(m, step) = calc_rao(phylo_dist_mat, NumericVector(cumulative.begin(), cumulative.end()));
       } else if (metric == "pd" && has_tree) {
         results(m, step) = calc_faith_pd(edge_mat, edge_len, tree_n_tips, species_present);
       } else {
@@ -265,9 +293,11 @@ struct PhyloKnnWorker : public Worker {
   bool do_mpd;
   bool do_mntd;
   bool do_pd;
+  bool do_rao;
   int mpd_idx;
   int mntd_idx;
   int pd_idx;
+  int rao_idx;
   int n_metrics;
 
   const bool has_tree;
@@ -288,8 +318,8 @@ struct PhyloKnnWorker : public Worker {
     : species_pa(species_pa_), site_dist_mat(site_dist_mat_),
       phylo_dist_mat(phylo_dist_mat_), seeds(seeds_),
       results(results_),
-      do_mpd(false), do_mntd(false), do_pd(false),
-      mpd_idx(-1), mntd_idx(-1), pd_idx(-1),
+      do_mpd(false), do_mntd(false), do_pd(false), do_rao(false),
+      mpd_idx(-1), mntd_idx(-1), pd_idx(-1), rao_idx(-1),
       n_metrics(metric_names_.size()),
       has_tree(has_tree_),
       edge_mat(edge_mat_), edge_len(edge_len_), tree_n_tips(tree_n_tips_) {
@@ -297,6 +327,7 @@ struct PhyloKnnWorker : public Worker {
       if (metric_names_[m] == "mpd") { do_mpd = true; mpd_idx = m; }
       else if (metric_names_[m] == "mntd") { do_mntd = true; mntd_idx = m; }
       else if (metric_names_[m] == "pd") { do_pd = true; pd_idx = m; }
+      else if (metric_names_[m] == "rao") { do_rao = true; rao_idx = m; }
     }
   }
 
@@ -308,17 +339,20 @@ struct PhyloKnnWorker : public Worker {
     for (std::size_t s = begin; s < end; s++) {
       std::vector<bool> visited(n_sites, false);
       std::vector<bool> species_present(n_species, false);
+      std::vector<double> cumulative(n_species, 0.0);
 
       int current = seeds[s];
       visited[current] = true;
 
       for (int sp = 0; sp < n_species; sp++) {
-        if (species_pa(current, sp) > 0) species_present[sp] = true;
+        cumulative[sp] += species_pa(current, sp);
+        species_present[sp] = cumulative[sp] > 0;
       }
 
       if (do_mpd)  results(s * n_metrics + mpd_idx, 0) = calc_mpd_internal(species_present, n_species);
       if (do_mntd) results(s * n_metrics + mntd_idx, 0) = calc_mntd_internal(species_present, n_species);
       if (do_pd && has_tree) results(s * n_metrics + pd_idx, 0) = calc_pd_internal(species_present);
+      if (do_rao) results(s * n_metrics + rao_idx, 0) = calc_rao_internal(cumulative, n_species);
 
       for (int step = 1; step < n_sites; step++) {
         double min_dist = INF;
@@ -334,12 +368,14 @@ struct PhyloKnnWorker : public Worker {
         visited[current] = true;
 
         for (int sp = 0; sp < n_species; sp++) {
-          if (species_pa(current, sp) > 0) species_present[sp] = true;
+          cumulative[sp] += species_pa(current, sp);
+          species_present[sp] = cumulative[sp] > 0;
         }
 
         if (do_mpd)  results(s * n_metrics + mpd_idx, step) = calc_mpd_internal(species_present, n_species);
         if (do_mntd) results(s * n_metrics + mntd_idx, step) = calc_mntd_internal(species_present, n_species);
         if (do_pd && has_tree) results(s * n_metrics + pd_idx, step) = calc_pd_internal(species_present);
+        if (do_rao) results(s * n_metrics + rao_idx, step) = calc_rao_internal(cumulative, n_species);
       }
     }
   }
@@ -386,6 +422,24 @@ private:
       sum_nnd += min_d;
     }
     return sum_nnd / present.size();
+  }
+
+  double calc_rao_internal(const std::vector<double>& abundances,
+                           int n_species) const {
+    double total = 0.0;
+    for (int i = 0; i < n_species; i++) total += abundances[i];
+    if (total <= 0.0) return 0.0;
+
+    double q = 0.0;
+    for (int i = 0; i < n_species; i++) {
+      if (abundances[i] <= 0.0) continue;
+      double pi = abundances[i] / total;
+      for (int j = i + 1; j < n_species; j++) {
+        if (abundances[j] <= 0.0) continue;
+        q += pi * (abundances[j] / total) * phylo_dist_mat(i, j);
+      }
+    }
+    return 2.0 * q;
   }
 
   double calc_pd_internal(const std::vector<bool>& species_present) const {
@@ -584,6 +638,35 @@ double calc_fric_approx(NumericMatrix traits,
 }
 
 
+// Functional Rao's quadratic entropy using Euclidean trait distance:
+// Q = sum_i sum_j p_i p_j ||t_i - t_j||, with p the relative abundances.
+// [[Rcpp::export]]
+double calc_rao_traits(NumericMatrix traits, NumericVector abundances) {
+  int n_species = traits.nrow();
+  int n_traits = traits.ncol();
+
+  double total = 0.0;
+  for (int i = 0; i < n_species; i++) total += abundances[i];
+  if (total <= 0.0) return 0.0;
+
+  double q = 0.0;
+  for (int i = 0; i < n_species; i++) {
+    if (abundances[i] <= 0.0) continue;
+    double pi = abundances[i] / total;
+    for (int j = i + 1; j < n_species; j++) {
+      if (abundances[j] <= 0.0) continue;
+      double d2 = 0.0;
+      for (int t = 0; t < n_traits; t++) {
+        double diff = traits(i, t) - traits(j, t);
+        d2 += diff * diff;
+      }
+      q += pi * (abundances[j] / total) * std::sqrt(d2);
+    }
+  }
+  return 2.0 * q;
+}
+
+
 // [[Rcpp::export]]
 List cpp_func_knn_single(IntegerMatrix species_mat,
                          NumericMatrix site_dist_mat,
@@ -616,6 +699,8 @@ List cpp_func_knn_single(IntegerMatrix species_mat,
       results(m, 0) = calc_fdis(traits, species_present, abundances);
     } else if (metric == "fric") {
       results(m, 0) = calc_fric_approx(traits, species_present);
+    } else if (metric == "rao") {
+      results(m, 0) = calc_rao_traits(traits, abundances);
     } else {
       results(m, 0) = NA_REAL;
     }
@@ -646,6 +731,8 @@ List cpp_func_knn_single(IntegerMatrix species_mat,
         results(m, step) = calc_fdis(traits, species_present, abundances);
       } else if (metric == "fric") {
         results(m, step) = calc_fric_approx(traits, species_present);
+      } else if (metric == "rao") {
+        results(m, step) = calc_rao_traits(traits, abundances);
       } else {
         results(m, step) = NA_REAL;
       }
@@ -677,8 +764,10 @@ struct FuncKnnWorker : public Worker {
 
   bool do_fdis;
   bool do_fric;
+  bool do_rao;
   int fdis_idx;
   int fric_idx;
+  int rao_idx;
   int n_metrics;
 
   FuncKnnWorker(const IntegerMatrix& species_mat_,
@@ -689,12 +778,13 @@ struct FuncKnnWorker : public Worker {
                 NumericMatrix& results_)
     : species_mat(species_mat_), site_dist_mat(site_dist_mat_),
       traits(traits_), seeds(seeds_), results(results_),
-      do_fdis(false), do_fric(false),
-      fdis_idx(-1), fric_idx(-1),
+      do_fdis(false), do_fric(false), do_rao(false),
+      fdis_idx(-1), fric_idx(-1), rao_idx(-1),
       n_metrics(metric_names_.size()) {
     for (size_t m = 0; m < metric_names_.size(); m++) {
       if (metric_names_[m] == "fdis") { do_fdis = true; fdis_idx = m; }
       else if (metric_names_[m] == "fric") { do_fric = true; fric_idx = m; }
+      else if (metric_names_[m] == "rao") { do_rao = true; rao_idx = m; }
     }
   }
 
@@ -721,6 +811,7 @@ struct FuncKnnWorker : public Worker {
 
       if (do_fdis) results(s * n_metrics + fdis_idx, 0) = calc_fdis_internal(species_present, abundances, n_species, n_traits);
       if (do_fric) results(s * n_metrics + fric_idx, 0) = calc_fric_internal(species_present, n_species, n_traits);
+      if (do_rao) results(s * n_metrics + rao_idx, 0) = calc_rao_traits_internal(abundances, n_species, n_traits);
 
       for (int step = 1; step < n_sites; step++) {
         double min_dist = INF;
@@ -743,6 +834,7 @@ struct FuncKnnWorker : public Worker {
 
         if (do_fdis) results(s * n_metrics + fdis_idx, step) = calc_fdis_internal(species_present, abundances, n_species, n_traits);
         if (do_fric) results(s * n_metrics + fric_idx, step) = calc_fric_internal(species_present, n_species, n_traits);
+        if (do_rao) results(s * n_metrics + rao_idx, step) = calc_rao_traits_internal(abundances, n_species, n_traits);
       }
     }
   }
@@ -781,6 +873,29 @@ private:
       sum_dist += std::sqrt(dist_sq) * (abundances[sp] / total_abund);
     }
     return sum_dist;
+  }
+
+  double calc_rao_traits_internal(const std::vector<double>& abundances,
+                                  int n_species, int n_traits) const {
+    double total = 0.0;
+    for (int i = 0; i < n_species; i++) total += abundances[i];
+    if (total <= 0.0) return 0.0;
+
+    double q = 0.0;
+    for (int i = 0; i < n_species; i++) {
+      if (abundances[i] <= 0.0) continue;
+      double pi = abundances[i] / total;
+      for (int j = i + 1; j < n_species; j++) {
+        if (abundances[j] <= 0.0) continue;
+        double d2 = 0.0;
+        for (int t = 0; t < n_traits; t++) {
+          double diff = traits(i, t) - traits(j, t);
+          d2 += diff * diff;
+        }
+        q += pi * (abundances[j] / total) * std::sqrt(d2);
+      }
+    }
+    return 2.0 * q;
   }
 
   double calc_fric_internal(const std::vector<bool>& species_present,

@@ -32,6 +32,9 @@ a pairwise phylogenetic distance matrix.}
 \item \code{"mpd"}: Mean Pairwise Distance
 \item \code{"mntd"}: Mean Nearest Taxon Distance
 \item \code{"pd"}: Faith's Phylogenetic Diversity (requires tree, not distance matrix)
+\item \code{"rao"}: Rao's quadratic entropy (abundance-weighted mean pairwise
+phylogenetic distance). Pass abundance data for weighting; with
+presence/absence it reduces to the equal-weight form.
 }}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}

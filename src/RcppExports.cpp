@@ -543,6 +543,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_knn_order
+IntegerMatrix cpp_knn_order(NumericMatrix dist_mat, IntegerVector seeds);
+RcppExport SEXP _spacc_cpp_knn_order(SEXP dist_matSEXP, SEXP seedsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type seeds(seedsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_knn_order(dist_mat, seeds));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_kncn_order
+IntegerMatrix cpp_kncn_order(NumericVector x, NumericVector y, IntegerVector seeds);
+RcppExport SEXP _spacc_cpp_kncn_order(SEXP xSEXP, SEXP ySEXP, SEXP seedsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type seeds(seedsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_kncn_order(x, y, seeds));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calc_mpd
 double calc_mpd(NumericMatrix dist_mat, LogicalVector species_present, bool abundance_weighted, NumericVector abundances);
 RcppExport SEXP _spacc_calc_mpd(SEXP dist_matSEXP, SEXP species_presentSEXP, SEXP abundance_weightedSEXP, SEXP abundancesSEXP) {
@@ -568,6 +593,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type abundance_weighted(abundance_weightedSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
     rcpp_result_gen = Rcpp::wrap(calc_mntd(dist_mat, species_present, abundance_weighted, abundances));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_rao
+double calc_rao(NumericMatrix dist_mat, NumericVector abundances);
+RcppExport SEXP _spacc_calc_rao(SEXP dist_matSEXP, SEXP abundancesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_rao(dist_mat, abundances));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -645,6 +682,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
     Rcpp::traits::input_parameter< LogicalVector >::type species_present(species_presentSEXP);
     rcpp_result_gen = Rcpp::wrap(calc_fric_approx(traits, species_present));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_rao_traits
+double calc_rao_traits(NumericMatrix traits, NumericVector abundances);
+RcppExport SEXP _spacc_calc_rao_traits(SEXP traitsSEXP, SEXP abundancesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_rao_traits(traits, abundances));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -758,13 +807,17 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_distance_decay_parallel", (DL_FUNC) &_spacc_cpp_distance_decay_parallel, 6},
     {"_spacc_cpp_knn_metrics_parallel", (DL_FUNC) &_spacc_cpp_knn_metrics_parallel, 4},
     {"_spacc_cpp_kncn_metrics_parallel", (DL_FUNC) &_spacc_cpp_kncn_metrics_parallel, 5},
+    {"_spacc_cpp_knn_order", (DL_FUNC) &_spacc_cpp_knn_order, 2},
+    {"_spacc_cpp_kncn_order", (DL_FUNC) &_spacc_cpp_kncn_order, 3},
     {"_spacc_calc_mpd", (DL_FUNC) &_spacc_calc_mpd, 4},
     {"_spacc_calc_mntd", (DL_FUNC) &_spacc_calc_mntd, 4},
+    {"_spacc_calc_rao", (DL_FUNC) &_spacc_calc_rao, 2},
     {"_spacc_calc_faith_pd", (DL_FUNC) &_spacc_calc_faith_pd, 4},
     {"_spacc_cpp_phylo_knn_single", (DL_FUNC) &_spacc_cpp_phylo_knn_single, 8},
     {"_spacc_cpp_phylo_knn_parallel", (DL_FUNC) &_spacc_cpp_phylo_knn_parallel, 10},
     {"_spacc_calc_fdis", (DL_FUNC) &_spacc_calc_fdis, 3},
     {"_spacc_calc_fric_approx", (DL_FUNC) &_spacc_calc_fric_approx, 2},
+    {"_spacc_calc_rao_traits", (DL_FUNC) &_spacc_calc_rao_traits, 2},
     {"_spacc_cpp_func_knn_single", (DL_FUNC) &_spacc_cpp_func_knn_single, 5},
     {"_spacc_cpp_func_knn_parallel", (DL_FUNC) &_spacc_cpp_func_knn_parallel, 7},
     {"_spacc_cpp_random_single", (DL_FUNC) &_spacc_cpp_random_single, 2},
