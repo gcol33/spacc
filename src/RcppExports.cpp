@@ -623,12 +623,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_phylo_knn_single
-List cpp_phylo_knn_single(IntegerMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int seed, CharacterVector metrics, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
+List cpp_phylo_knn_single(NumericMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int seed, CharacterVector metrics, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
 RcppExport SEXP _spacc_cpp_phylo_knn_single(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP seedSEXP, SEXP metricsSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type species_pa(species_paSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type phylo_dist_mat(phylo_dist_matSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
@@ -641,12 +641,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_phylo_knn_parallel
-List cpp_phylo_knn_parallel(IntegerMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int n_seeds, CharacterVector metrics, int n_cores, bool progress, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
+List cpp_phylo_knn_parallel(NumericMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int n_seeds, CharacterVector metrics, int n_cores, bool progress, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
 RcppExport SEXP _spacc_cpp_phylo_knn_parallel(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP n_seedsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type species_pa(species_paSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type phylo_dist_mat(phylo_dist_matSEXP);
     Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
@@ -698,12 +698,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_func_knn_single
-List cpp_func_knn_single(IntegerMatrix species_mat, NumericMatrix site_dist_mat, NumericMatrix traits, int seed, CharacterVector metrics);
+List cpp_func_knn_single(NumericMatrix species_mat, NumericMatrix site_dist_mat, NumericMatrix traits, int seed, CharacterVector metrics);
 RcppExport SEXP _spacc_cpp_func_knn_single(SEXP species_matSEXP, SEXP site_dist_matSEXP, SEXP traitsSEXP, SEXP seedSEXP, SEXP metricsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type species_mat(species_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
@@ -713,12 +713,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_func_knn_parallel
-List cpp_func_knn_parallel(IntegerMatrix species_mat, NumericMatrix site_dist_mat, NumericMatrix traits, int n_seeds, CharacterVector metrics, int n_cores, bool progress);
+List cpp_func_knn_parallel(NumericMatrix species_mat, NumericMatrix site_dist_mat, NumericMatrix traits, int n_seeds, CharacterVector metrics, int n_cores, bool progress);
 RcppExport SEXP _spacc_cpp_func_knn_parallel(SEXP species_matSEXP, SEXP site_dist_matSEXP, SEXP traitsSEXP, SEXP n_seedsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type species_mat(species_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
     Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);

@@ -175,7 +175,7 @@ double calc_faith_pd(IntegerMatrix edge,
 
 
 // [[Rcpp::export]]
-List cpp_phylo_knn_single(IntegerMatrix species_pa,
+List cpp_phylo_knn_single(NumericMatrix species_pa,
                           NumericMatrix site_dist_mat,
                           NumericMatrix phylo_dist_mat,
                           int seed,
@@ -200,7 +200,7 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
   NumericMatrix results(n_metrics, n_sites);
 
   std::vector<bool> visited(n_sites, false);
-  std::vector<int> cumulative(n_species, 0);
+  std::vector<double> cumulative(n_species, 0.0);
   LogicalVector species_present(n_species);
 
   int current = seed;
@@ -284,7 +284,7 @@ List cpp_phylo_knn_single(IntegerMatrix species_pa,
 // Uses a single packed RMatrix<double> for output (n_seeds * n_metrics rows, n_sites cols)
 // to match the working KnnWorker pattern exactly.
 struct PhyloKnnWorker : public Worker {
-  const RMatrix<int> species_pa;
+  const RMatrix<double> species_pa;
   const RMatrix<double> site_dist_mat;
   const RMatrix<double> phylo_dist_mat;
   const RVector<int> seeds;
@@ -305,7 +305,7 @@ struct PhyloKnnWorker : public Worker {
   const RVector<double> edge_len;
   const int tree_n_tips;
 
-  PhyloKnnWorker(const IntegerMatrix& species_pa_,
+  PhyloKnnWorker(const NumericMatrix& species_pa_,
                  const NumericMatrix& site_dist_mat_,
                  const NumericMatrix& phylo_dist_mat_,
                  const IntegerVector& seeds_,
@@ -474,7 +474,7 @@ private:
 
 
 // [[Rcpp::export]]
-List cpp_phylo_knn_parallel(IntegerMatrix species_pa,
+List cpp_phylo_knn_parallel(NumericMatrix species_pa,
                             NumericMatrix site_dist_mat,
                             NumericMatrix phylo_dist_mat,
                             int n_seeds,
@@ -668,7 +668,7 @@ double calc_rao_traits(NumericMatrix traits, NumericVector abundances) {
 
 
 // [[Rcpp::export]]
-List cpp_func_knn_single(IntegerMatrix species_mat,
+List cpp_func_knn_single(NumericMatrix species_mat,
                          NumericMatrix site_dist_mat,
                          NumericMatrix traits,
                          int seed,
@@ -756,7 +756,7 @@ List cpp_func_knn_single(IntegerMatrix species_mat,
 // Worker struct for parallel functional kNN
 // Uses a single packed RMatrix<double> for output to match KnnWorker pattern.
 struct FuncKnnWorker : public Worker {
-  const RMatrix<int> species_mat;
+  const RMatrix<double> species_mat;
   const RMatrix<double> site_dist_mat;
   const RMatrix<double> traits;
   const RVector<int> seeds;
@@ -770,7 +770,7 @@ struct FuncKnnWorker : public Worker {
   int rao_idx;
   int n_metrics;
 
-  FuncKnnWorker(const IntegerMatrix& species_mat_,
+  FuncKnnWorker(const NumericMatrix& species_mat_,
                 const NumericMatrix& site_dist_mat_,
                 const NumericMatrix& traits_,
                 const IntegerVector& seeds_,
@@ -930,7 +930,7 @@ private:
 
 
 // [[Rcpp::export]]
-List cpp_func_knn_parallel(IntegerMatrix species_mat,
+List cpp_func_knn_parallel(NumericMatrix species_mat,
                            NumericMatrix site_dist_mat,
                            NumericMatrix traits,
                            int n_seeds,

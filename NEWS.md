@@ -1,3 +1,14 @@
+# spacc 0.8.1
+
+## Improvements
+
+- `spaccPhylo()` and `spaccFunc()` now accept non-integer abundances (e.g.
+  cover or biomass) for Rao's Q and FDis weighting. The phylogenetic and
+  functional accumulation backends use double-precision community matrices
+  instead of truncating to integers. Presence-based metrics (MPD/MNTD/PD/FRic)
+  are unaffected.
+
+
 # spacc 0.8.0
 
 ## New Features

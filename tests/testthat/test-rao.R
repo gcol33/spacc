@@ -66,6 +66,49 @@ test_that("spaccPhylo rao does not alter mpd/mntd", {
 })
 
 
+test_that("spaccPhylo rao uses non-integer abundances (no truncation)", {
+  skip_if_not_installed("ape")
+  set.seed(41)
+  tree <- ape::rtree(6)
+  coords <- data.frame(x = runif(10), y = runif(10))
+  # fractional abundances (e.g. cover in (0, 1)) that would truncate to 0
+  species <- matrix(runif(10 * 6, 0, 1), nrow = 10)
+  colnames(species) <- tree$tip.label
+
+  res <- spaccPhylo(species, coords, tree, metric = "rao",
+                    n_seeds = 3, progress = FALSE)
+  rao_mat <- res$curves[[1]]
+  phylo_d <- as.matrix(ape::cophenetic.phylo(tree))[colnames(species), colnames(species)]
+  full <- colSums(species)
+
+  # final step uses the fractional totals, not a truncated-to-integer version
+  expect_equal(round(unique(rao_mat[, 10]), 8),
+               round(spacc:::calc_rao(phylo_d, full), 8))
+  expect_gt(unique(rao_mat[, 10]), 0)
+  expect_false(isTRUE(all.equal(
+    spacc:::calc_rao(phylo_d, full),
+    spacc:::calc_rao(phylo_d, colSums(floor(species)))  # truncated -> all zero
+  )))
+})
+
+
+test_that("spaccFunc rao uses non-integer abundances", {
+  set.seed(42)
+  coords <- data.frame(x = runif(10), y = runif(10))
+  species <- matrix(runif(10 * 5, 0, 1), nrow = 10)
+  traits <- matrix(rnorm(5 * 2), nrow = 5)
+  rownames(traits) <- paste0("sp", 1:5)
+  colnames(species) <- rownames(traits)
+
+  res <- spaccFunc(species, coords, traits, metric = "rao",
+                   n_seeds = 3, progress = FALSE)
+  full <- colSums(species)
+  expect_equal(round(unique(res$curves[[1]][, 10]), 8),
+               round(spacc:::calc_rao_traits(traits, full), 8))
+  expect_gt(unique(res$curves[[1]][, 10]), 0)
+})
+
+
 test_that("spaccFunc rao final step matches calc_rao_traits", {
   set.seed(12)
   coords <- data.frame(x = runif(15), y = runif(15))

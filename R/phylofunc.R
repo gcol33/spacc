@@ -128,11 +128,11 @@ spaccPhylo <- function(x,
 
   stopifnot("Phylo distance matrix must match species" = ncol(phylo_dist_mat) == n_species)
 
-  # Keep abundances as integers. Presence metrics (mpd/mntd/pd) read
+  # Keep abundances as doubles. Presence metrics (mpd/mntd/pd) read
   # cumulative > 0, so binarising is unnecessary; Rao uses the abundance
-  # weights. (Matches spaccFunc input handling.)
+  # weights and supports non-integer values (e.g. cover, biomass).
   species_pa <- x
-  storage.mode(species_pa) <- "integer"
+  storage.mode(species_pa) <- "double"
 
   if (progress) cli_info(sprintf("Computing phylogenetic diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
@@ -303,8 +303,9 @@ spaccFunc <- function(x,
 
   stopifnot("Traits must have one row per species" = nrow(traits) == n_species)
 
-  # Keep abundance data
-  storage.mode(x) <- "integer"
+  # Keep abundance data as doubles (supports non-integer abundances,
+  # e.g. cover or biomass, for FDis and Rao weighting)
+  storage.mode(x) <- "double"
 
   if (progress) cli_info(sprintf("Computing functional diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
