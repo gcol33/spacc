@@ -22,7 +22,8 @@ spacc(
   time = NULL,
   w_space = 1,
   w_time = 1,
-  seed = NULL
+  seed = NULL,
+  order = NULL
 )
 }
 \arguments{
@@ -110,6 +111,17 @@ Default 1.}
 Default 1.}
 
 \item{seed}{Integer. Random seed for reproducibility. Default \code{NULL}.}
+
+\item{order}{Optional user-defined accumulation order(s). When supplied,
+\code{method} is ignored and sites are accumulated in the given sequence(s)
+(no distance computation or seed sampling). Can be:
+\itemize{
+\item A numeric vector of length \code{nrow(x)}: a single ordering (one curve).
+\item A list of such vectors, or a matrix with one ordering per row: each
+produces a curve, treated like seeds for uncertainty quantification.
+Each ordering must be a permutation of \code{seq_len(nrow(x))}. Cannot be
+combined with \code{support} or \code{time}. Default \code{NULL}.
+}}
 }
 \value{
 When \code{groups = NULL}, an object of class \code{spacc} containing:

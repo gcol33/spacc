@@ -92,3 +92,21 @@ IntegerMatrix cpp_random_parallel(IntegerMatrix species_pa,
     [&](int s) { IntegerVector order = orders(s, _); return cpp_random_single(species_pa, order); });
   return curves;
 }
+
+
+// [[Rcpp::export]]
+IntegerMatrix cpp_order_parallel(IntegerMatrix species_pa,
+                                 IntegerMatrix orders,
+                                 int n_cores = 1,
+                                 bool progress = false) {
+  int n_sites = species_pa.nrow();
+  int n_orders = orders.nrow();
+  IntegerMatrix curves(n_orders, n_sites);
+
+  // Reuse the random-accumulation worker with caller-supplied orderings
+  // (0-indexed, one ordering per row) instead of internally generated ones.
+  RandomWorker worker(species_pa, orders, curves);
+  dispatch_parallel(n_orders, n_cores, worker, curves,
+    [&](int s) { IntegerVector order = orders(s, _); return cpp_random_single(species_pa, order); });
+  return curves;
+}

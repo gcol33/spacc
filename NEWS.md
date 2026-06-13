@@ -1,3 +1,17 @@
+# spacc 0.7.1
+
+## New Features
+
+### User-Defined Accumulation Order (v0.7.1)
+- `spacc()` gains an `order` argument for supplying an explicit accumulation
+  sequence, bypassing distance computation and seed sampling.
+  - Accepts a single ordering vector, a list of vectors, or a matrix with one
+    ordering per row (each row treated like a seed for uncertainty bounds).
+  - Each ordering must be a permutation of `seq_len(nrow(x))`.
+  - Backed by `cpp_order_parallel()`, which reuses the random-accumulation
+    worker with caller-supplied orderings.
+
+
 # spacc 0.7.0
 
 ## New Features

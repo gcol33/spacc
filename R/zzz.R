@@ -33,7 +33,7 @@ utils::globalVariables(c(
   "cpp_knn_metrics_parallel", "cpp_knn_parallel", "cpp_knn_parallel_seeds", "cpp_knn_single",
   "cpp_phylo_knn_parallel", "cpp_phylo_knn_single",
   "cpp_radius_parallel", "cpp_radius_single",
-  "cpp_random_parallel", "cpp_random_single",
+  "cpp_random_parallel", "cpp_random_single", "cpp_order_parallel",
   "cpp_wavefront_parallel", "cpp_wavefront_single",
   "interpolate_at_coverage",
   "cpp_knn_hill_coverage_parallel",

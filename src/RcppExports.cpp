@@ -706,6 +706,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_order_parallel
+IntegerMatrix cpp_order_parallel(IntegerMatrix species_pa, IntegerMatrix orders, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_order_parallel(SEXP species_paSEXP, SEXP ordersSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_order_parallel(species_pa, orders, n_cores, progress));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_beta_knn_single", (DL_FUNC) &_spacc_cpp_beta_knn_single, 4},
@@ -755,6 +769,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_func_knn_parallel", (DL_FUNC) &_spacc_cpp_func_knn_parallel, 7},
     {"_spacc_cpp_random_single", (DL_FUNC) &_spacc_cpp_random_single, 2},
     {"_spacc_cpp_random_parallel", (DL_FUNC) &_spacc_cpp_random_parallel, 4},
+    {"_spacc_cpp_order_parallel", (DL_FUNC) &_spacc_cpp_order_parallel, 4},
     {NULL, NULL, 0}
 };
 

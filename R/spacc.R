@@ -19,6 +19,14 @@
 #'   - `"gaussian"`: Probabilistic selection weighted by distance
 #'   - `"cone"`: Directional expansion within angular constraint
 #'   - `"collector"`: Sites in data order (no randomization, single curve)
+#' @param order Optional user-defined accumulation order(s). When supplied,
+#'   `method` is ignored and sites are accumulated in the given sequence(s)
+#'   (no distance computation or seed sampling). Can be:
+#'   - A numeric vector of length `nrow(x)`: a single ordering (one curve).
+#'   - A list of such vectors, or a matrix with one ordering per row: each
+#'     produces a curve, treated like seeds for uncertainty quantification.
+#'   Each ordering must be a permutation of `seq_len(nrow(x))`. Cannot be
+#'   combined with `support` or `time`. Default `NULL`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param support Optional. Spatial support for core/halo classification via
 #'   [areaOfEffect::aoe()]. Can be:
@@ -113,7 +121,8 @@ spacc <- function(x,
                   time = NULL,
                   w_space = 1,
                   w_time = 1,
-                  seed = NULL) {
+                  seed = NULL,
+                  order = NULL) {
 
   method <- match.arg(method)
   distance <- match.arg(distance)
@@ -155,6 +164,15 @@ spacc <- function(x,
     "n_seeds must be positive integer" = n_seeds > 0
   )
 
+  if (!is.null(order)) {
+    if (!is.null(support)) {
+      stop("`order` cannot be combined with `support`; user-defined orderings index the full dataset.", call. = FALSE)
+    }
+    if (!is.null(time)) {
+      stop("`order` cannot be combined with `time`; user-defined orderings already fix the accumulation sequence.", call. = FALSE)
+    }
+  }
+
   # Handle groups: split species by group and recurse
   if (!is.null(groups)) {
     groups <- as.character(groups)
@@ -173,7 +191,7 @@ spacc <- function(x,
             parallel = parallel, n_cores = n_cores,
             progress = FALSE, groups = NULL,
             time = time, w_space = w_space, w_time = w_time,
-            seed = seed)
+            seed = seed, order = order)
     })
     names(objects) <- group_levels
 
@@ -433,7 +451,15 @@ spacc <- function(x,
 
   # Collector method: no simulation needed
   backend_label <- NA_character_
-  if (method == "collector") {
+  if (!is.null(order)) {
+    # User-defined accumulation order(s): no distances or seeds needed
+    orders_mat <- .build_orders(order, n_sites)
+    if (progress) cli_info(sprintf("Running user-defined accumulation (%d ordering%s)",
+                                    nrow(orders_mat), if (nrow(orders_mat) == 1L) "" else "s"))
+    curves <- cpp_order_parallel(species_pa, orders_mat, n_cores, progress)
+    n_seeds <- nrow(orders_mat)
+    method <- "user"
+  } else if (method == "collector") {
     curve <- cpp_collector_single(species_pa)
     curves <- matrix(curve, nrow = 1)
     n_seeds <- 1L
@@ -819,6 +845,47 @@ plot.spacc_decay <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
       subtitle = sprintf("%d focal points", x$n_seeds)
     ) +
     spacc_theme()
+}
+
+
+#' Validate and normalise user-supplied accumulation orders
+#'
+#' Accepts a single ordering vector, a list of vectors, or a matrix (one
+#' ordering per row) and returns a 0-based integer matrix suitable for
+#' `cpp_order_parallel()`. Each ordering must be a permutation of
+#' `seq_len(n_sites)`.
+#' @noRd
+.build_orders <- function(order, n_sites) {
+  if (is.matrix(order)) {
+    orders_mat <- order
+  } else if (is.list(order)) {
+    lens <- vapply(order, length, integer(1))
+    if (any(lens != n_sites)) {
+      stop(sprintf("Each ordering in `order` must have length %d (number of sites)", n_sites),
+           call. = FALSE)
+    }
+    orders_mat <- do.call(rbind, order)
+  } else {
+    orders_mat <- matrix(order, nrow = 1)
+  }
+
+  if (ncol(orders_mat) != n_sites) {
+    stop(sprintf("`order` must contain %d site indices per ordering, got %d",
+                 n_sites, ncol(orders_mat)), call. = FALSE)
+  }
+
+  expected <- seq_len(n_sites)
+  for (r in seq_len(nrow(orders_mat))) {
+    o <- orders_mat[r, ]
+    if (anyNA(o) || !setequal(o, expected)) {
+      stop(sprintf("Ordering %d in `order` must be a permutation of 1:%d (each site exactly once)",
+                   r, n_sites), call. = FALSE)
+    }
+  }
+
+  orders_mat <- orders_mat - 1L  # convert to 0-based for C++
+  storage.mode(orders_mat) <- "integer"
+  orders_mat
 }
 
 

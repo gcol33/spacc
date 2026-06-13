@@ -189,3 +189,7 @@ cpp_random_parallel <- function(species_pa, n_seeds, n_cores = 1L, progress = FA
     .Call(`_spacc_cpp_random_parallel`, species_pa, n_seeds, n_cores, progress)
 }
 
+cpp_order_parallel <- function(species_pa, orders, n_cores = 1L, progress = FALSE) {
+    .Call(`_spacc_cpp_order_parallel`, species_pa, orders, n_cores, progress)
+}
+
