@@ -172,6 +172,73 @@ func_acc <- spaccFunc(species, coords, traits,
 plot(func_acc)
 ```
 
+## Rao's Quadratic Entropy
+
+Rao's quadratic entropy combines relative abundance with the pairwise
+distance between species, giving an abundance-weighted measure of
+phylogenetic or functional dispersion (Rao 1982). Both `spaccPhylo()` and
+`spaccFunc()` expose it through `metric = "rao"`.
+
+```{r rao-phylo, eval = requireNamespace("ape", quietly = TRUE)}
+phylo_rao <- spaccPhylo(species, coords, tree,
+                        metric = "rao",
+                        n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-rao-phylo, fig.cap = "Phylogenetic Rao's Q accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
+plot(phylo_rao)
+```
+
+For functional Rao the species distance is the Euclidean distance in
+trait space:
+
+```{r rao-func}
+func_rao <- spaccFunc(species, coords, traits,
+                      metric = "rao",
+                      n_seeds = 20, progress = FALSE)
+```
+
+With presence/absence data Rao's Q reduces to an equal-weight form; with
+abundances it weights each species pair by the product of relative
+abundances. The phylogenetic and functional backends carry abundances in
+double precision, so continuous values such as percent cover or biomass
+are used directly:
+
+```{r rao-cover}
+cover <- species / max(species)   # fractional values in [0, 1]
+func_rao_cover <- spaccFunc(cover, coords, traits,
+                            metric = "rao", n_seeds = 10, progress = FALSE)
+tail(as.data.frame(func_rao_cover), 3)
+```
+
+## Custom Diversity Metrics
+
+`spaccDiversity()` accumulates any user-supplied index along a spatial
+ordering. At each step the cumulative community is passed to a function
+that returns a single number, so indices spacc does not implement
+directly can still be tracked along the accumulation curve.
+
+```{r custom-metric}
+# Shannon entropy of the cumulative community
+shannon <- function(comm) {
+  p <- comm[comm > 0] / sum(comm)
+  -sum(p * log(p))
+}
+
+div <- spaccDiversity(species, coords, shannon,
+                      method = "knn", n_seeds = 20, progress = FALSE)
+```
+
+```{r plot-custom, fig.cap = "Custom (Shannon entropy) accumulation curve."}
+plot(div) + ggplot2::labs(y = "Cumulative Shannon entropy")
+```
+
+The function receives a named vector of cumulative abundances (or 0/1
+incidences when `incidence = TRUE`), plus any extra arguments passed
+through `...`. The result inherits the `spacc` class, so `summary()`,
+`plot()`, and `as.data.frame()` apply. Available orderings are `"knn"`,
+`"kncn"`, `"random"`, `"radius"`, and `"collector"`.
+
 ## Coverage-Based Rarefaction
 
 `spaccCoverage()` computes accumulation curves with sample coverage
@@ -206,3 +273,5 @@ summary(interp)
   Biological Conservation, 61, 1-10.
 - Jost, L. (2007). Partitioning diversity into independent alpha and beta
   components. Ecology, 88, 2427-2439.
+- Rao, C.R. (1982). Diversity and dissimilarity coefficients: a unified
+  approach. Theoretical Population Biology, 21, 24-43.

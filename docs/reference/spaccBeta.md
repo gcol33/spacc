@@ -117,8 +117,7 @@ of beta diversity. Global Ecology and Biogeography, 19, 134-143.
 
 ## See also
 
-[`betapart::beta.pair()`](https://rdrr.io/pkg/betapart/man/beta.pair.html)
-for pairwise beta diversity
+`betapart::beta.pair()` for pairwise beta diversity
 
 ## Examples
 

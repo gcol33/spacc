@@ -6,6 +6,8 @@ Main spatial accumulation functions
 
 - [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) :
   Spatial Species Accumulation Curves
+- [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
+  : Spatial Accumulation of a Custom Diversity Metric
 - [`wavefront()`](https://gillescolling.com/spacc/reference/wavefront.md)
   : Wavefront Expansion Accumulation
 - [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md)

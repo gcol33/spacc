@@ -49,6 +49,7 @@ reference:
   desc: Main spatial accumulation functions
   contents:
   - spacc
+  - spaccDiversity
   - wavefront
   - distanceDecay
   - distances

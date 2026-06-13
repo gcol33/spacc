@@ -48,6 +48,10 @@ spaccPhylo(
   - `"pd"`: Faith's Phylogenetic Diversity (requires tree, not distance
     matrix)
 
+  - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
+    phylogenetic distance). Pass abundance data for weighting; with
+    presence/absence it reduces to the equal-weight form.
+
 - n_seeds:
 
   Integer. Number of random starting points. Default 50.
@@ -123,9 +127,7 @@ communities: an example for rain forest trees. American Naturalist, 156,
 
 ## See also
 
-[`picante::mpd()`](https://rdrr.io/pkg/picante/man/mpd.html),
-[`picante::mntd()`](https://rdrr.io/pkg/picante/man/mntd.html),
-[`picante::pd()`](https://rdrr.io/pkg/picante/man/pd.html)
+`picante::mpd()`, `picante::mntd()`, `picante::pd()`
 
 ## Examples
 

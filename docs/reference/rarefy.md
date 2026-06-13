@@ -23,8 +23,10 @@ rarefy(x, n_individuals = NULL, q = 0, n_boot = 100L)
 
 - q:
 
-  Numeric. Order of Hill number. Default 0 (species richness). q=1 gives
-  rarefied Shannon diversity, q=2 gives rarefied Simpson diversity.
+  Numeric. Order of Hill number; any value `>= 0`. Default 0 (species
+  richness). q=1 gives rarefied Shannon diversity, q=2 gives rarefied
+  Simpson diversity. q=0, 1, and 2 use exact estimators; other orders
+  report the Hill number of order `q` of the sampled composition.
 
 - n_boot:
 

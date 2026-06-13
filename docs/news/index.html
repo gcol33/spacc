@@ -5,7 +5,7 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet"><meta property="og:title" content="Changelog"></head><body><p>
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet"><meta property="og:title" content="Changelog"></head><body><p>
 
 
 
@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,55 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.7.0" id="spacc-070-development">spacc 0.7.0 (development)<a class="anchor" aria-label="anchor" href="#spacc-070-development"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.8.1" id="spacc-081">spacc 0.8.1<a class="anchor" aria-label="anchor" href="#spacc-081"></a></h2>
+<div class="section level3">
+<h3 id="improvements-0-8-1">Improvements<a class="anchor" aria-label="anchor" href="#improvements-0-8-1"></a></h3>
+<ul><li>
+<code><a href="../reference/spaccPhylo.html">spaccPhylo()</a></code> and <code><a href="../reference/spaccFunc.html">spaccFunc()</a></code> now accept non-integer abundances (e.g. cover or biomass) for Rao’s Q and FDis weighting. The phylogenetic and functional accumulation backends use double-precision community matrices instead of truncating to integers. Presence-based metrics (MPD/MNTD/PD/FRic) are unaffected.</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.0" id="spacc-080">spacc 0.8.0<a class="anchor" aria-label="anchor" href="#spacc-080"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-8-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-8-0"></a></h3>
+<div class="section level4">
+<h4 id="raos-quadratic-entropy-v080-0-8-0">Rao’s Quadratic Entropy (v0.8.0)<a class="anchor" aria-label="anchor" href="#raos-quadratic-entropy-v080-0-8-0"></a></h4>
+<ul><li>
+<code><a href="../reference/spaccPhylo.html">spaccPhylo()</a></code> and <code><a href="../reference/spaccFunc.html">spaccFunc()</a></code> gain a <code>"rao"</code> metric: abundance-weighted mean pairwise distance (phylogenetic cophenetic distance, or Euclidean trait distance), accumulated along the spatial curve.</li>
+<li>
+<code><a href="../reference/spaccPhylo.html">spaccPhylo()</a></code> no longer binarises its input, so abundance data now weights Rao; presence metrics (MPD/MNTD/PD) are unchanged.</li>
+<li>Exact-math recovery tests against the Rao definition <code>sum_i sum_j p_i p_j d_ij</code>.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="custom-diversity-metrics-v080-0-8-0">Custom Diversity Metrics (v0.8.0)<a class="anchor" aria-label="anchor" href="#custom-diversity-metrics-v080-0-8-0"></a></h4>
+<ul><li>
+<code><a href="../reference/spaccDiversity.html">spaccDiversity()</a></code> accumulates any user-supplied index along a spatial ordering: at each step the cumulative community is passed to a function that returns a scalar. Supports <code>knn</code>, <code>kncn</code>, <code>random</code>, <code>radius</code>, and <code>collector</code> orderings, abundance or incidence input, and extra arguments.</li>
+<li>Returns a <code>spacc_diversity</code> object inheriting <code>spacc</code>, so the standard <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>, and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> methods apply.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="arbitrary-order-rarefaction-v080-0-8-0">Arbitrary-Order Rarefaction (v0.8.0)<a class="anchor" aria-label="anchor" href="#arbitrary-order-rarefaction-v080-0-8-0"></a></h4>
+<ul><li>
+<code><a href="../reference/rarefy.html">rarefy()</a></code> now accepts any <code>q &gt;= 0</code> (q = 0, 1, 2 keep their exact estimators; other orders report the Hill number of order <code>q</code>) instead of silently falling back to richness.</li>
+</ul></div>
+</div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.7.1" id="spacc-071">spacc 0.7.1<a class="anchor" aria-label="anchor" href="#spacc-071"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-7-1">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-7-1"></a></h3>
+<div class="section level4">
+<h4 id="user-defined-accumulation-order-v071-0-7-1">User-Defined Accumulation Order (v0.7.1)<a class="anchor" aria-label="anchor" href="#user-defined-accumulation-order-v071-0-7-1"></a></h4>
+<ul><li>
+<code><a href="../reference/spacc.html">spacc()</a></code> gains an <code>order</code> argument for supplying an explicit accumulation sequence, bypassing distance computation and seed sampling.
+<ul><li>Accepts a single ordering vector, a list of vectors, or a matrix with one ordering per row (each row treated like a seed for uncertainty bounds).</li>
+<li>Each ordering must be a permutation of <code>seq_len(nrow(x))</code>.</li>
+<li>Backed by <code>cpp_order_parallel()</code>, which reuses the random-accumulation worker with caller-supplied orderings.</li>
+</ul></li>
+</ul></div>
+</div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.7.0" id="spacc-070">spacc 0.7.0<a class="anchor" aria-label="anchor" href="#spacc-070"></a></h2>
 <div class="section level3">
 <h3 id="new-features-0-7-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-7-0"></a></h3>
 <div class="section level4">

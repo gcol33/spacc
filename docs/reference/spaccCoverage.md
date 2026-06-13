@@ -132,8 +132,8 @@ Ecology, 104, e4099.
 
 ## See also
 
-[`iNEXT::iNEXT()`](https://rdrr.io/pkg/iNEXT/man/iNEXT.html) for
-coverage-based rarefaction without spatial structure
+`iNEXT::iNEXT()` for coverage-based rarefaction without spatial
+structure
 
 ## Examples
 

@@ -75,6 +75,16 @@ rare_q2 <- rarefy(species, q = 2)
 print(rare_q1)
 ```
 
+`rarefy()` accepts any non-negative order `q`. Orders 0, 1, and 2 use
+exact estimators (Hurlbert's expectation for richness, with the
+corresponding Shannon and Simpson forms); other orders report the Hill
+number of order `q`:
+
+```{r rarefy-anyq}
+rare_q3 <- rarefy(species, q = 3)
+rare_half <- rarefy(species, q = 0.5)
+```
+
 ## Coverage-based standardization
 
 Coverage-based rarefaction (Chao & Jost 2012) standardizes by sample

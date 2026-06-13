@@ -76,6 +76,18 @@ print(rare_q1)
 #> Bootstrap replicates: 100
 ```
 
+[`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md)
+accepts any non-negative order `q`. Orders 0, 1, and 2 use exact
+estimators (Hurlbert’s expectation for richness, with the corresponding
+Shannon and Simpson forms); other orders report the Hill number of order
+`q`:
+
+``` r
+
+rare_q3 <- rarefy(species, q = 3)
+rare_half <- rarefy(species, q = 0.5)
+```
+
 ## Coverage-based standardization
 
 Coverage-based rarefaction (Chao & Jost 2012) standardizes by sample
@@ -97,16 +109,16 @@ plot(cov_result)
 interp <- interpolateCoverage(cov_result, target = c(0.8, 0.9, 0.95))
 print(interp)
 #>         C80      C90      C95
-#> 1  16.68063 18.67220 19.66799
+#> 1  20.00000 20.00000 20.00000
 #> 2  20.00000 20.00000 20.00000
-#> 3  11.49091 15.74545 17.87273
-#> 4  19.00000 19.00000 19.00000
-#> 5  13.34400 16.67200 18.33600
+#> 3  17.29656 18.73054 19.44753
+#> 4  15.00000 15.00000 15.00000
+#> 5  16.86118 18.10577 18.72807
 #> 6  20.00000 20.00000 20.00000
-#> 7  11.71570 15.70118 17.85059
+#> 7  20.00000 20.00000 20.00000
 #> 8  20.00000 20.00000 20.00000
-#> 9  15.82418 17.91209 18.95604
-#> 10 12.75765 16.37882 18.18941
+#> 9  20.00000 20.00000 20.00000
+#> 10 20.00000 20.00000 20.00000
 ```
 
 ### Extrapolation beyond observed
@@ -122,7 +134,7 @@ print(extrap)
 #> Observed richness: 20.0
 #> 
 #> Extrapolated richness:
-#>   C=99%: 19.7 (+/- 0.3)
+#>   C=99%: 19.7 (+/- 0.9)
 ```
 
 ## Combined Hill + Coverage analysis

@@ -90,6 +90,20 @@ combined <- c(knn = sac, kncn = sac_kncn, random = sac_rand)
 plot(combined)
 ```
 
+### Custom Accumulation Order
+
+To accumulate sites in a sequence you control, pass `order`: a permutation
+of site indices, or a matrix with one ordering per row to get confidence
+bounds across orderings. This bypasses the distance-based methods and
+accumulates sites in exactly the order given:
+
+```{r custom-order}
+# Accumulate west-to-east (e.g. an elevation rank or survey date)
+sweep_order <- order(coords$x)
+sac_order <- spacc(species, coords, order = sweep_order, progress = FALSE)
+sac_order
+```
+
 ## Extrapolation
 
 Fit an asymptotic model to estimate total species richness:

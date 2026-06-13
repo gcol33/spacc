@@ -1,6 +1,72 @@
 # Changelog
 
-## spacc 0.7.0 (development)
+## spacc 0.8.1
+
+### Improvements
+
+- [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
+  and
+  [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
+  now accept non-integer abundances (e.g. cover or biomass) for Rao’s Q
+  and FDis weighting. The phylogenetic and functional accumulation
+  backends use double-precision community matrices instead of truncating
+  to integers. Presence-based metrics (MPD/MNTD/PD/FRic) are unaffected.
+
+## spacc 0.8.0
+
+### New Features
+
+#### Rao’s Quadratic Entropy (v0.8.0)
+
+- [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
+  and
+  [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
+  gain a `"rao"` metric: abundance-weighted mean pairwise distance
+  (phylogenetic cophenetic distance, or Euclidean trait distance),
+  accumulated along the spatial curve.
+- [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
+  no longer binarises its input, so abundance data now weights Rao;
+  presence metrics (MPD/MNTD/PD) are unchanged.
+- Exact-math recovery tests against the Rao definition
+  `sum_i sum_j p_i p_j d_ij`.
+
+#### Custom Diversity Metrics (v0.8.0)
+
+- [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
+  accumulates any user-supplied index along a spatial ordering: at each
+  step the cumulative community is passed to a function that returns a
+  scalar. Supports `knn`, `kncn`, `random`, `radius`, and `collector`
+  orderings, abundance or incidence input, and extra arguments.
+- Returns a `spacc_diversity` object inheriting `spacc`, so the standard
+  [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html),
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html), and
+  [`predict()`](https://rdrr.io/r/stats/predict.html) methods apply.
+
+#### Arbitrary-Order Rarefaction (v0.8.0)
+
+- [`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md) now
+  accepts any `q >= 0` (q = 0, 1, 2 keep their exact estimators; other
+  orders report the Hill number of order `q`) instead of silently
+  falling back to richness.
+
+## spacc 0.7.1
+
+### New Features
+
+#### User-Defined Accumulation Order (v0.7.1)
+
+- [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) gains
+  an `order` argument for supplying an explicit accumulation sequence,
+  bypassing distance computation and seed sampling.
+  - Accepts a single ordering vector, a list of vectors, or a matrix
+    with one ordering per row (each row treated like a seed for
+    uncertainty bounds).
+  - Each ordering must be a permutation of `seq_len(nrow(x))`.
+  - Backed by `cpp_order_parallel()`, which reuses the
+    random-accumulation worker with caller-supplied orderings.
+
+## spacc 0.7.0
 
 ### New Features
 

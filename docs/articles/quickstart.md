@@ -91,6 +91,22 @@ methods.](quickstart_files/figure-html/combine-1.svg)
 
 Comparison of accumulation methods.
 
+### Custom Accumulation Order
+
+To accumulate sites in a sequence you control, pass `order`: a
+permutation of site indices, or a matrix with one ordering per row to
+get confidence bounds across orderings. This bypasses the distance-based
+methods and accumulates sites in exactly the order given:
+
+``` r
+
+# Accumulate west-to-east (e.g. an elevation rank or survey date)
+sweep_order <- order(coords$x)
+sac_order <- spacc(species, coords, order = sweep_order, progress = FALSE)
+sac_order
+#> spacc: 80 sites, 40 species, 1 seeds (user)
+```
+
 ## Extrapolation
 
 Fit an asymptotic model to estimate total species richness:

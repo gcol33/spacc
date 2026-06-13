@@ -45,6 +45,9 @@ spaccFunc(
 
   - `"fric"`: Functional Richness (convex hull volume approximation)
 
+  - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
+    Euclidean trait distance)
+
 - n_seeds:
 
   Integer. Number of random starting points. Default 50.
@@ -115,8 +118,7 @@ measuring functional diversity from multiple traits. Ecology, 91,
 
 ## See also
 
-[`FD::dbFD()`](https://rdrr.io/pkg/FD/man/dbFD.html) for comprehensive
-functional diversity analysis
+`FD::dbFD()` for comprehensive functional diversity analysis
 
 ## Examples
 

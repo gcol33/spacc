@@ -13,8 +13,8 @@
     }
   };
 </script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
 <meta property="og:title" content="Getting Started with spacc">
@@ -41,7 +41,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-03-06</h4>
+            <h4 data-toc-skip class="date">2026-06-14</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/quickstart.Rmd" class="external-link"><code>vignettes/quickstart.Rmd</code></a></small>
       <div class="d-none name"><code>quickstart.Rmd</code></div>
@@ -338,12 +338,27 @@ spatial structure)</p></li>
 Comparison of accumulation methods.
 </p>
 </div>
+<div class="section level3">
+<h3 id="custom-accumulation-order">Custom Accumulation Order<a class="anchor" aria-label="anchor" href="#custom-accumulation-order"></a>
+</h3>
+<p>To accumulate sites in a sequence you control, pass
+<code>order</code>: a permutation of site indices, or a matrix with one
+ordering per row to get confidence bounds across orderings. This
+bypasses the distance-based methods and accumulates sites in exactly the
+order given:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Accumulate west-to-east (e.g. an elevation rank or survey date)</span></span>
+<span><span class="va">sweep_order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">coords</span><span class="op">$</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="va">sac_order</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, order <span class="op">=</span> <span class="va">sweep_order</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">sac_order</span></span>
+<span><span class="co">#&gt; spacc: 80 sites, 40 species, 1 seeds (user)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="extrapolation">Extrapolation<a class="anchor" aria-label="anchor" href="#extrapolation"></a>
 </h2>
 <p>Fit an asymptotic model to estimate total species richness:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="st">"lomolino"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Waiting for profiling to be done...</span></span>
 <span><span class="va">fit</span></span>
@@ -353,7 +368,7 @@ Comparison of accumulation methods.
 <span><span class="co">#&gt; 95% CI: 42.2 - 43.3</span></span>
 <span><span class="co">#&gt; AIC: 165.3</span></span>
 <span><span class="co">#&gt; Observed: 40.0 species (94% of estimated)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
@@ -511,7 +526,7 @@ Fitted Lomolino curve with asymptote estimate.
 </h2>
 <p>For repeated analyses on the same sites, pre-compute the distance
 matrix once:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/distances.html">distances</a></span><span class="op">(</span><span class="va">coords</span>, method <span class="op">=</span> <span class="st">"euclidean"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sac1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">]</span>, <span class="va">d</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -521,7 +536,7 @@ matrix once:</p>
 <h2 id="comparing-curves">Comparing Curves<a class="anchor" aria-label="anchor" href="#comparing-curves"></a>
 </h2>
 <p>Test whether two accumulation curves differ significantly:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac1</span>, <span class="va">sac2</span>, method <span class="op">=</span> <span class="st">"permutation"</span>, n_perm <span class="op">=</span> <span class="fl">199</span><span class="op">)</span></span>
 <span><span class="va">comp</span></span>
 <span><span class="co">#&gt; Comparison: sac1 vs sac2 </span></span>

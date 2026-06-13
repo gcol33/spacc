@@ -219,6 +219,100 @@ accumulation.](diversity_files/figure-html/plot-func-1.svg)
 
 Functional diversity accumulation.
 
+## Rao’s Quadratic Entropy
+
+Rao’s quadratic entropy combines relative abundance with the pairwise
+distance between species, giving an abundance-weighted measure of
+phylogenetic or functional dispersion (Rao 1982). Both
+[`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
+and
+[`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
+expose it through `metric = "rao"`.
+
+``` r
+
+phylo_rao <- spaccPhylo(species, coords, tree,
+                        metric = "rao",
+                        n_seeds = 20, progress = FALSE)
+```
+
+``` r
+
+plot(phylo_rao)
+```
+
+![Phylogenetic Rao's Q
+accumulation.](diversity_files/figure-html/plot-rao-phylo-1.svg)
+
+Phylogenetic Rao’s Q accumulation.
+
+For functional Rao the species distance is the Euclidean distance in
+trait space:
+
+``` r
+
+func_rao <- spaccFunc(species, coords, traits,
+                      metric = "rao",
+                      n_seeds = 20, progress = FALSE)
+```
+
+With presence/absence data Rao’s Q reduces to an equal-weight form; with
+abundances it weights each species pair by the product of relative
+abundances. The phylogenetic and functional backends carry abundances in
+double precision, so continuous values such as percent cover or biomass
+are used directly:
+
+``` r
+
+cover <- species / max(species)   # fractional values in [0, 1]
+func_rao_cover <- spaccFunc(cover, coords, traits,
+                            metric = "rao", n_seeds = 10, progress = FALSE)
+tail(as.data.frame(func_rao_cover), 3)
+#>    sites metric     mean    lower    upper           sd
+#> 58    58    rao 1.762876 1.761032 1.764854 1.887203e-03
+#> 59    59    rao 1.762211 1.759666 1.763262 1.292454e-03
+#> 60    60    rao 1.761422 1.761422 1.761422 5.074204e-16
+```
+
+## Custom Diversity Metrics
+
+[`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
+accumulates any user-supplied index along a spatial ordering. At each
+step the cumulative community is passed to a function that returns a
+single number, so indices spacc does not implement directly can still be
+tracked along the accumulation curve.
+
+``` r
+
+# Shannon entropy of the cumulative community
+shannon <- function(comm) {
+  p <- comm[comm > 0] / sum(comm)
+  -sum(p * log(p))
+}
+
+div <- spaccDiversity(species, coords, shannon,
+                      method = "knn", n_seeds = 20, progress = FALSE)
+```
+
+``` r
+
+plot(div) + ggplot2::labs(y = "Cumulative Shannon entropy")
+```
+
+![Custom (Shannon entropy) accumulation
+curve.](diversity_files/figure-html/plot-custom-1.svg)
+
+Custom (Shannon entropy) accumulation curve.
+
+The function receives a named vector of cumulative abundances (or 0/1
+incidences when `incidence = TRUE`), plus any extra arguments passed
+through `...`. The result inherits the `spacc` class, so
+[`summary()`](https://rdrr.io/r/base/summary.html),
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html), and
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) apply.
+Available orderings are `"knn"`, `"kncn"`, `"random"`, `"radius"`, and
+`"collector"`.
+
 ## Coverage-Based Rarefaction
 
 [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
@@ -247,12 +341,12 @@ Interpolate richness at specific coverage targets:
 interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 summary(interp)
 #>       C90             C95       
-#>  Min.   :12.57   Min.   :13.52  
-#>  1st Qu.:17.65   1st Qu.:19.74  
-#>  Median :19.40   Median :21.85  
-#>  Mean   :19.57   Mean   :21.51  
-#>  3rd Qu.:22.12   3rd Qu.:24.20  
-#>  Max.   :25.00   Max.   :27.00
+#>  Min.   :10.80   Min.   :15.78  
+#>  1st Qu.:15.96   1st Qu.:19.75  
+#>  Median :18.81   Median :21.41  
+#>  Mean   :18.74   Mean   :21.53  
+#>  3rd Qu.:22.12   3rd Qu.:24.14  
+#>  Max.   :23.84   Max.   :25.36
 ```
 
 ## References
@@ -271,3 +365,5 @@ summary(interp)
   diversity. Biological Conservation, 61, 1-10.
 - Jost, L. (2007). Partitioning diversity into independent alpha and
   beta components. Ecology, 88, 2427-2439.
+- Rao, C.R. (1982). Diversity and dissimilarity coefficients: a unified
+  approach. Theoretical Population Biology, 21, 24-43.

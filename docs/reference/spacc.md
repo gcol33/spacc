@@ -24,7 +24,8 @@ spacc(
   time = NULL,
   w_space = 1,
   w_time = 1,
-  seed = NULL
+  seed = NULL,
+  order = NULL
 )
 ```
 
@@ -163,6 +164,19 @@ spacc(
 - seed:
 
   Integer. Random seed for reproducibility. Default `NULL`.
+
+- order:
+
+  Optional user-defined accumulation order(s). When supplied, `method`
+  is ignored and sites are accumulated in the given sequence(s) (no
+  distance computation or seed sampling). Can be:
+
+  - A numeric vector of length `nrow(x)`: a single ordering (one curve).
+
+  - A list of such vectors, or a matrix with one ordering per row: each
+    produces a curve, treated like seeds for uncertainty quantification.
+    Each ordering must be a permutation of `seq_len(nrow(x))`. Cannot be
+    combined with `support` or `time`. Default `NULL`.
 
 ## Value
 
