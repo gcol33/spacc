@@ -296,7 +296,7 @@ div <- spaccDiversity(species, coords, shannon,
 
 ``` r
 
-plot(div) + ggplot2::labs(y = "Cumulative Shannon entropy")
+plot(div, ylab = "Cumulative Shannon entropy")
 ```
 
 ![Custom (Shannon entropy) accumulation
@@ -308,8 +308,10 @@ The function receives a named vector of cumulative abundances (or 0/1
 incidences when `incidence = TRUE`), plus any extra arguments passed
 through `...`. The result inherits the `spacc` class, so
 [`summary()`](https://rdrr.io/r/base/summary.html),
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html), and
-[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) apply.
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html), and
+[`predict()`](https://rdrr.io/r/stats/predict.html) apply. The
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method uses a
+metric-neutral axis label by default; set `ylab` to name your index.
 Available orderings are `"knn"`, `"kncn"`, `"random"`, `"radius"`, and
 `"collector"`.
 

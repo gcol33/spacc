@@ -1,5 +1,16 @@
 # Changelog
 
+## spacc 0.8.2
+
+### Improvements
+
+- [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
+  objects gain a dedicated
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method with a
+  metric-neutral default y-axis label (“Cumulative diversity”) and a
+  `ylab`/`title` argument, so custom-metric curves are no longer
+  labelled as species counts.
+
 ## spacc 0.8.1
 
 ### Improvements

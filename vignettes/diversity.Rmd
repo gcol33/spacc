@@ -230,14 +230,16 @@ div <- spaccDiversity(species, coords, shannon,
 ```
 
 ```{r plot-custom, fig.cap = "Custom (Shannon entropy) accumulation curve."}
-plot(div) + ggplot2::labs(y = "Cumulative Shannon entropy")
+plot(div, ylab = "Cumulative Shannon entropy")
 ```
 
 The function receives a named vector of cumulative abundances (or 0/1
 incidences when `incidence = TRUE`), plus any extra arguments passed
 through `...`. The result inherits the `spacc` class, so `summary()`,
-`plot()`, and `as.data.frame()` apply. Available orderings are `"knn"`,
-`"kncn"`, `"random"`, `"radius"`, and `"collector"`.
+`as.data.frame()`, and `predict()` apply. The `plot()` method uses a
+metric-neutral axis label by default; set `ylab` to name your index.
+Available orderings are `"knn"`, `"kncn"`, `"random"`, `"radius"`, and
+`"collector"`.
 
 ## Coverage-Based Rarefaction
 

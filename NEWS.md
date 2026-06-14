@@ -1,3 +1,13 @@
+# spacc 0.8.2
+
+## Improvements
+
+- `spaccDiversity()` objects gain a dedicated `plot()` method with a
+  metric-neutral default y-axis label ("Cumulative diversity") and a
+  `ylab`/`title` argument, so custom-metric curves are no longer labelled
+  as species counts.
+
+
 # spacc 0.8.1
 
 ## Improvements

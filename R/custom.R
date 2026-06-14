@@ -151,3 +151,13 @@ print.spacc_diversity <- function(x, ...) {
               if (x$n_seeds == 1L) "" else "s", x$method))
   invisible(x)
 }
+
+
+#' @export
+plot.spacc_diversity <- function(x, ...,
+                                 ylab = "Cumulative diversity",
+                                 title = "Custom Diversity Accumulation") {
+  check_suggests("ggplot2")
+  # Reuse the spacc accumulation plot, relabelling for an arbitrary metric.
+  plot.spacc(x, ...) + ggplot2::labs(y = ylab, title = title)
+}

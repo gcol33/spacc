@@ -41,7 +41,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -866,7 +866,7 @@ curve.</p>
 <span><span class="va">div</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccDiversity.html">spaccDiversity</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, <span class="va">shannon</span>,</span>
 <span>                      method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">div</span><span class="op">)</span> <span class="op">+</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>y <span class="op">=</span> <span class="st">"Cumulative Shannon entropy"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">div</span>, ylab <span class="op">=</span> <span class="st">"Cumulative Shannon entropy"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
@@ -929,7 +929,7 @@ curve.</p>
 <text x='268.41' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='75.36px' lengthAdjust='spacingAndGlyphs'>Sites sampled</text>
 <text transform='translate(14.57,184.01) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='154.73px' lengthAdjust='spacingAndGlyphs'>Cumulative Shannon entropy</text>
 <text x='38.79' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='120.69px' lengthAdjust='spacingAndGlyphs'>knn, 20 seeds, 95% CI</text>
-<text x='38.79' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='183.19px' lengthAdjust='spacingAndGlyphs'>Species Accumulation Curve</text>
+<text x='38.79' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='198.38px' lengthAdjust='spacingAndGlyphs'>Custom Diversity Accumulation</text>
 </g>
 </g>
 </svg></div><p class="caption">
@@ -940,10 +940,11 @@ Custom (Shannon entropy) accumulation curve.
 incidences when <code>incidence = TRUE</code>), plus any extra arguments
 passed through <code>...</code>. The result inherits the
 <code>spacc</code> class, so <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>,
-<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, and <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> apply. Available
-orderings are <code>"knn"</code>, <code>"kncn"</code>,
-<code>"random"</code>, <code>"radius"</code>, and
-<code>"collector"</code>.</p>
+<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>, and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> apply. The
+<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method uses a metric-neutral axis label by default;
+set <code>ylab</code> to name your index. Available orderings are
+<code>"knn"</code>, <code>"kncn"</code>, <code>"random"</code>,
+<code>"radius"</code>, and <code>"collector"</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="coverage-based-rarefaction">Coverage-Based Rarefaction<a class="anchor" aria-label="anchor" href="#coverage-based-rarefaction"></a>

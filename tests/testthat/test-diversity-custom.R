@@ -53,6 +53,24 @@ test_that("spaccDiversity passes extra args and incidence flag", {
 })
 
 
+test_that("plot.spacc_diversity returns a ggplot with a metric-neutral label", {
+  skip_if_not_installed("ggplot2")
+  set.seed(26)
+  coords <- data.frame(x = runif(20), y = runif(20))
+  species <- matrix(rpois(20 * 10, 2), nrow = 20)
+
+  res <- spaccDiversity(species, coords, function(comm) sum(comm > 0),
+                        method = "knn", n_seeds = 5, progress = FALSE)
+  p <- plot(res)
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$labels$y, "Cumulative diversity")
+  expect_equal(p$labels$title, "Custom Diversity Accumulation")
+
+  p2 <- plot(res, ylab = "Shannon")
+  expect_equal(p2$labels$y, "Shannon")
+})
+
+
 test_that("spaccDiversity rejects non-scalar fun output", {
   coords <- data.frame(x = runif(10), y = runif(10))
   species <- matrix(rbinom(10 * 5, 1, 0.4), nrow = 10)
