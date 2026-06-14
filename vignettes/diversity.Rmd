@@ -20,14 +20,103 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Overview
+## Introduction
 
-Beyond simple species richness (q=0), spacc supports accumulation curves
-for the full family of Hill numbers, beta diversity partitioning,
-phylogenetic diversity, and functional diversity. This vignette
-demonstrates each approach.
+A species accumulation curve answers one question: how does the count of
+species grow as more of a region is surveyed. Raw richness, the number of
+species present, is the simplest answer, and it is the one the base `spacc()`
+function returns. Richness treats a species seen once and a species seen ten
+thousand times as equal contributions, so two regions with identical species
+lists score the same even when one is dominated by a single hyperabundant
+species and the other shares individuals evenly. That difference matters for
+conservation triage, for detecting disturbance, and for comparing surveys of
+unequal effort, and it is invisible to richness alone.
 
-## Simulating Data
+This vignette covers the diversity-accumulation family in spacc: the functions
+that track an abundance-aware diversity measure as sites are added in spatial
+order, rather than a raw species count. The family is built on Hill numbers,
+which place richness, Shannon diversity, and Simpson diversity on one axis
+indexed by a single parameter $q$. The same accumulation machinery extends to
+beta diversity (how composition turns over across space), to phylogenetic and
+functional diversity (where species carry evolutionary or trait distances), and
+to coverage-standardised diversity (where curves are read against sampling
+completeness rather than site count). Each variant returns a typed S3 object
+with `print()`, `summary()`, `plot()`, and `as.data.frame()` methods, so the
+analysis idiom is the same regardless of which diversity measure is tracked.
+
+Uncertainty in spacc comes from one source. Every curve is computed from many
+random starting sites; the nearest-neighbour walk that orders the remaining
+sites depends on where it begins, so each starting seed produces a different
+curve. The package reports the across-seed mean and the 2.5% and 97.5%
+quantiles of those seed curves as a ribbon. There are no priors and no
+parametric error model. A wide ribbon means the curve is sensitive to where
+sampling starts, which is itself ecological information about spatial structure.
+The worked examples below all use a small number of seeds to keep the vignette
+fast; real analyses should use more, and the practical guidance section gives
+concrete numbers.
+
+## The diversity framework
+
+Hill numbers (Hill 1973, Jost 2007, Chao et al. 2014) measure diversity as an
+*effective number of species*: the number of equally-abundant species that would
+yield the observed value of a diversity index. For a community with relative
+abundances $p_i$ for species $i = 1, \dots, S$, where $p_i = n_i / N$, $n_i$ is
+the count of species $i$, $N = \sum_i n_i$ is the total count, and $S$ is the
+number of species present, the Hill number of order $q$ is
+
+$$
+{}^{q}D = \left( \sum_{i=1}^{S} p_i^{q} \right)^{1/(1-q)}.
+$$
+
+The order $q$ controls how much weight rare species receive. At $q = 0$ the term
+$p_i^0 = 1$ for every present species, so ${}^{0}D = S$, plain richness, which
+ignores abundance entirely. The formula is undefined at $q = 1$ because the
+exponent $1/(1-q)$ diverges, but the limit exists and equals the exponential of
+Shannon entropy,
+
+$$
+{}^{1}D = \exp\!\left( -\sum_{i=1}^{S} p_i \log p_i \right),
+$$
+
+which weights each species in proportion to its abundance and is read as the
+effective number of common species. At $q = 2$ the value is the inverse Simpson
+concentration, ${}^{2}D = 1 / \sum_i p_i^2$, the effective number of dominant
+species. Hill numbers are non-increasing in $q$: ${}^{q}D \ge {}^{q'}D$ whenever
+$q \le q'$, because raising $q$ shifts weight toward the most abundant species
+and away from the long tail of rare ones. The gap between ${}^{0}D$ and
+${}^{2}D$ is therefore a direct read on dominance: a wide gap means a few
+species hold most of the individuals.
+
+The same numbers decompose across space. Following Jost (2007), regional (gamma)
+diversity is the multiplicative product of mean local (alpha) diversity and
+turnover (beta):
+
+$$
+{}^{q}D_{\gamma} = {}^{q}D_{\alpha} \times {}^{q}D_{\beta}.
+$$
+
+Here ${}^{q}D_{\gamma}$ is the Hill number of the pooled community across all
+sites, ${}^{q}D_{\alpha}$ is the effective number of species in an average site,
+and ${}^{q}D_{\beta} = {}^{q}D_{\gamma} / {}^{q}D_{\alpha}$ is the effective
+number of completely distinct communities. Beta ranges from 1, when every site
+has identical composition, up to the number of sites, when no two sites share a
+species. Because alpha is a generalised (power) mean of per-site values, the
+decomposition is exact at every $q$, and beta is independent of alpha in the
+sense Jost defines, so a region can have high local diversity with low turnover
+or the reverse.
+
+## Simulating data
+
+The examples use a single simulated dataset with known structure, so the curves
+can be read against ground truth. Each species is placed at a random centre in a
+100-by-100 plane, and its expected abundance at a site falls off as a Gaussian
+kernel of the squared distance from that centre. A site near a species' centre
+has high expected abundance for that species; a site far away has almost none.
+Counts are then drawn from a Poisson distribution with that expected value. This
+is a thinned Poisson point process viewed at the site level, and it is the
+standard way to generate spatially aggregated community data: species are common
+where conditions suit them and rare elsewhere, which is what creates spatial
+turnover.
 
 ```{r simulate}
 library(spacc)
@@ -52,11 +141,94 @@ for (sp in seq_len(n_species)) {
 colnames(species) <- paste0("sp", seq_len(n_species))
 ```
 
-## Alpha, Beta, and Gamma Diversity
+Three parameters set the ecology of the simulation. The peak intensity 5 is the
+expected count of a species at its own centre, so each species tops out at a
+handful of individuals per site. The decay rate 0.001 in the exponent sets the
+range over which a species stays common: at a squared distance of 1000 units,
+roughly 32 units away, expected abundance has dropped to $5 e^{-1} \approx 1.8$,
+and by 60 units it is near zero. Smaller decay rates spread species more widely
+and flatten turnover; larger rates concentrate them and sharpen it. The 60 sites
+in a 100-by-100 plane give a mean nearest-neighbour spacing of roughly 6 units,
+well inside each species' range, so neighbouring sites share many species and
+the nearest-neighbour accumulation walk picks up turnover gradually.
 
-spacc provides functions for the multiplicative decomposition of
-diversity into alpha (local), beta (turnover), and gamma (regional)
-components (Jost 2007):
+The resulting matrix is sites-by-species with integer counts. Most spacc
+functions accept either this abundance form or a presence/absence version
+obtained by thresholding at zero. The first few entries show the spatial
+structure directly: a given site holds large counts for the few species centred
+nearby and zeros for the rest.
+
+```{r sim-peek}
+dim(species)
+species[1:4, 1:8]
+sum(species > 0) / length(species)   # fraction of nonzero cells
+```
+
+## Hill number accumulation
+
+`spaccHill()` tracks Hill numbers along the spatial accumulation curve. It
+orders sites by nearest-neighbour distance from a random seed, pools their
+abundances cumulatively, and computes ${}^{q}D$ of the pooled community at each
+step, for every requested order $q$. The result is one curve per $q$, each
+averaged over `n_seeds` random starts.
+
+```{r hill}
+hill <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
+hill
+```
+
+```{r plot-hill, fig.cap = "Hill number accumulation for q = 0, 1, 2."}
+library(ggplot2)
+plot(hill) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+The three curves separate cleanly. The $q = 0$ curve is ordinary richness and
+climbs toward the regional pool of 30 species. The $q = 1$ and $q = 2$ curves
+sit below it and rise more slowly, because they count effective common and
+dominant species rather than all present species. The reason higher $q$
+accumulates more slowly is structural: a new site adds a rare species to the
+$q = 0$ count immediately, but that species barely moves ${}^{1}D$ or ${}^{2}D$
+until it accumulates enough individuals to shift the relative-abundance vector.
+The gap between the curves at any site count is the dominance signature at that
+spatial scale.
+
+The numeric curve is available through `as.data.frame()`, which returns the
+across-seed mean and the 2.5%/97.5% quantile band per site, stacked by $q$.
+
+```{r hill-df}
+hill_df <- as.data.frame(hill)
+head(hill_df, 3)
+# Final-site values per q
+hill_df[hill_df$sites == max(hill_df$sites), c("q", "mean", "lower", "upper")]
+```
+
+The final-site row gives the regional effective diversity at each order. Here
+${}^{0}D$ recovers all 30 species, while ${}^{1}D$ and ${}^{2}D$ are lower,
+quantifying how uneven the pooled community is. The `summary()` method returns
+the same quantities in long form with an adjustable `ci_level`, which is useful
+for plotting custom intervals.
+
+```{r hill-summary}
+hs <- summary(hill, ci_level = 0.90)
+tail(hs, 3)
+```
+
+Reading the three orders together is more informative than any one of them. If
+the $q = 0$ curve keeps rising while $q = 2$ has flattened, the region is still
+gaining rare species but its dominant structure is already captured; further
+sampling adds to the species list without changing what the community is mostly
+made of.
+
+## Alpha, beta, and gamma diversity
+
+The accumulation curve describes the pooled community as it grows. The
+multiplicative partition describes the fixed set of all sites and splits its
+diversity into a local and a turnover part. `alphaDiversity()` returns per-site
+Hill numbers, `gammaDiversity()` returns the pooled regional values, and
+`diversityPartition()` combines them into the full alpha-beta-gamma
+decomposition.
 
 ```{r abg}
 # Alpha diversity: per-site Hill numbers
@@ -72,44 +244,159 @@ partition <- diversityPartition(species, q = c(0, 1, 2))
 partition
 ```
 
-## Hill Number Accumulation
+The partition object prints alpha, beta, and gamma side by side for each order.
+Mean alpha is much smaller than gamma here because each site holds only the few
+species whose centres are nearby, while the region pools all of them. Beta,
+their ratio, measures how many effectively distinct communities the region
+contains. The `summary()` method adds a normalised beta on a 0-to-1 scale,
+$({}^{q}D_{\beta} - 1)/(n - 1)$, which rescales turnover so that 0 is a single
+homogeneous community and 1 is complete distinctness across the $n$ sites.
 
-Hill numbers unify richness (q=0), Shannon diversity (exponential, q=1),
-and Simpson diversity (inverse, q=2) into a single framework
-(Jost 2007, Chao et al. 2014):
-
-```{r hill}
-hill <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
+```{r partition-summary}
+summary(partition)
 ```
 
-```{r plot-hill, fig.cap = "Hill number accumulation for q = 0, 1, 2."}
-plot(hill)
+Beta falls as $q$ rises. At $q = 0$ turnover is driven by the long tail of rare,
+locally restricted species, which inflates the effective number of communities.
+At $q = 2$ only the dominant species count, and dominants tend to be the
+widespread species shared across sites, so the region looks more homogeneous.
+This ordering, $\beta_0 \ge \beta_1 \ge \beta_2$, is the typical pattern for
+aggregated data and is worth checking: a reversal usually signals that rare
+species are widespread while common ones are patchy, which is unusual and worth
+investigating.
+
+## Checking and interpreting with uncertainty
+
+Every accumulation curve in spacc carries a confidence band built from the
+spread across seed starts. The columns to read are `mean`, `lower`, and `upper`
+from `as.data.frame()` or `summary()`. The band is widest early in the curve,
+where the identity of the seed site dominates, and narrows as accumulation
+covers most of the region and the curves converge on the same pooled community.
+
+```{r ci-band}
+ci <- as.data.frame(hill)
+ci0 <- ci[ci$q == 0, ]
+# Width of the 95% band at a few site counts
+data.frame(sites = c(5, 20, 40, 60),
+           width = ci0$upper[c(5, 20, 40, 60)] - ci0$lower[c(5, 20, 40, 60)])
 ```
 
-Higher-order q values emphasise dominant species, so diversity
-accumulates more slowly at q=2 compared to q=0.
+The band width shrinks toward the right because all seed walks eventually pool
+the same sites. A band that stays wide at high site counts would indicate that
+the order of accumulation still matters near saturation, which happens when the
+region has strong large-scale structure that some seeds traverse and others do
+not.
 
-## Beta Diversity
+Beyond the curve, two diagnostics summarise the dominance structure of the
+communities directly. `evenness()` divides the Hill number at each order by
+richness, giving $E_q = {}^{q}D / {}^{0}D$, a value in $[0, 1]$ where 1 is a
+perfectly even community and small values mean a few species dominate.
 
-`spaccBeta()` partitions spatial beta diversity into turnover and
-nestedness components (Baselga 2010):
+```{r evenness}
+ev <- evenness(species, q = seq(0.1, 3, by = 0.1))
+ev
+```
+
+```{r plot-evenness, fig.cap = "Hill evenness profile across orders."}
+plot(ev) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+The evenness profile falls with $q$ because higher orders divide a
+dominance-weighted diversity by full richness. A profile that drops steeply
+indicates strong dominance; one that stays near 1 indicates a community where
+individuals are spread evenly across species. Pielou's $J$ and Simpson evenness
+are available through `type = "pielou"` and `type = "simpson"` for single-number
+summaries at $q = 1$ and $q = 2$.
+
+```{r evenness-pielou}
+evenness(species, type = "pielou")
+```
+
+The continuous diversity profile, ${}^{q}D$ as a function of $q$, is the most
+complete dominance diagnostic because it shows the whole decline from richness
+to inverse Simpson rather than three points. `diversityProfile()` evaluates Hill
+numbers over a grid of $q$ for each site and for the pooled region.
+
+```{r profile}
+prof <- diversityProfile(species, q = seq(0, 3, by = 0.2))
+prof
+```
+
+```{r plot-profile, fig.cap = "Diversity profile: per-site mean (solid) and regional gamma (dashed)."}
+plot(prof) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+The solid line is the mean per-site profile and the dashed line is the regional
+profile. The vertical gap between them at any $q$ is beta diversity at that
+order, read off the same plot. Two regions can have identical richness, the
+${}^{0}D$ intercept, yet very different profiles: the one whose profile drops
+faster is more dominated. Comparing profiles is more honest than comparing
+single indices because it does not commit to one value of $q$ before looking at
+the data.
+
+## Beta, functional, and phylogenetic beta diversity
+
+Taxonomic beta diversity asks how the species list turns over across space.
+`spaccBeta()` partitions it into two pieces along the accumulation curve,
+following Baselga (2010): turnover, where new sites bring different species in
+exchange for old ones, and nestedness, where new sites are species-poor subsets
+of what is already accumulated. The two sum to total beta.
 
 ```{r beta}
 pa <- (species > 0) * 1L
 beta <- spaccBeta(pa, coords, n_seeds = 20, progress = FALSE)
+beta
 ```
 
 ```{r plot-beta, fig.cap = "Spatial beta diversity accumulation with turnover/nestedness."}
-plot(beta)
+plot(beta) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-Turnover reflects species replacement along spatial gradients, while
-nestedness captures diversity loss at species-poor sites.
+For this aggregated simulation turnover dominates: neighbouring sites hold
+different species because each species is confined near its own centre, so
+expanding spatially mostly replaces species rather than nesting them. The
+numeric partition is in `as.data.frame()`, which gives the across-step means and
+their standard deviations.
 
-### Functional Beta Diversity
+```{r beta-df}
+tail(as.data.frame(beta), 3)
+```
 
-`spaccBetaFunc()` weights beta diversity by trait dissimilarity
-(Baselga 2012):
+The Hill-number framework offers a complementary beta. `spaccHillBeta()`
+computes gamma, alpha, and their ratio beta at each accumulation step, for each
+$q$, so beta is itself an effective number of communities rather than a
+dissimilarity in $[0,1]$. This is the Jost (2007) decomposition tracked along
+the curve.
+
+```{r hillbeta}
+hb <- spaccHillBeta(species, coords, q = c(0, 1, 2), n_seeds = 15, progress = FALSE)
+hb
+```
+
+```{r plot-hillbeta, fig.cap = "Hill beta (effective number of communities) along accumulation."}
+plot(hb, component = "beta") +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+Beta rises as sites accumulate because each new site can only add distinctness,
+and it rises fastest at $q = 0$ where rare restricted species count most. The
+Baselga partition and the Hill partition answer different questions: Baselga
+asks whether dissimilarity is replacement or loss, while Hill beta asks how many
+distinct communities the accumulated set is worth. Reporting both is reasonable
+when the distinction matters.
+
+When species carry traits, functional beta weights turnover by how different the
+incoming and outgoing species are in trait space. `spaccBetaFunc()` scales the
+Baselga components by the mean pairwise trait distance of the species that
+differ, so replacing a species with a near-identical one registers little beta
+even though the species list changed.
 
 ```{r beta-func}
 # Simulate two continuous traits
@@ -123,13 +410,17 @@ beta_func <- spaccBetaFunc(pa, coords, traits, n_seeds = 20, progress = FALSE)
 ```
 
 ```{r plot-beta-func, fig.cap = "Functional beta diversity accumulation."}
-plot(beta_func)
+plot(beta_func) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-### Phylogenetic Beta Diversity
-
-`spaccBetaPhylo()` uses phylogenetic distances to weight beta diversity
-(Chao et al. 2023):
+Functional beta is lower than taxonomic beta whenever the species that turn over
+are functionally similar, which is the common case in trait-redundant
+assemblages. The phylogenetic analogue, `spaccBetaPhylo()`, does the same with a
+phylogenetic distance matrix from a tree, weighting turnover by evolutionary
+divergence so that swapping close relatives counts for less than swapping
+distant lineages.
 
 ```{r beta-phylo, eval = requireNamespace("ape", quietly = TRUE)}
 library(ape)
@@ -139,13 +430,27 @@ beta_phylo <- spaccBetaPhylo(pa, coords, tree, n_seeds = 20, progress = FALSE)
 ```
 
 ```{r plot-beta-phylo, fig.cap = "Phylogenetic beta diversity accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
-plot(beta_phylo)
+plot(beta_phylo) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-## Phylogenetic Diversity Accumulation
+Comparing taxonomic, functional, and phylogenetic beta on the same data
+separates three kinds of turnover. High taxonomic but low functional and
+phylogenetic beta means the region swaps species that are ecologically and
+evolutionarily interchangeable. High beta on all three means the region replaces
+distinct lineages with distinct ecological roles, which is the pattern that
+flags genuine biogeographic boundaries.
 
-`spaccPhylo()` tracks phylogenetic diversity metrics (MPD, MNTD,
-Faith's PD) as sites accumulate spatially:
+## Phylogenetic and functional accumulation
+
+Beyond beta, the diversity of the accumulated community itself can be measured
+on a tree or in trait space. `spaccPhylo()` tracks phylogenetic diversity along
+the curve. Mean pairwise distance (MPD) is the average phylogenetic distance
+between all species present, sensitive to deep tree structure; mean nearest
+taxon distance (MNTD) is the average distance to each species' closest relative,
+sensitive to terminal clustering; and Faith's PD is the total branch length
+spanned by the accumulated species.
 
 ```{r phylo, eval = requireNamespace("ape", quietly = TRUE)}
 phylo_acc <- spaccPhylo(pa, coords, tree,
@@ -154,13 +459,23 @@ phylo_acc <- spaccPhylo(pa, coords, tree,
 ```
 
 ```{r plot-phylo, fig.cap = "Phylogenetic diversity accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
-plot(phylo_acc)
+plot(phylo_acc) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-## Functional Diversity Accumulation
+PD rises steadily as more lineages are added, much like richness, because each
+new species contributes branch length. MPD and MNTD behave differently: they can
+plateau early or even decline if the species added late are close relatives of
+ones already present, since they measure average distances rather than totals. A
+flat MPD with a rising PD says the region keeps adding species but not new deep
+branches.
 
-`spaccFunc()` tracks functional diversity metrics (FDis, FRic) as sites
-accumulate:
+Functional accumulation works the same way in trait space. `spaccFunc()` tracks
+functional dispersion (FDis), the abundance-weighted mean distance of species to
+the community centroid, and functional richness (FRic), the volume of trait
+space occupied. FRic needs more species than traits to define a hull, so with a
+two-trait dataset it stabilises once enough species accumulate.
 
 ```{r func}
 func_acc <- spaccFunc(species, coords, traits,
@@ -169,15 +484,36 @@ func_acc <- spaccFunc(species, coords, traits,
 ```
 
 ```{r plot-func, fig.cap = "Functional diversity accumulation."}
-plot(func_acc)
+plot(func_acc) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-## Rao's Quadratic Entropy
+FDis tends to saturate quickly because once the community spans the main axes of
+trait variation, adding species near the centroid does not move the mean
+distance much. A FDis curve that keeps climbing indicates the region is still
+gaining functionally extreme species at large spatial scales.
 
-Rao's quadratic entropy combines relative abundance with the pairwise
-distance between species, giving an abundance-weighted measure of
-phylogenetic or functional dispersion (Rao 1982). Both `spaccPhylo()` and
-`spaccFunc()` expose it through `metric = "rao"`.
+The continuous-$q$ profile extends to both paradigms. `diversityProfilePhylo()`
+gives phylogenetic Hill numbers across $q$, and `diversityProfileFunc()` gives
+trait-similarity Hill numbers, each reading as an effective number of lineages
+or functional units that declines with $q$ exactly as the taxonomic profile
+does.
+
+```{r profile-func}
+fp <- diversityProfileFunc(species, traits, q = seq(0, 3, by = 0.5))
+fp
+```
+
+## Rao's quadratic entropy
+
+Rao's quadratic entropy combines relative abundance with pairwise distance
+between species, giving an abundance-weighted measure of phylogenetic or
+functional dispersion (Rao 1982). It is defined as
+$Q = \sum_{i} \sum_{j} p_i p_j d_{ij}$, where $p_i$ is the relative abundance of
+species $i$ and $d_{ij}$ is the distance between species $i$ and $j$ on the tree
+or in trait space. Both `spaccPhylo()` and `spaccFunc()` expose it through
+`metric = "rao"`.
 
 ```{r rao-phylo, eval = requireNamespace("ape", quietly = TRUE)}
 phylo_rao <- spaccPhylo(species, coords, tree,
@@ -186,23 +522,25 @@ phylo_rao <- spaccPhylo(species, coords, tree,
 ```
 
 ```{r plot-rao-phylo, fig.cap = "Phylogenetic Rao's Q accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
-plot(phylo_rao)
+plot(phylo_rao) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-For functional Rao the species distance is the Euclidean distance in
-trait space:
+For functional Rao the species distance is the Euclidean distance in trait
+space:
 
 ```{r rao-func}
 func_rao <- spaccFunc(species, coords, traits,
                       metric = "rao",
                       n_seeds = 20, progress = FALSE)
+tail(as.data.frame(func_rao), 3)
 ```
 
 With presence/absence data Rao's Q reduces to an equal-weight form; with
-abundances it weights each species pair by the product of relative
-abundances. The phylogenetic and functional backends carry abundances in
-double precision, so continuous values such as percent cover or biomass
-are used directly:
+abundances it weights each species pair by the product of relative abundances.
+The phylogenetic and functional backends carry abundances in double precision,
+so continuous values such as percent cover or biomass are used directly:
 
 ```{r rao-cover}
 cover <- species / max(species)   # fractional values in [0, 1]
@@ -211,12 +549,82 @@ func_rao_cover <- spaccFunc(cover, coords, traits,
 tail(as.data.frame(func_rao_cover), 3)
 ```
 
-## Custom Diversity Metrics
+Rao's Q saturates faster than richness because once the community spans the main
+distance structure, adding more species near existing ones barely changes the
+abundance-weighted mean distance. It is the natural single-number summary when
+both abundance and pairwise distance matter, and it connects to Hill numbers:
+the effective number form of Rao is a functional or phylogenetic Hill number at
+$q = 2$.
 
-`spaccDiversity()` accumulates any user-supplied index along a spatial
-ordering. At each step the cumulative community is passed to a function
-that returns a single number, so indices spacc does not implement
-directly can still be tracked along the accumulation curve.
+## Coverage-based diversity
+
+Comparing curves at equal site count is not always fair, because a fixed number
+of sites can represent very different fractions of the underlying community
+depending on how abundant the organisms are. Sample coverage is the estimated
+proportion of total community abundance belonging to the species already seen,
+and standardising by coverage rather than site count puts surveys of unequal
+effort on the same footing (Chao & Jost 2012). `spaccCoverage()` tracks coverage
+alongside richness as sites accumulate.
+
+```{r coverage}
+cov <- spaccCoverage(species, coords, n_seeds = 20, progress = FALSE)
+cov
+```
+
+```{r plot-coverage, fig.cap = "Coverage-based spatial rarefaction."}
+plot(cov) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+The default Chao-Jost estimator uses singleton and doubleton counts and assumes
+individuals are sampled independently. For plot-based data where sites are the
+sampling units, the Chiu (2023) sample-based estimator is more appropriate
+because it uses incidence frequencies across sites instead.
+
+```{r coverage-chiu}
+cov_chiu <- spaccCoverage(species, coords, coverage = "chiu",
+                          n_seeds = 20, progress = FALSE)
+tail(as.data.frame(cov_chiu), 3)
+```
+
+Once coverage is tracked, richness can be read at fixed completeness levels.
+`interpolateCoverage()` returns the richness each seed curve reached at the
+requested coverage targets, interpolating within the observed range.
+
+```{r interpolate}
+interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
+summary(interp)
+```
+
+The same idea applied to Hill numbers gives coverage-standardised diversity at
+every order. `spaccHillCoverage()` computes Hill numbers and coverage together,
+and plotting against coverage rather than site count shows diversity at matched
+completeness.
+
+```{r hillcov}
+hc <- spaccHillCoverage(species, coords, q = c(0, 1, 2),
+                        n_seeds = 15, progress = FALSE)
+```
+
+```{r plot-hillcov, fig.cap = "Hill numbers plotted against sample coverage."}
+plot(hc, xaxis = "coverage") +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+Reading diversity against coverage is the recommended way to compare two regions
+of unequal sampling effort: pick a coverage level both reach, such as 95%, and
+compare the diversity there. Comparing at equal site count instead would
+penalise the region whose organisms are rarer, because the same site count buys
+it less coverage.
+
+## Custom diversity metrics
+
+`spaccDiversity()` accumulates any user-supplied index along a spatial ordering.
+At each step the cumulative community is passed to a function that returns a
+single number, so indices spacc does not implement directly can still be tracked
+along the accumulation curve.
 
 ```{r custom-metric}
 # Shannon entropy of the cumulative community
@@ -230,35 +638,94 @@ div <- spaccDiversity(species, coords, shannon,
 ```
 
 ```{r plot-custom, fig.cap = "Custom (Shannon entropy) accumulation curve."}
-plot(div, ylab = "Cumulative Shannon entropy")
+plot(div, ylab = "Cumulative Shannon entropy") +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 ```
 
-The function receives a named vector of cumulative abundances (or 0/1
-incidences when `incidence = TRUE`), plus any extra arguments passed
-through `...`. The result inherits the `spacc` class, so `summary()`,
-`as.data.frame()`, and `predict()` apply. The `plot()` method uses a
-metric-neutral axis label by default; set `ylab` to name your index.
-Available orderings are `"knn"`, `"kncn"`, `"random"`, `"radius"`, and
-`"collector"`.
+The function receives a named vector of cumulative abundances (or 0/1 incidences
+when `incidence = TRUE`), plus any extra arguments passed through `...`. The
+result inherits the `spacc` class, so `summary()`, `as.data.frame()`, and
+`predict()` apply. The `plot()` method uses a metric-neutral axis label by
+default; set `ylab` to name the index. Available orderings are `"knn"`,
+`"kncn"`, `"random"`, `"radius"`, and `"collector"`. Because the index is an
+arbitrary R function it runs slower than the compiled metrics while accepting any
+definition, so it is best kept for indices that are not already built in.
 
-## Coverage-Based Rarefaction
+## Practical guidance
 
-`spaccCoverage()` computes accumulation curves with sample coverage
-tracking (Chao & Jost 2012), enabling standardization by completeness:
+Diversity accumulation offers more knobs than plain richness, and a few
+conventions keep results comparable and defensible.
 
-```{r coverage}
-cov <- spaccCoverage(species, coords, n_seeds = 20, progress = FALSE)
-```
+**Which $q$ to report.** Report all three of $q = 0$, $q = 1$, and $q = 2$
+together rather than choosing one. The triple ${}^{0}D, {}^{1}D, {}^{2}D$ shows
+richness, common-species diversity, and dominant-species diversity in one row,
+and the gap between them is the dominance signal. If a single number is forced,
+$q = 1$ is the least arbitrary because it weights species exactly by abundance
+and is the only order where the diversity decomposition is fully symmetric. Use
+$q = 0$ when rare species are the conservation target and $q = 2$ when dominance
+or invasion is the question.
 
-```{r plot-coverage, fig.cap = "Coverage-based spatial rarefaction."}
-plot(cov)
-```
+**Abundance versus incidence.** Use abundance data whenever counts are
+available, because every order above $q = 0$ needs them; presence/absence
+collapses all orders to richness and discards the dominance information the Hill
+framework exists to capture. Beta partitioning with `spaccBeta()` runs on
+presence/absence by design, but Hill, functional, and phylogenetic diversity
+should be fed counts, cover, or biomass. The functional and phylogenetic
+backends accept non-integer abundances, so percent cover in $[0,1]$ works
+directly.
 
-Interpolate richness at specific coverage targets:
-```{r interpolate}
-interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
-summary(interp)
-```
+**Trait and tree minimums.** Functional richness (FRic) needs at least one more
+species than traits to define a convex hull, so with 4 traits keep at least 5
+species per accumulation step and prefer 10 or more for a stable hull. Rao's Q
+and FDis work with fewer but become noisy below about 5 species. For trait
+distances use at least 2 traits; a single trait reduces functional diversity to
+a one-dimensional range and the convex hull degenerates. Phylogenetic metrics
+need a tree covering every species in the matrix, and MPD and MNTD stabilise
+with roughly 15 or more species; below 10 they swing widely from one or two
+pairs.
+
+**Number of seeds.** The ribbon width is set by the spread across seeds, so more
+seeds give a smoother, narrower band. Use at least 50 seeds for reporting and
+100 or more when the confidence band itself is the result. The examples here use
+10 to 20 to keep the build fast, which is too few for publication. Set `seed =`
+for reproducibility, since the seed sites are drawn at random.
+
+**Minimum sample size.** Coverage-based comparison needs each region to reach the
+common coverage target; below about 20 sites with aggregated data, coverage
+often does not climb past 90%, and interpolation to a higher target returns `NA`.
+For the multiplicative partition, beta is unstable with fewer than about 5 sites
+because alpha is a mean over very few values. Aim for at least 20 sites for any
+diversity-accumulation analysis and 30 or more before reading turnover.
+
+**When not to use these.** Do not compute Rao's Q or any abundance-weighted
+metric with very few species, roughly under 5, because the abundance-weighted
+mean distance is then driven by one or two pairs and the curve is meaningless.
+Do not use functional metrics with a single trait, where the hull collapses and
+FRic is undefined. Do not standardise by coverage when one region cannot reach
+the target coverage at all; compare at the highest coverage both attain, or fall
+back to site-based curves and say so. Finally, treat a wide confidence ribbon as
+a possible artefact of too few seeds before reading it as biological signal.
+
+The table below summarises which function fits which question.
+
+| Question | Function | Input | Key metric |
+|---|---|---|---|
+| How does effective diversity grow with area | `spaccHill()` | abundance | ${}^{q}D$ per order |
+| How is regional diversity split locally vs across sites | `diversityPartition()` | abundance | alpha, beta, gamma |
+| Is turnover replacement or species loss | `spaccBeta()` | presence/absence | turnover, nestedness |
+| How many distinct communities (Hill beta) | `spaccHillBeta()` | abundance | beta per order |
+| Does turnover involve distinct traits or lineages | `spaccBetaFunc()`, `spaccBetaPhylo()` | P/A + traits/tree | weighted beta |
+| How does evolutionary or trait diversity accumulate | `spaccPhylo()`, `spaccFunc()` | abundance + tree/traits | MPD, MNTD, PD, FDis, FRic |
+| Abundance-weighted trait/lineage dispersion | `spaccPhylo(metric="rao")`, `spaccFunc(metric="rao")` | abundance + tree/traits | Rao's Q |
+| Fair comparison under unequal effort | `spaccCoverage()`, `spaccHillCoverage()` | abundance | coverage-standardised |
+| An index spacc does not implement | `spaccDiversity()` | any | user function |
+
+The whole family shares one analysis idiom. Simulate or load a sites-by-species
+matrix, call the function with coordinates, read the curve with
+`as.data.frame()` or `summary()`, and plot it with the across-seed ribbon. The
+choice of measure, taxonomic, functional, phylogenetic, or coverage-standardised,
+changes what the y-axis means, not how the result is obtained.
 
 ## References
 
@@ -271,9 +738,15 @@ summary(interp)
   extrapolation. Ecology, 93, 2533-2547.
 - Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
   extrapolation with Hill numbers. Ecological Monographs, 84, 45-67.
+- Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
+  Ecology, 104, e4099.
 - Faith, D.P. (1992). Conservation evaluation and phylogenetic diversity.
   Biological Conservation, 61, 1-10.
+- Hill, M.O. (1973). Diversity and evenness: a unifying notation and its
+  consequences. Ecology, 54, 427-432.
 - Jost, L. (2007). Partitioning diversity into independent alpha and beta
   components. Ecology, 88, 2427-2439.
+- Leinster, T. & Cobbold, C.A. (2012). Measuring diversity: the importance
+  of species similarity. Ecology, 93, 477-489.
 - Rao, C.R. (1982). Diversity and dissimilarity coefficients: a unified
   approach. Theoretical Population Biology, 21, 24-43.

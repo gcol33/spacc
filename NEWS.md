@@ -1,3 +1,17 @@
+# spacc 0.8.3
+
+## Documentation
+
+- Expanded all seven vignettes from brief overviews into full worked
+  guides (quickstart, diversity, rarefaction/standardization, community
+  assembly, spatial analysis, extrapolation, richness estimation). Each
+  now covers the underlying model, simulation with known ground truth,
+  fitting, uncertainty, prediction/comparison, and practical guidance,
+  and exercises the full exported API (including `evenness()`,
+  `diversityProfile()`, `spatialEigenvectors()`/`spatialPartition()`,
+  `wavefront()`, and `compareModels()`).
+
+
 # spacc 0.8.2
 
 ## Improvements

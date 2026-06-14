@@ -22,11 +22,97 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-spacc provides tools for estimating total species richness beyond
-observed sampling effort: asymptotic model fitting, coverage-based
-extrapolation, and diversity-area relationships (DAR).
+Most surveys stop before the last species is found. The observed
+species count is then a lower bound, and the gap between it and the
+true richness depends on how the curve was approaching its plateau when
+sampling ended. spacc estimates that plateau three ways: by fitting an
+asymptotic model to the mean accumulation curve, by extrapolating along
+the sample-coverage axis, and by relating diversity to cumulative area.
+This vignette covers the theory behind each approach, the exact model
+equations as they are coded in `extrapolate()`, how to judge whether a
+fit can be trusted, and when extrapolation should be avoided altogether.
 
-## Data Setup
+The running example simulates a community with a known number of
+species. The ground truth is `r 50` species spread over 100 sites, so
+every estimate below can be checked against a value we actually control,
+which is rarely possible with field data.
+
+## Algorithm overview
+
+`extrapolate()` takes a fitted `spacc` object, reduces it to the mean
+accumulation curve, and fits one nonlinear model to that curve by
+least squares through `stats::nls()`. The asymptotic parameter of the
+model is then read off as the estimate of total richness. Six model
+forms are available, selected through the `model` argument:
+`"michaelis-menten"`, `"lomolino"`, `"asymptotic"`, `"weibull"`,
+`"logistic"`, and `"evt"`. The first five all flatten toward a single
+ceiling and differ in how sharply they bend and where the bend sits.
+
+The **Michaelis-Menten** form (the default) rises steeply and decelerates
+smoothly, reaching half its ceiling at a fixed effort. It is the
+hyperbolic curve familiar from enzyme kinetics, transplanted to
+accumulation. The **asymptotic exponential** approaches its ceiling at a
+constant relative rate and has no inflection, so it is the most
+conservative of the five when the curve is already near saturation. The
+**logistic** is sigmoidal: it has an inflection point and an initial slow
+phase, which suits curves that start gently before accelerating. The
+**Weibull** form is a flexible generalisation that can be concave or
+sigmoidal depending on its shape parameter, and it nests the exponential
+as a special case. The **Lomolino** model is a sigmoidal curve on a
+logarithmic effort axis, designed by Lomolino (2000) specifically for
+species-area data and able to capture a long slow tail.
+
+The **EVT** model is different in kind. Following Borda-de-Agua et al.
+(2025), it represents the species-area relationship as a two-component
+Weibull mixture rather than a single saturating curve. The motivation is
+that empirical SARs are often triphasic: a steep small-scale phase, a
+shallower intermediate phase, and a second steepening at very large
+extents. A single asymptotic curve cannot bend twice, so the mixture
+sums two Weibull components with separate scale and shape parameters and
+a mixing weight, which lets the fitted curve change curvature more than
+once. This model is fit with the bounded `"port"` algorithm and falls
+back to a single Weibull when fewer than ten points are available.
+
+The five single-curve models differ in how much flexibility they spend. A model
+with more free parameters can follow the observed curve more closely, but
+the extra freedom is spent describing the sampled range, not constraining
+the ceiling beyond it. The asymptotic exponential, with two parameters
+and no inflection, is the least flexible and so the most stable when
+extrapolated, at the cost of forcing a particular approach to the plateau.
+The Weibull and Lomolino forms add a third parameter that adjusts
+curvature, which helps when the curve has an unusual shape but loosens the
+grip on the asymptote. spacc reads the asymptote off parameter $a$ in all
+six models, which keeps the interface uniform: whatever curve shape is
+chosen, the estimate of total richness and its interval come from the same
+slot.
+
+Coverage-based extrapolation, exposed through `extrapolateCoverage()`,
+abandons the model-fitting route entirely. Instead of asking what the
+curve does as effort grows without bound, it asks what richness would be
+at a target sample completeness, using the asymptotic estimators of Chao
+et al. (2014). Sample coverage is the fraction of the community's total
+abundance carried by the species already detected, so standardising to a
+fixed coverage compares communities at equal completeness rather than
+equal effort. The mechanism is rarity-driven: when many species are
+singletons the coverage is low and the extrapolation deficit large,
+whereas a sample dominated by species seen many times is already nearly
+complete and has little room to grow. The diversity-area relationship,
+fit by `dar()`, is the third route: it plots Hill numbers against
+cumulative area (Ma 2018) and so describes how diversity scales spatially
+across all orders, with the classical SAR recovered as the special case
+of order zero.
+
+The three routes answer slightly different questions and suit different
+data. Model fitting suits a single well-sampled community where a tidy
+asymptote with a confidence interval is the deliverable. Coverage
+extrapolation suits comparisons across communities of unequal sampling
+intensity, where the fair common ground is completeness rather than
+effort. The DAR suits questions about scaling itself, where the interest
+is in the exponent that links diversity to area rather than in any single
+ceiling. spacc keeps all three behind a common `spacc` pipeline so the
+same accumulation engine feeds each one.
+
+## Data setup
 
 ```{r simulate}
 library(spacc)
@@ -51,7 +137,77 @@ colnames(species) <- paste0("sp", seq_len(n_species))
 pa <- (species > 0) * 1L
 ```
 
-## Asymptotic Extrapolation
+Each species has a spatial centre and a Poisson abundance that decays
+with distance from it, so range edges thin out the way real ranges do.
+The true richness is `n_species` (`r 50`), and that number anchors every
+estimate that follows.
+
+## Mathematical detail
+
+Each model is written below with $S$ for cumulative species count, $n$
+for sampling effort (number of sites accumulated), and a model-specific
+parameter set. In every case the parameter $a$ is the asymptote, the
+estimated total richness toward which the curve flattens.
+
+The **Michaelis-Menten** model is
+
+$$S = \frac{a\, n}{b + n},$$
+
+where $a$ is the asymptote and $b$ is the effort at which $S$ reaches
+$a/2$. Larger $b$ means a slower approach to the ceiling. The
+**asymptotic exponential** is
+
+$$S = a\bigl(1 - e^{-b n}\bigr),$$
+
+with asymptote $a$ and rate constant $b > 0$ controlling how quickly the
+deficit $a - S$ shrinks. The **logistic** model is
+
+$$S = \frac{a}{1 + e^{-b (n - c)}},$$
+
+where $a$ is the asymptote, $b$ is the steepness of the rise, and $c$ is
+the effort at the inflection point where the curve is half its ceiling.
+The **Weibull** model is
+
+$$S = a\Bigl(1 - e^{-(n/b)^{c}}\Bigr),$$
+
+with asymptote $a$, scale $b$ setting the effort axis, and shape $c$
+governing curvature: $c = 1$ recovers the exponential, $c > 1$ gives a
+sigmoidal rise, and $c < 1$ a sharper early climb. The **Lomolino**
+model is
+
+$$S = \frac{a}{1 + b^{\,\log(c / n)}},$$
+
+where $a$ is the asymptote, $c$ locates the curve along the
+log-transformed effort axis, and $b$ controls the slope of the
+sigmoidal rise in log space. Because the effort enters as $\log(c/n)$,
+the Lomolino curve stretches the small-effort region and compresses the
+large-effort tail, which is why it tracks species-area data with a long
+slow approach to the plateau better than the curves written on a linear
+effort axis.
+
+Starting values matter for all of these because `nls()` solves a
+nonlinear least-squares problem iteratively from an initial guess.
+`extrapolate()` sets the starting asymptote to $1.2$ times the observed
+maximum, since the true ceiling lies above what has been seen, and sets
+the half-saturation effort to the point where the observed curve first
+crosses half its maximum. Reasonable starts of this kind keep the
+solver inside the basin of the correct solution; poor starts are a
+common reason for non-convergence on awkward curves.
+
+The **EVT** mixture combines two Weibull components,
+
+$$S = a\Bigl[w\bigl(1 - e^{-(n/b_1)^{c_1}}\bigr) + (1 - w)\bigl(1 - e^{-(n/b_2)^{c_2}}\bigr)\Bigr],$$
+
+where $a$ is the shared asymptote, $w \in (0,1)$ is the mixing weight
+between the two components, $b_1, b_2$ are their scales, and $c_1, c_2$
+their shapes. The two components can capture two distinct phases of
+curvature, which is what lets the mixture follow a triphasic SAR that a
+single saturating curve flattens out. In all six models the asymptote
+$a$ is the quantity of interest: it estimates the richness the community
+would reveal under unlimited sampling, so the deficit $a - S_{\text{obs}}$
+is the number of species the survey is predicted to have missed.
+
+## Asymptotic extrapolation
 
 `extrapolate()` fits an asymptotic model to the mean accumulation curve
 to estimate total species richness:
@@ -60,7 +216,13 @@ to estimate total species richness:
 sac <- spacc(pa, coords, n_seeds = 30, progress = FALSE)
 ```
 
-### Model Comparison
+A single call returns one fitted model. The default is
+Michaelis-Menten, but any of the six names can be passed. The returned
+`spacc_fit` object carries the asymptote, its confidence interval, the
+AIC, and the underlying `nls` fit, which is what makes `coef()`,
+`confint()`, and `predict()` work on it.
+
+### Model comparison
 
 spacc supports six asymptotic models. Compare them to select the best
 fit:
@@ -78,12 +240,27 @@ data.frame(
 )
 ```
 
+The asymptote estimates spread across models even when all fit the same
+curve, which is the central caution of model-based extrapolation: the
+ceiling is an extrapolated quantity, and models that agree closely over
+the observed range can still disagree about where they level off. The
+spread across these five asymptotes, set against the known true value of
+`r 50`, shows directly how much model choice matters here.
+
 ```{r plot-best, fig.cap = "Best-fitting asymptotic model."}
 best <- fits[[which.min(sapply(fits, function(f) f$aic))]]
-plot(best)
+plot(best) +
+  ggplot2::theme(
+    panel.background = ggplot2::element_rect(fill = "transparent"),
+    plot.background = ggplot2::element_rect(fill = "transparent")
+  )
 ```
 
-### EVT Model
+The solid line is the observed mean curve, the dashed line the fitted
+model extended past the data, and the dotted horizontal line the
+estimated asymptote.
+
+### EVT model
 
 The Extreme Value Theory model (Borda-de-Agua et al. 2025) uses a
 two-component Weibull mixture to capture the triphasic pattern
@@ -95,9 +272,104 @@ fit_evt
 ```
 
 The EVT model requires sufficient data points (>10) and works best with
-real ecological data exhibiting a clear triphasic SAR pattern.
+real ecological data exhibiting a clear triphasic SAR pattern. With only
+100 sites and a single simulated phase, the mixture has little extra
+structure to find, so it tends to mimic a single Weibull here. Its
+advantage appears on large multi-scale datasets where the curve genuinely
+bends more than once.
 
-## Coverage-Based Extrapolation
+## Fitting and fit quality
+
+`compareModels()` fits every model in one call and ranks them by AIC,
+adding BIC, delta-AIC, Akaike weights, parameter counts, and a
+convergence flag. This is the recommended entry point when the goal is
+model selection rather than a single pre-chosen form.
+
+```{r compare-models}
+cm <- compareModels(sac, progress = FALSE)
+cm
+```
+
+The printed table is sorted with the best model first and starred. The
+data frame behind it, reachable with `as.data.frame()`, holds the same
+columns for further use:
+
+```{r compare-table}
+as.data.frame(cm)[, c("model", "AIC", "delta_AIC", "AIC_weight", "converged")]
+```
+
+Models within about 2 delta-AIC units of the best are usually treated as
+indistinguishable on these data; the Akaike weight turns that into a
+probability that each model is the best in the set. A single model with
+a weight near 1 indicates a clear winner, whereas weights spread evenly
+across several models warn that the asymptote is poorly identified and
+any single point estimate is fragile.
+
+The chosen fit exposes its parameters and their intervals through the
+standard extractors. Here `coef()` returns the fitted parameters and
+`confint()` their profile-likelihood intervals:
+
+```{r coef-confint}
+coef(best)
+suppressMessages(confint(best))
+```
+
+A quick goodness check is to look at the residuals of the fit against
+the observed curve. Systematic curvature in the residuals signals that
+the model shape is wrong even if the asymptote looks plausible:
+
+```{r residuals}
+obs <- as.data.frame(best)
+resid <- obs$observed - obs$predicted
+round(c(rmse = sqrt(mean(resid^2)), max_abs = max(abs(resid))), 3)
+```
+
+The fit goes through `nls()`, which can fail to converge when the curve
+is short, noisy, or far from saturated; the bounded `"port"` algorithm
+used for EVT is more stable but still not guaranteed. When fitting fails,
+`extrapolate()` returns an object with `NA` asymptote rather than
+erroring, and `compareModels()` marks that row as not converged so the
+remaining models can still be ranked.
+
+A small root-mean-square residual confirms that the chosen model tracks
+the observed range, but it says nothing about the extrapolated part of the
+curve, where there is no data to compute a residual against. This is the
+reason the AIC table and the asymptote interval carry more weight than the
+in-sample fit statistics: two models can have nearly identical residuals
+over the sampled effort and still place their ceilings far apart. The
+profile-likelihood interval from `confint()` is the most honest single
+summary of how well the asymptote is pinned down, and a wide interval is a
+signal that the curve has not yet given the data needed to fix it.
+
+## Tuning
+
+Three controls shape the quality of an extrapolation. The first is the
+number of points the curve provides. The EVT mixture has six free
+parameters and needs more than ten accumulation points before it will
+fit at all; below that threshold `extrapolate()` falls back to a single
+Weibull and warns. With 100 sites there is ample room, but on a
+20-plot survey the mixture should not be attempted.
+
+The second is `n_seeds`, the number of random starting points averaged
+into the mean curve. Each seed traces one accumulation order; more seeds
+smooth the mean and tighten the confidence band, which steadies the fit
+because `extrapolate()` works on the mean. The effect is visible in the
+asymptote estimate as the seed count rises:
+
+```{r seeds}
+sapply(c(5, 20, 50), function(k) {
+  s <- spacc(pa, coords, n_seeds = k, progress = FALSE)
+  round(extrapolate(s, model = "michaelis-menten")$asymptote, 1)
+})
+```
+
+The estimate stabilises as seeds accumulate; the gain from 20 to 50 is
+typically smaller than from 5 to 20, so 30 to 50 seeds is a reasonable
+default for a stable mean. The third control is the model itself, and
+`compareModels()` already automates that choice by ranking the whole set
+rather than committing to one form up front.
+
+## Coverage extrapolation and DAR
 
 `extrapolateCoverage()` estimates richness at coverage levels beyond
 the observed maximum, using asymptotic estimators (Chao et al. 2014):
@@ -109,19 +381,28 @@ ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99, 1.0), q = 0)
 ext
 ```
 
+Targets below the observed coverage are interpolated; targets above it
+invoke the Chao1-based extrapolation for `q = 0`, with separate
+estimators for the Shannon (`q = 1`) and Simpson (`q = 2`) orders. The
+printed output reports observed coverage and richness alongside the
+extrapolated values so the size of the extrapolation step is visible.
+
 ```{r plot-cov-extrap, fig.cap = "Coverage-based extrapolation of species richness."}
-plot(ext)
+plot(ext) +
+  ggplot2::theme(
+    panel.background = ggplot2::element_rect(fill = "transparent"),
+    plot.background = ggplot2::element_rect(fill = "transparent")
+  )
 ```
 
 This is particularly useful when comparing communities with different
-abundances — standardizing by coverage ensures equal completeness rather
-than equal sample size.
+abundances. Standardizing by coverage ensures equal completeness rather
+than equal sample size, so a richer but less thoroughly sampled
+community is not penalised for its lower count.
 
-## Diversity-Area Relationship (DAR)
-
-`dar()` fits the relationship between diversity (Hill numbers) and area
-(Ma 2018). This generalises the classical species-area relationship to
-all Hill number orders:
+`dar()` fits the relationship between diversity (Hill numbers) and cumulative
+area (Ma 2018), generalising the classical species-area relationship to every
+Hill number order:
 
 ```{r dar, eval = requireNamespace("sf", quietly = TRUE)}
 dar_result <- dar(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
@@ -129,29 +410,159 @@ dar_result
 ```
 
 ```{r plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2.", eval = requireNamespace("sf", quietly = TRUE)}
-plot(dar_result)
+plot(dar_result) +
+  ggplot2::theme(
+    panel.background = ggplot2::element_rect(fill = "transparent"),
+    plot.background = ggplot2::element_rect(fill = "transparent")
+  )
 ```
 
-The DAR captures how diversity scales with area. For q=0 this reduces to
-the classical SAR; for higher q it quantifies how evenness scales
-spatially.
+The DAR captures how diversity scales with area. For `q = 0` it reduces
+to the classical SAR; for `q = 1` it tracks how common-species diversity
+scales, and for `q = 2` how dominant-species diversity scales. Curves
+that diverge across orders indicate that evenness, not just richness,
+changes with spatial extent. If the three curves rise in parallel,
+evenness is roughly constant across scales and richness alone carries the
+spatial signal; if the higher-order curves flatten earlier than the
+richness curve, common and dominant species saturate first while rare
+species keep accumulating, which is the usual pattern for aggregated
+communities. The area axis is built from the cumulative convex hull of
+the accumulated sites by default, so it requires `sf`; passing
+`area_method = "count"` substitutes the site count as an area proxy when
+`sf` is not available.
 
-## Predicting Richness at New Effort Levels
+Reading the DAR as a power law, $D = c\,A^{z}$ with diversity $D$, area
+$A$, intercept $c$, and scaling exponent $z$, gives a compact way to
+compare orders: the slope $z$ on log-log axes measures how fast each
+facet of diversity grows with area. A steep $z$ at order zero with a
+shallow $z$ at order two is the signature of a community where rare
+species drive the area effect, which is exactly the case where a richness
+estimate from a small plot will most badly understate the regional total.
 
-Use `predict()` on a fitted extrapolation model:
+## Predicting richness at new effort levels
+
+Use `predict()` on a fitted extrapolation model to read the curve at any
+effort, inside or beyond the sampled range:
 
 ```{r predict}
 predict(best, n = c(50, 100, 200, 500))
 ```
+
+The first two values fall within the observed 100 sites and so are
+interpolations, which are well supported. The prediction at 200 doubles
+the effort and the one at 500 quintuples it; both are genuine
+extrapolations and should be read as model-dependent. A defensible rule
+is to trust predictions up to roughly twice the maximum observed effort
+and to treat anything further as illustrative. Beyond that range
+different models that fit the data equally well diverge sharply, and the
+confidence interval on the asymptote, not the point prediction, is the
+honest summary.
+
+## Comparison to alternatives
+
+The coverage route in spacc shares its statistical machinery with
+iNEXT, which popularised coverage-based rarefaction and extrapolation
+through Hill numbers (Chao et al. 2014). Both standardise communities by
+sample completeness rather than raw effort, and both lean on the same
+Chao-type asymptotic estimators when extrapolating past the observed
+data. The difference is structural. iNEXT treats samples as exchangeable
+and accumulates them without geography, whereas spacc accumulates sites
+in spatial order through its nearest-neighbour engine, so the coverage
+curve reflects how completeness builds up across space rather than across
+an arbitrary sample order. For spatially aggregated plot data the
+sample-based Chiu (2023) estimator, available through the `coverage`
+argument of `spaccCoverage()`, is the more appropriate coverage estimator
+than the individual-based default.
+
+The model-based route in `extrapolate()` is a complement, not a rival, to
+the coverage route. Its strength is interpretability: the asymptote is a
+single number with a confidence interval, and the AIC table makes model
+uncertainty explicit. Its limit is that the estimate is only as good as
+the model shape, and an unsaturated curve underdetermines the ceiling, so
+the asymptotes can scatter widely even when every model fits the observed
+range. Coverage extrapolation sidesteps the shape assumption but pays for
+it with reliance on singleton and doubleton counts, which are themselves
+noisy in small samples. Using both and checking that they roughly agree
+is more defensible than trusting either alone.
+
+A second contrast is in what the two routes extrapolate against. The
+fitted models extrapolate against effort, so a prediction at 500 sites is
+a statement about a survey five times the size of the one actually run.
+Coverage extrapolation extrapolates against completeness, so a target of
+99% coverage is a statement about a survey complete enough to leave only
+1% of abundance undetected, regardless of how many sites that takes. The
+coverage target is bounded above by 1, which makes the extrapolation step
+finite and self-limiting, whereas the effort axis has no natural ceiling
+and invites predictions far past anything the data can support. For that
+reason the coverage route degrades more gracefully when pushed, while the
+model route gives the more transparent single estimate when the curve is
+near saturation. The two also differ in their data demands: model fitting
+needs the full accumulation curve, while coverage estimators need only the
+final abundance vector and its rare-species counts.
+
+## Practical guidance
+
+A few rules of thumb keep extrapolation honest. First, fit the whole
+model set with `compareModels()` rather than committing to one form;
+treat models within 2 delta-AIC units as tied and report the range of
+their asymptotes, not a single value. Second, do not extrapolate past
+about twice the maximum observed effort, where models that fit the data
+equally well begin to diverge. Third, require at least 10 accumulation
+points before fitting any model and reserve the six-parameter EVT mixture
+for datasets with more than about 30 points and a visibly multi-phase
+curve.
+
+The table below summarises which model to reach for first.
+
+| Situation | Suggested model | Why |
+|---|---|---|
+| Curve near saturation, simple shape | asymptotic exponential | fewest parameters, conservative ceiling |
+| Smooth decelerating rise, no clear inflection | Michaelis-Menten | robust default, two parameters |
+| Sigmoidal rise with a slow start | logistic | inflection point captures the lag |
+| Flexible single-phase SAR | Weibull | shape parameter adapts curvature |
+| Classic species-area data, long tail | Lomolino | log-axis sigmoid built for SARs |
+| Large multi-scale data, triphasic curve | EVT mixture | two components bend the curve twice |
+
+Minimum data is the gate before any of this applies. Below 10
+accumulation points no model should be fit; between 10 and 30 points the
+two- and three-parameter single curves are usable but the EVT mixture is
+not, and the asymptote interval should be reported in full rather than
+collapsed to a point. Above 30 points with a visibly flattening curve all
+six models become candidates and `compareModels()` can do the selecting.
+A useful diagnostic is the ratio of observed richness to the fitted
+asymptote, printed by `print()` on a fit: when the observed count is
+already 90% or more of the estimate the extrapolation is a modest
+correction, but when it is below about 70% the survey is far from
+complete and the ceiling rests heavily on the model.
+
+There are cases where the answer is to not extrapolate. When the
+observed curve is still rising steeply at the final site, the asymptote
+is essentially unconstrained, the asymptotes from different models will
+diverge by large margins, and any point estimate is a guess dressed as a
+number. In that situation the saturation summary from `summary()` and the
+slope at the curve's end are more honest than a fitted ceiling, and the
+correct conclusion is that more sampling is needed before total richness
+can be estimated at all. Heavily aggregated communities with many
+single-site species are a second warning case, because the rare-species
+counts that drive both the model deficit and the coverage estimators are
+then dominated by sampling noise.
 
 ## References
 
 - Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et al. (2025).
   Extreme value theory explains the topography and scaling of the
   species-area relationship. Nature Communications, 16, 5346.
+- Chao, A. & Jost, L. (2012). Coverage-based rarefaction and
+  extrapolation: standardizing samples by completeness rather than size.
+  Ecology, 93, 2533-2547.
 - Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
-  extrapolation with Hill numbers. Ecological Monographs, 84, 45-67.
+  extrapolation with Hill numbers: a framework for sampling and
+  estimation in species diversity studies. Ecological Monographs, 84,
+  45-67.
+- Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
+  Ecology, 104, e4099.
 - Lomolino, M.V. (2000). Ecology's most general, yet protean pattern:
   the species-area relationship. Journal of Biogeography, 27, 17-26.
 - Ma, Z. (2018). Generalizing the species-area relationship with
   diversity-area relationships. Ecology and Evolution, 8, 8645-8655.
+```

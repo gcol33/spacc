@@ -20,5 +20,6 @@ and "nestedness" are standard ecological terms. All are spelled correctly.
 This is the first CRAN submission of spacc.
 
 The package contains compiled C++ code (Rcpp/RcppParallel). The "New submission"
-NOTE is expected. Examples that depend on Suggests packages are guarded with
-requireNamespace().
+NOTE is expected. Examples and vignettes that depend on Suggests packages are
+guarded with requireNamespace(). Parallel workers are capped to two cores when
+_R_CHECK_LIMIT_CORES_ is set, so checks respect the CRAN core limit.
