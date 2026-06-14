@@ -48,21 +48,21 @@
 #' Webb, C.O. (2000). Exploring the phylogenetic structure of ecological
 #' communities: an example for rain forest trees. American Naturalist, 156, 145-155.
 #'
-#' @seealso [picante::mpd()], [picante::mntd()], [picante::pd()]
+#' @seealso `picante::mpd()`, `picante::mntd()`, `picante::pd()`
 #'
 #' @examples
 #' \donttest{
-#' library(ape)
+#' if (requireNamespace("ape", quietly = TRUE)) {
+#'   # Create random tree
+#'   tree <- ape::rtree(30)
 #'
-#' # Create random tree
-#' tree <- rtree(30)
+#'   coords <- data.frame(x = runif(50), y = runif(50))
+#'   species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+#'   colnames(species) <- tree$tip.label
 #'
-#' coords <- data.frame(x = runif(50), y = runif(50))
-#' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
-#' colnames(species) <- tree$tip.label
-#'
-#' phylo <- spaccPhylo(species, coords, tree, metric = c("mpd", "mntd"))
-#' plot(phylo)
+#'   phylo <- spaccPhylo(species, coords, tree, metric = c("mpd", "mntd"))
+#'   plot(phylo)
+#' }
 #' }
 #'
 #' @export
@@ -236,7 +236,7 @@ spaccPhylo <- function(x,
 #' Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 #' functional diversity from multiple traits. Ecology, 91, 299-305.
 #'
-#' @seealso [FD::dbFD()] for comprehensive functional diversity analysis
+#' @seealso `FD::dbFD()` for comprehensive functional diversity analysis
 #'
 #' @examples
 #' \donttest{

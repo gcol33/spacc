@@ -90,5 +90,5 @@ Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 functional diversity from multiple traits. Ecology, 91, 299-305.
 }
 \seealso{
-\code{\link[FD:dbFD]{FD::dbFD()}} for comprehensive functional diversity analysis
+\code{FD::dbFD()} for comprehensive functional diversity analysis
 }

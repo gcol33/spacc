@@ -20,3 +20,6 @@
 ^FEATURES\.md$
 ^src/tests$
 ^plan\.md$
+^src/.*\.o$
+^src/.*\.so$
+^src/.*\.dll$

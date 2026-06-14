@@ -894,12 +894,19 @@ plot.spacc_decay <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
 resolve_cores <- function(n_cores, parallel) {
   if (!parallel) return(1L)
   if (is.null(n_cores)) {
-    max(1L, parallel::detectCores() - 1L)
+    n_cores <- max(1L, parallel::detectCores() - 1L)
   } else {
     n_cores <- as.integer(n_cores)
     if (n_cores < 1L) {
       stop("n_cores must be a positive integer")
     }
-    n_cores
   }
+  # R CMD check sets _R_CHECK_LIMIT_CORES_ and permits at most two cores.
+  # Cap the count and pin the RcppParallel thread pool so the C++ workers,
+  # which draw from the global pool, honour the limit.
+  if (nzchar(Sys.getenv("_R_CHECK_LIMIT_CORES_"))) {
+    n_cores <- min(n_cores, 2L)
+    RcppParallel::setThreadOptions(numThreads = n_cores)
+  }
+  n_cores
 }

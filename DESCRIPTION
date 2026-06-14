@@ -8,10 +8,11 @@ Description: High-performance spatial species accumulation curves using
     nearest-neighbor algorithms. Implements 'kNN' and 'kNCN' sampling methods
     with a 'C++' backend for speed. Supports Hill numbers (q=0,1,2), beta
     diversity partitioning (turnover/nestedness), coverage-based rarefaction
-    and extrapolation, phylogenetic diversity including Faith's PD,
-    functional diversity accumulation, diversity-area relationships (DAR),
-    endemism-area curves, sampling-effort correction (SESARS), fragmentation
-    analysis (SFAR), and EVT-based SAR models. Multiple starting points
+    and extrapolation, phylogenetic diversity (Faith's PD, mean pairwise
+    distance, mean nearest taxon distance), functional diversity accumulation,
+    diversity-area relationships (DAR), endemism-area curves, sampling-effort
+    correction and fragmentation analysis, and species-area relationship (SAR)
+    models based on extreme value theory (EVT). Multiple starting points
     (seeds) provide uncertainty quantification.
     Methods are described in 'Chao' et al. (2014) <doi:10.1890/13-0133.1>,
     'Baselga' (2010) <doi:10.1111/j.1466-8238.2009.00490.x>,

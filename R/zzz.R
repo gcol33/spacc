@@ -82,7 +82,7 @@ cli_info <- function(msg) {
   if (requireNamespace("cli", quietly = TRUE)) {
     cli::cli_alert_info(msg)
   } else {
-    cat("i", msg, "\n")
+    message("i ", msg)
   }
 }
 
@@ -90,7 +90,7 @@ cli_success <- function(msg) {
   if (requireNamespace("cli", quietly = TRUE)) {
     cli::cli_alert_success(msg)
   } else {
-    cat("v", msg, "\n")
+    message("v ", msg)
   }
 }
 
