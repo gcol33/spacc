@@ -174,7 +174,9 @@ test_that("predict.spacc_fit extrapolates beyond observed", {
                parallel = FALSE, progress = FALSE, seed = 1)
   fit <- extrapolate(sac, model = "michaelis-menten")
 
-  preds <- predict(fit, n = c(50, 100, 200))
+  # predicting far past the sampled effort warns (issue #5)
+  expect_warning(predict(fit, n = 200), "beyond")
+  preds <- suppressWarnings(predict(fit, n = c(50, 100, 200)))
   expect_length(preds, 3)
   expect_true(all(diff(preds) >= 0))
 })

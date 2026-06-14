@@ -79,6 +79,33 @@ chao1 <- function(x) {
 }
 
 
+# Chao2 from incidence frequencies (number of sites each species occupies) and
+# the number of sites n. Shared by chao2() and the extrapolate() diagnostic so
+# the formula lives in one place.
+.chao2_from_freq <- function(freq, n) {
+  freq <- freq[freq > 0]
+  S_obs <- length(freq)
+  Q1 <- sum(freq == 1)
+  Q2 <- sum(freq == 2)
+
+  if (Q2 > 0) {
+    estimate <- S_obs + (n - 1) / n * Q1^2 / (2 * Q2)
+    se <- sqrt(Q2 * (0.5 * ((n - 1) / n) * (Q1 / Q2)^2 +
+                      ((n - 1) / n)^2 * (Q1 / Q2)^3 +
+                      0.25 * ((n - 1) / n)^2 * (Q1 / Q2)^4))
+  } else {
+    estimate <- S_obs + (n - 1) / n * Q1 * (Q1 - 1) / 2
+    se <- sqrt((n - 1) / n * Q1 * (Q1 - 1) / 2 +
+               ((n - 1) / n)^2 * Q1 * (2 * Q1 - 1)^2 / 4 -
+               ((n - 1) / n)^2 * Q1^4 / (4 * max(estimate, 1)))
+  }
+
+  ci <- chao_log_ci(estimate, se, S_obs)
+  list(estimate = estimate, se = se, lower = ci[1], upper = ci[2],
+       S_obs = S_obs, Q1 = Q1, Q2 = Q2, n = n)
+}
+
+
 #' Chao2 Richness Estimator
 #'
 #' Estimate total species richness from incidence (presence/absence) data
@@ -109,38 +136,17 @@ chao1 <- function(x) {
 chao2 <- function(x) {
   x <- as.matrix(x)
   pa <- (x > 0) * 1L
-
-  freq <- colSums(pa)
-  freq <- freq[freq > 0]
-
-  S_obs <- length(freq)
-  Q1 <- sum(freq == 1)
-  Q2 <- sum(freq == 2)
-  n <- nrow(pa)
-
-  if (Q2 > 0) {
-    estimate <- S_obs + (n - 1) / n * Q1^2 / (2 * Q2)
-    se <- sqrt(Q2 * (0.5 * ((n - 1) / n) * (Q1 / Q2)^2 +
-                      ((n - 1) / n)^2 * (Q1 / Q2)^3 +
-                      0.25 * ((n - 1) / n)^2 * (Q1 / Q2)^4))
-  } else {
-    estimate <- S_obs + (n - 1) / n * Q1 * (Q1 - 1) / 2
-    se <- sqrt((n - 1) / n * Q1 * (Q1 - 1) / 2 +
-               ((n - 1) / n)^2 * Q1 * (2 * Q1 - 1)^2 / 4 -
-               ((n - 1) / n)^2 * Q1^4 / (4 * max(estimate, 1)))
-  }
-
-  ci <- chao_log_ci(estimate, se, S_obs)
+  r <- .chao2_from_freq(colSums(pa), nrow(pa))
 
   structure(
     list(
       estimator = "chao2",
-      estimate = estimate,
-      se = se,
-      lower = ci[1],
-      upper = ci[2],
-      S_obs = S_obs,
-      details = list(Q1 = Q1, Q2 = Q2, n_sites = n)
+      estimate = r$estimate,
+      se = r$se,
+      lower = r$lower,
+      upper = r$upper,
+      S_obs = r$S_obs,
+      details = list(Q1 = r$Q1, Q2 = r$Q2, n_sites = r$n)
     ),
     class = "spacc_estimate"
   )
@@ -507,6 +513,46 @@ iChao1 <- function(x) {
 }
 
 
+# Improved Chao2 from incidence frequencies and number of sites n. Shared by
+# iChao2() and the extrapolate() diagnostic.
+.ichao2_from_freq <- function(freq, n) {
+  freq <- freq[freq > 0]
+  S_obs <- length(freq)
+  Q1 <- sum(freq == 1)
+  Q2 <- sum(freq == 2)
+  Q3 <- sum(freq == 3)
+  Q4 <- sum(freq == 4)
+
+  m <- (n - 1) / n
+  if (Q2 > 0) {
+    S_chao2 <- S_obs + m * Q1^2 / (2 * Q2)
+    se_chao2 <- sqrt(Q2 * (0.5 * m * (Q1 / Q2)^2 +
+                            m^2 * (Q1 / Q2)^3 +
+                            0.25 * m^2 * (Q1 / Q2)^4))
+  } else {
+    S_chao2 <- S_obs + m * Q1 * (Q1 - 1) / 2
+    se_chao2 <- sqrt(m * Q1 * (Q1 - 1) / 2 +
+                     m^2 * Q1 * (2 * Q1 - 1)^2 / 4 -
+                     m^2 * Q1^4 / (4 * max(S_chao2, 1)))
+  }
+
+  if (Q4 > 0 && Q3 > 0) {
+    correction <- (Q3 / (4 * Q4)) * max(Q1 - Q2 * Q3 / (2 * Q4), 0)
+    estimate <- S_chao2 + correction
+    se_correction <- sqrt((Q3 / (4 * Q4))^2 * Q1 +
+                          (Q3 / (4 * Q4))^2 * (Q2 * Q3 / (2 * Q4))^2 / max(Q2, 1))
+    se <- sqrt(se_chao2^2 + se_correction^2)
+  } else {
+    estimate <- S_chao2
+    se <- se_chao2
+  }
+
+  ci <- chao_log_ci(estimate, se, S_obs)
+  list(estimate = estimate, se = se, lower = ci[1], upper = ci[2],
+       S_obs = S_obs, Q1 = Q1, Q2 = Q2, Q3 = Q3, Q4 = Q4, n = n)
+}
+
+
 #' Improved Chao2 (iChao2) Richness Estimator
 #'
 #' Estimate total species richness from incidence data using the improved
@@ -549,54 +595,17 @@ iChao1 <- function(x) {
 iChao2 <- function(x) {
   x <- as.matrix(x)
   pa <- (x > 0) * 1L
-
-  freq <- colSums(pa)
-  freq <- freq[freq > 0]
-
-  S_obs <- length(freq)
-  Q1 <- sum(freq == 1)
-  Q2 <- sum(freq == 2)
-  Q3 <- sum(freq == 3)
-  Q4 <- sum(freq == 4)
-  n <- nrow(pa)
-
-  # Base Chao2 estimate
-  m <- (n - 1) / n
-  if (Q2 > 0) {
-    S_chao2 <- S_obs + m * Q1^2 / (2 * Q2)
-    se_chao2 <- sqrt(Q2 * (0.5 * m * (Q1 / Q2)^2 +
-                            m^2 * (Q1 / Q2)^3 +
-                            0.25 * m^2 * (Q1 / Q2)^4))
-  } else {
-    S_chao2 <- S_obs + m * Q1 * (Q1 - 1) / 2
-    se_chao2 <- sqrt(m * Q1 * (Q1 - 1) / 2 +
-                     m^2 * Q1 * (2 * Q1 - 1)^2 / 4 -
-                     m^2 * Q1^4 / (4 * max(S_chao2, 1)))
-  }
-
-  if (Q4 > 0 && Q3 > 0) {
-    correction <- (Q3 / (4 * Q4)) * max(Q1 - Q2 * Q3 / (2 * Q4), 0)
-    estimate <- S_chao2 + correction
-
-    se_correction <- sqrt((Q3 / (4 * Q4))^2 * Q1 +
-                          (Q3 / (4 * Q4))^2 * (Q2 * Q3 / (2 * Q4))^2 / max(Q2, 1))
-    se <- sqrt(se_chao2^2 + se_correction^2)
-  } else {
-    estimate <- S_chao2
-    se <- se_chao2
-  }
-
-  ci <- chao_log_ci(estimate, se, S_obs)
+  r <- .ichao2_from_freq(colSums(pa), nrow(pa))
 
   structure(
     list(
       estimator = "iChao2",
-      estimate = estimate,
-      se = se,
-      lower = ci[1],
-      upper = ci[2],
-      S_obs = S_obs,
-      details = list(Q1 = Q1, Q2 = Q2, Q3 = Q3, Q4 = Q4, n_sites = n)
+      estimate = r$estimate,
+      se = r$se,
+      lower = r$lower,
+      upper = r$upper,
+      S_obs = r$S_obs,
+      details = list(Q1 = r$Q1, Q2 = r$Q2, Q3 = r$Q3, Q4 = r$Q4, n_sites = r$n)
     ),
     class = "spacc_estimate"
   )

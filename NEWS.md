@@ -1,3 +1,49 @@
+# spacc 0.9.0
+
+## New Features
+
+- `extrapolateArea()` extrapolates richness to a spatial extent larger than the
+  one sampled, using the total-species (T-S) curve of Ugland, Gray & Ellingsen
+  (2003): sites are partitioned into spatial subareas, the expected total
+  richness of random subarea combinations is plotted against their convex-hull
+  area, and an asymptotic model is fitted and extended to a target area with a
+  median-bias-corrected site-bootstrap interval. New `spacc_area` class with
+  `print()`/`summary()`/`plot()`/`predict()`/`as.data.frame()` methods.
+
+- `extrapolate()` gains a calibrated `interval = "bootstrap"` (now the default)
+  that refits the chosen model across resampled seed curves and returns
+  percentile bounds, replacing the over-confident `nls` profile interval as the
+  default. `predict(fit, interval = "bootstrap")` returns a prediction band, and
+  `plot()` draws it. `interval = "profile"` recovers the old behaviour.
+
+- `extrapolate()` now reports goodness of fit (residual RMSE over the observed
+  range), an extrapolation-range note, and the nonparametric `chao2()`/`iChao2()`
+  estimates alongside the asymptote. It warns when the asymptote exceeds the
+  observed richness by more than `warn_ratio` (default 2), when it disagrees with
+  `chao2()` by more than 50%, and when `predict()` is evaluated beyond ~2.5x the
+  sampled effort.
+
+## Bug Fixes
+
+- `extrapolate()` asymptote confidence intervals are no longer over-confident.
+  The previous `confint()` used an `nls` profile interval on the (ultra-smooth)
+  mean curve, ignoring across-seed variability; it could exclude the truth in
+  every replicate of a recovery simulation. `confint()` now returns the
+  calibrated bootstrap interval by default (`method = "profile"` is still
+  available). The documentation notes that the parametric asymptote can be
+  biased high on clustered or under-sampled data and points to the nonparametric
+  estimators for calibrated total-richness intervals (#1, #3, #5).
+
+## Testing
+
+- Added parameter-recovery and CI-coverage tests on data simulated with a known
+  truth: richness estimators recover the true pool size (jackknife intervals at
+  ~nominal coverage; chao/iChao near-unbiased), `extrapolate()` recovers truth on
+  near-saturation data, `extrapolateArea()` interpolates the observed area, and
+  the Hill, phylogenetic, functional, and coverage accumulation endpoints match
+  their defining formulae (#2).
+
+
 # spacc 0.8.3
 
 ## Documentation

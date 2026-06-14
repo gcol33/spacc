@@ -7,6 +7,11 @@
 extrapolate(
   object,
   model = c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic", "evt"),
+  interval = c("bootstrap", "profile", "none"),
+  R = 200L,
+  level = 0.95,
+  compare = TRUE,
+  warn_ratio = 2,
   ...
 )
 }
@@ -17,20 +22,57 @@ extrapolate(
 \code{"lomolino"}, \code{"asymptotic"}, \code{"weibull"}, \code{"logistic"}, or \code{"evt"}
 (Extreme Value Theory, Borda-de-Agua et al. 2025).}
 
+\item{interval}{Character. How to build the asymptote confidence interval:
+\code{"bootstrap"} (default) refits the model across resampled seed curves and
+takes percentile bounds; \code{"profile"} uses the (over-confident) \code{nls}
+profile interval on the mean-curve fit; \code{"none"} skips it.}
+
+\item{R}{Integer. Number of bootstrap refits when \code{interval = "bootstrap"}.
+Default 200.}
+
+\item{level}{Numeric. Confidence level for the interval. Default 0.95.}
+
+\item{compare}{Logical. If \code{TRUE} (default) and the object carries incidence
+frequencies, compare the asymptote to the nonparametric \code{chao2()} /
+\code{iChao2()} estimates and flag large disagreement.}
+
+\item{warn_ratio}{Numeric. Warn when the fitted asymptote exceeds the
+observed richness by more than this factor. Default 2. Set to \code{Inf} to
+silence.}
+
 \item{...}{Additional arguments passed to \code{\link[stats:nls]{stats::nls()}}.}
 }
 \value{
 An object of class \code{spacc_fit} containing:
-\item{asymptote}{Estimated total species richness}
-\item{asymptote_ci}{Confidence interval for asymptote}
+\item{asymptote}{Estimated total species richness (asymptote of the model)}
+\item{asymptote_ci}{Confidence interval for the asymptote}
 \item{model}{Model name}
-\item{fit}{The nls fit object}
+\item{interval}{Interval method used}
+\item{fit}{The \code{nls} fit object}
 \item{aic}{AIC of the model}
+\item{gof}{List with residual \code{rmse} and relative \code{rmse_rel} over the
+observed range}
+\item{compare}{Nonparametric \code{chao2} / \code{iChao2} estimates, if available}
+\item{boot}{Bootstrap coefficient draws, if \code{interval = "bootstrap"}}
 }
 \description{
-Fit an asymptotic model to estimate total species richness beyond
-the observed sampling effort.
+Fit an asymptotic model to the spatial accumulation curve and estimate total
+species richness beyond the observed sampling effort.
 }
+\section{Bias caveat}{
+
+The asymptote is a \emph{parametric extrapolation} of the accumulation curve. On
+clustered or strongly under-sampled presence-absence data it tends to
+overestimate true richness, sometimes substantially, because the curve is far
+from saturation. The bootstrap interval quantifies the uncertainty of the
+fitted asymptote (curve-fit and across-seed variability) and is much wider
+than the \code{nls} profile interval, but it is \emph{not} a calibrated interval for
+true total richness: it is centred on a possibly biased point estimate. For
+calibrated total-richness estimates prefer the nonparametric estimators
+\code{\link[=chao2]{chao2()}} / \code{\link[=iChao2]{iChao2()}}, which are unbiased on the same data. The printout
+shows their values alongside the asymptote for comparison.
+}
+
 \examples{
 \donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
@@ -52,4 +94,8 @@ regional land use impacts on avian diversity. Journal of Biogeography,
 Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et al. (2025). Extreme
 value theory explains the topography and scaling of the species-area
 relationship. Nature Communications, 16, 5346.
+}
+\seealso{
+\code{\link[=extrapolateArea]{extrapolateArea()}} for area-based extrapolation to a region larger
+than the one sampled; \code{\link[=chao2]{chao2()}}, \code{\link[=iChao2]{iChao2()}} for nonparametric richness.
 }

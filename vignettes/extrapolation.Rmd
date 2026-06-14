@@ -220,7 +220,9 @@ A single call returns one fitted model. The default is
 Michaelis-Menten, but any of the six names can be passed. The returned
 `spacc_fit` object carries the asymptote, its confidence interval, the
 AIC, and the underlying `nls` fit, which is what makes `coef()`,
-`confint()`, and `predict()` work on it.
+`confint()`, and `predict()` work on it. By default the interval is a
+calibrated bootstrap across the seed curves rather than the `nls` profile
+interval; the difference and the reasons for it are taken up below.
 
 ### Model comparison
 
@@ -229,7 +231,7 @@ fit:
 
 ```{r models}
 models <- c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic")
-fits <- lapply(models, function(m) extrapolate(sac, model = m))
+fits <- lapply(models, function(m) extrapolate(sac, model = m, interval = "none"))
 names(fits) <- models
 
 # Compare AIC
@@ -247,8 +249,9 @@ the observed range can still disagree about where they level off. The
 spread across these five asymptotes, set against the known true value of
 `r 50`, shows directly how much model choice matters here.
 
-```{r plot-best, fig.cap = "Best-fitting asymptotic model."}
-best <- fits[[which.min(sapply(fits, function(f) f$aic))]]
+```{r plot-best, fig.cap = "Best-fitting asymptotic model with bootstrap band."}
+best_name <- names(fits)[which.min(sapply(fits, function(f) f$aic))]
+best <- extrapolate(sac, model = best_name, progress = FALSE)
 plot(best) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -257,8 +260,8 @@ plot(best) +
 ```
 
 The solid line is the observed mean curve, the dashed line the fitted
-model extended past the data, and the dotted horizontal line the
-estimated asymptote.
+model extended past the data, the shaded band the bootstrap prediction
+interval, and the dotted horizontal line the estimated asymptote.
 
 ### EVT model
 
@@ -305,23 +308,35 @@ a weight near 1 indicates a clear winner, whereas weights spread evenly
 across several models warn that the asymptote is poorly identified and
 any single point estimate is fragile.
 
-The chosen fit exposes its parameters and their intervals through the
-standard extractors. Here `coef()` returns the fitted parameters and
-`confint()` their profile-likelihood intervals:
+The chosen fit exposes its parameters and intervals through the standard
+extractors. `coef()` returns the fitted parameters and `confint()` the
+asymptote interval. By default `confint()` returns the bootstrap interval
+stored on the fit; `method = "profile"` recovers the `nls`
+profile-likelihood interval for comparison:
 
 ```{r coef-confint}
 coef(best)
-suppressMessages(confint(best))
+confint(best)
+confint(best, method = "profile")
 ```
 
-A quick goodness check is to look at the residuals of the fit against
-the observed curve. Systematic curvature in the residuals signals that
-the model shape is wrong even if the asymptote looks plausible:
+The profile interval is computed from the residuals of a single fit to
+the mean curve. Because averaging many seeds makes that curve very smooth,
+those residuals are tiny and the profile interval is correspondingly
+narrow, ignoring the variability between seed orderings. The bootstrap
+interval refits the model across resampled seed curves, so it propagates
+that across-seed variability and is the wider, more honest summary of how
+well the asymptote is pinned down.
+
+`extrapolate()` also reports goodness of fit directly. The fit carries the
+residual root-mean-square error over the observed range, and `print()`
+shows it together with the asymptote, the nonparametric `chao2()` and
+`iChao2()` estimates, and an effort range within which predictions are
+reasonable:
 
 ```{r residuals}
-obs <- as.data.frame(best)
-resid <- obs$observed - obs$predicted
-round(c(rmse = sqrt(mean(resid^2)), max_abs = max(abs(resid))), 3)
+best$gof$rmse
+best
 ```
 
 The fit goes through `nls()`, which can fail to converge when the curve
@@ -331,15 +346,24 @@ used for EVT is more stable but still not guaranteed. When fitting fails,
 erroring, and `compareModels()` marks that row as not converged so the
 remaining models can still be ranked.
 
-A small root-mean-square residual confirms that the chosen model tracks
-the observed range, but it says nothing about the extrapolated part of the
-curve, where there is no data to compute a residual against. This is the
-reason the AIC table and the asymptote interval carry more weight than the
-in-sample fit statistics: two models can have nearly identical residuals
-over the sampled effort and still place their ceilings far apart. The
-profile-likelihood interval from `confint()` is the most honest single
-summary of how well the asymptote is pinned down, and a wide interval is a
-signal that the curve has not yet given the data needed to fix it.
+A small residual confirms that the chosen model tracks the observed range,
+but it says nothing about the extrapolated part of the curve, where there
+is no data to compute a residual against. Two models can have nearly
+identical residuals over the sampled effort and still place their ceilings
+far apart, which is why the AIC table and the asymptote interval carry more
+weight than the in-sample fit statistics.
+
+A caution applies to the asymptote itself. On clustered or strongly
+under-sampled presence-absence data the parametric asymptote tends to
+overestimate true richness, sometimes by tens of percent, because the
+curve is far from saturation. The bootstrap interval quantifies the
+uncertainty of the fitted asymptote, but it is centred on that possibly
+biased estimate and is not a calibrated interval for true total richness.
+`extrapolate()` warns when the asymptote runs well above the observed
+richness or disagrees with `chao2()`, and for calibrated total-richness
+intervals the nonparametric estimators in the richness-estimation vignette
+are the better tool. Using both routes and checking that they roughly
+agree is more defensible than trusting the asymptote alone.
 
 ## Tuning
 
@@ -442,21 +466,61 @@ estimate from a small plot will most badly understate the regional total.
 ## Predicting richness at new effort levels
 
 Use `predict()` on a fitted extrapolation model to read the curve at any
-effort, inside or beyond the sampled range:
+effort, inside or beyond the sampled range. Point predictions come back
+as a plain vector:
 
 ```{r predict}
-predict(best, n = c(50, 100, 200, 500))
+predict(best, n = c(50, 100, 200))
 ```
 
-The first two values fall within the observed 100 sites and so are
-interpolations, which are well supported. The prediction at 200 doubles
-the effort and the one at 500 quintuples it; both are genuine
-extrapolations and should be read as model-dependent. A defensible rule
-is to trust predictions up to roughly twice the maximum observed effort
-and to treat anything further as illustrative. Beyond that range
-different models that fit the data equally well diverge sharply, and the
-confidence interval on the asymptote, not the point prediction, is the
-honest summary.
+With `interval = "bootstrap"` the same call returns a prediction band
+built from the bootstrap refits:
+
+```{r predict-interval}
+predict(best, n = c(50, 100, 200), interval = "bootstrap")
+```
+
+The first value falls within the observed 100 sites and so is an
+interpolation, which is well supported. The prediction at 200 doubles the
+effort and is a genuine extrapolation that should be read as
+model-dependent. `predict()` warns once the requested effort runs past
+roughly two and a half times the maximum observed effort, the common
+rarefaction rule of thumb; past that range different models that fit the
+data equally well diverge sharply, and the prediction band, not the point
+estimate, is the honest summary.
+
+## Extrapolating to a larger area
+
+`extrapolate()` extends the curve in sample count: a prediction at 200
+sites describes a survey twice the size of the one actually run, within
+the same spatial extent. A different question is how many species a region
+*larger* than the sampled extent would hold. `extrapolateArea()` answers
+it with the total-species (T-S) curve of Ugland, Gray and Ellingsen
+(2003). Sites are partitioned into spatial subareas; for each number of
+subareas the expected total richness of random combinations is plotted
+against their combined convex-hull area; an asymptotic model is fitted to
+that species-area curve and extended to a target area.
+
+```{r area}
+area_fit <- extrapolateArea(pa, coords, n_subareas = 8,
+                            model = "michaelis-menten", R = 100,
+                            seed = 1, progress = FALSE)
+area_fit
+```
+
+The observed area is the convex hull of the sampled points; the target
+area defaults to twice that. The interval is a site bootstrap, recentred
+on the point estimate to remove the downward bias that resampling sites
+with replacement would otherwise introduce. `as.data.frame()` returns the
+T-S curve, and `predict()` reads the fitted curve at any area:
+
+```{r area-predict}
+predict(area_fit, area = c(area_fit$observed_area, 2 * area_fit$observed_area),
+        interval = "bootstrap")
+```
+
+As with sample-count extrapolation, the fitted ceiling is model-dependent
+and most trustworthy for areas not far beyond the one sampled.
 
 ## Comparison to alternatives
 

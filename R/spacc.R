@@ -532,6 +532,7 @@ spacc <- function(x,
     list(
       curves = curves,
       coords = coord_data,
+      incidence_freq = colSums(species_pa),
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species_total,

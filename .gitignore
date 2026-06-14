@@ -19,6 +19,9 @@ src/*.dll
 .DS_Store
 Thumbs.db
 
+# knitr/vignette render artifacts
+figure/
+
 # Claude
 .claude/
 

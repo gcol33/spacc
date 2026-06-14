@@ -131,6 +131,7 @@ reference:
   desc: Post-hoc analysis of accumulation curves
   contents:
   - extrapolate
+  - extrapolateArea
   - compare
   - rarefy
   - subsample

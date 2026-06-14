@@ -62,8 +62,14 @@ utils::globalVariables(c(
   "eigenvalue", "moran_i", "vector", "r_squared", "score",
   # compareModels plot aesthetics
   "converged",
-  "model"
+  "model",
+  # extrapolate / extrapolateArea prediction bands
+  "fit", "n_sub", "richness_sd"
 ))
+
+
+# Null-coalescing helper (base R gained %||% in 4.4.0; define for R >= 3.5)
+`%||%` <- function(a, b) if (is.null(a)) b else a
 
 
 # Check for suggested packages
