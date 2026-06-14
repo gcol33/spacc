@@ -1,4 +1,4 @@
-﻿#' Alpha Diversity (Per-Site)
+#' Alpha Diversity (Per-Site)
 #'
 #' Compute Hill numbers for each site individually.
 #'

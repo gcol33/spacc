@@ -25,3 +25,4 @@
 ^src/.*\.dll$
 ^dev_notes$
 ^paper$
+^figure$
