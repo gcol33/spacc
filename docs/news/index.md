@@ -1,5 +1,97 @@
 # Changelog
 
+## spacc 0.9.0
+
+### New Features
+
+- [`extrapolateArea()`](https://gillescolling.com/spacc/reference/extrapolateArea.md)
+  extrapolates richness to a spatial extent larger than the one sampled,
+  using the total-species (T-S) curve of Ugland, Gray & Ellingsen
+  (2003): sites are partitioned into spatial subareas, the expected
+  total richness of random subarea combinations is plotted against their
+  convex-hull area, and an asymptotic model is fitted and extended to a
+  target area with a median-bias-corrected site-bootstrap interval. New
+  `spacc_area` class with
+  [`print()`](https://rdrr.io/r/base/print.html)/[`summary()`](https://rdrr.io/r/base/summary.html)/[`plot()`](https://rdrr.io/r/graphics/plot.default.html)/[`predict()`](https://rdrr.io/r/stats/predict.html)/[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
+  methods.
+
+- [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
+  gains a calibrated `interval = "bootstrap"` (now the default) that
+  refits the chosen model across resampled seed curves and returns
+  percentile bounds, replacing the over-confident `nls` profile interval
+  as the default. `predict(fit, interval = "bootstrap")` returns a
+  prediction band, and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws it.
+  `interval = "profile"` recovers the old behaviour.
+
+- [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
+  now reports goodness of fit (residual RMSE over the observed range),
+  an extrapolation-range note, and the nonparametric
+  [`chao2()`](https://gillescolling.com/spacc/reference/chao2.md)/[`iChao2()`](https://gillescolling.com/spacc/reference/iChao2.md)
+  estimates alongside the asymptote. It warns when the asymptote exceeds
+  the observed richness by more than `warn_ratio` (default 2), when it
+  disagrees with
+  [`chao2()`](https://gillescolling.com/spacc/reference/chao2.md) by
+  more than 50%, and when
+  [`predict()`](https://rdrr.io/r/stats/predict.html) is evaluated
+  beyond ~2.5x the sampled effort.
+
+### Bug Fixes
+
+- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) on a
+  `spacc_endemism` object no longer lists “Endemic species” twice in the
+  legend. The confidence-band fill was drawn as its own guide because
+  the ribbon covered only the endemism series; that fill guide is now
+  suppressed so a single line-colour legend remains.
+
+- Removed a stray blank line beneath the y-axis title in
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for
+  `spacc_beta` objects.
+
+- [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
+  asymptote confidence intervals are no longer over-confident. The
+  previous [`confint()`](https://rdrr.io/r/stats/confint.html) used an
+  `nls` profile interval on the (ultra-smooth) mean curve, ignoring
+  across-seed variability; it could exclude the truth in every replicate
+  of a recovery simulation.
+  [`confint()`](https://rdrr.io/r/stats/confint.html) now returns the
+  calibrated bootstrap interval by default (`method = "profile"` is
+  still available). The documentation notes that the parametric
+  asymptote can be biased high on clustered or under-sampled data and
+  points to the nonparametric estimators for calibrated total-richness
+  intervals ([\#1](https://github.com/gcol33/spacc/issues/1),
+  [\#3](https://github.com/gcol33/spacc/issues/3),
+  [\#5](https://github.com/gcol33/spacc/issues/5)).
+
+### Testing
+
+- Added parameter-recovery and CI-coverage tests on data simulated with
+  a known truth: richness estimators recover the true pool size
+  (jackknife intervals at ~nominal coverage; chao/iChao near-unbiased),
+  [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
+  recovers truth on near-saturation data,
+  [`extrapolateArea()`](https://gillescolling.com/spacc/reference/extrapolateArea.md)
+  interpolates the observed area, and the Hill, phylogenetic,
+  functional, and coverage accumulation endpoints match their defining
+  formulae ([\#2](https://github.com/gcol33/spacc/issues/2)).
+
+## spacc 0.8.3
+
+### Documentation
+
+- Expanded all seven vignettes from brief overviews into full worked
+  guides (quickstart, diversity, rarefaction/standardization, community
+  assembly, spatial analysis, extrapolation, richness estimation). Each
+  now covers the underlying model, simulation with known ground truth,
+  fitting, uncertainty, prediction/comparison, and practical guidance,
+  and exercises the full exported API (including
+  [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md),
+  [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md),
+  [`spatialEigenvectors()`](https://gillescolling.com/spacc/reference/spatialEigenvectors.md)/[`spatialPartition()`](https://gillescolling.com/spacc/reference/spatialPartition.md),
+  [`wavefront()`](https://gillescolling.com/spacc/reference/wavefront.md),
+  and
+  [`compareModels()`](https://gillescolling.com/spacc/reference/compareModels.md)).
+
 ## spacc 0.8.2
 
 ### Improvements

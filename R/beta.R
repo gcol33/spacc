@@ -240,8 +240,7 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
   p +
     ggplot2::labs(
       x = xlab,
-      y = paste0("Beta diversity (", x$index, ")
-"),
+      y = paste0("Beta diversity (", x$index, ")"),
       color = "Component",
       title = "Spatial Beta Diversity Accumulation"
     ) +

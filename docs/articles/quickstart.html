@@ -41,7 +41,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-06-14</h4>
+            <h4 data-toc-skip class="date">2026-06-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/quickstart.Rmd" class="external-link"><code>vignettes/quickstart.Rmd</code></a></small>
       <div class="d-none name"><code>quickstart.Rmd</code></div>
@@ -110,49 +110,169 @@ Colling</h4>
     
     
 <div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p><strong>spacc</strong> computes spatial species accumulation curves
-(SACs) using nearest-neighbour algorithms with a C++ backend for speed.
-Unlike classical random SACs, spatial SACs respect the geographic
-arrangement of sampling sites, revealing how species richness
-accumulates as you expand outward from a focal point.</p>
+<p>A species accumulation curve (SAC) records how many distinct species
+have been seen after <span class="math inline">\(k\)</span> sampling
+units have been examined. The classical version draws those units in
+random order and averages over many random orders. spacc draws them in
+spatial order instead: starting from a focal site, it visits the nearest
+unvisited site next, then the nearest to that, and so on. The curve that
+results answers a different question. The random curve asks how richness
+grows with effort; the spatial curve asks how richness grows with area
+as a survey spreads outward from a point.</p>
+<p>The two curves separate whenever species are spatially aggregated,
+which is the usual case in ecology. Neighbouring sites share species, so
+the spatial curve climbs slowly at first and the across-start
+variability is large. The random curve ignores geography, mixes distant
+communities into each step, and climbs faster. The gap between them is
+itself a measure of spatial turnover. A spatial curve that tracks the
+random curve closely signals a community with little spatial structure;
+a spatial curve that lags far behind signals strong distance decay in
+composition.</p>
+<p>The choice of order matters because most field surveys are not
+random. Plots fall along a transect, a road, an elevation gradient, or a
+grid, and nearby plots are sampled together. A random SAC quietly
+assumes the sampling units are exchangeable, which inflates the apparent
+rate of discovery when they are not. The spatial curve keeps the
+geography that the random average throws away, so its slope reflects how
+fast new species appear as a real survey expands its footprint rather
+than how fast they appear in an idealised draw from the regional pool.
+For planning a survey, the spatial slope is the relevant one: it
+predicts the marginal return of visiting one more nearby site.</p>
+<p>spacc computes these curves with a C++ backend, runs many starting
+points in parallel, and reports across-start quantiles as confidence
+bounds. The parallelism matters in practice because the uncertainty here
+comes from varying the starting point, not from a formula. Each seed is
+an independent walk, and the spread of the seed curves at a given step
+is the sampling distribution of richness at that effort. Computing
+dozens of walks is the cost of an honest interval, and a compiled,
+threaded backend makes that cost small enough to ignore on datasets up
+to thousands of sites.</p>
+<p>The same accumulation machinery feeds a family of downstream
+analyses: Hill numbers, beta-diversity partitioning, coverage
+standardization, phylogenetic and functional diversity, richness
+estimators, and conservation metrics. Each one reuses the spatial walk
+and replaces the quantity counted at each step. Where the basic curve
+counts species, the Hill version counts effective species, the beta
+version measures compositional change, and the coverage version tracks
+sampling completeness. This vignette walks the front door of that
+pipeline, then takes one short detour into each downstream branch. Reach
+for spacc when sites carry coordinates and the spatial arrangement of
+sampling is part of the question, not a nuisance to average away.</p>
 </div>
 <div class="section level2">
-<h2 id="simulating-example-data">Simulating Example Data<a class="anchor" aria-label="anchor" href="#simulating-example-data"></a>
+<h2 id="the-basic-workflow">The basic workflow<a class="anchor" aria-label="anchor" href="#the-basic-workflow"></a>
 </h2>
+<p>The package ships no built-in datasets, so the examples simulate
+communities with known structure. Working with simulated data has a
+payoff: the ground truth is known, so the curve’s behaviour can be
+checked against what was put in. Here 40 species are scattered across 80
+sites, and each species clusters around its own centre rather than
+spreading evenly. That clustering is what makes the spatial and random
+curves diverge later on.</p>
+<p>Each species is placed at a random centre, and its occurrence
+probability decays with squared distance from that centre. The kernel
+<span class="math inline">\(p = \exp(-\alpha\,r^2)\)</span> gives each
+species a Gaussian-shaped range, where <span class="math inline">\(r\)</span> is the distance from a site to the
+species centre and <span class="math inline">\(\alpha\)</span> is the
+decay constant. The decay constant <code>0.001</code> sets the patch
+width: at a separation of about 32 units the kernel drops to <span class="math inline">\(1/e\)</span>, so a species occupies a blob roughly
+60 units across in a 100-by-100 arena. Smaller constants give wider
+ranges, larger constants give tighter endemics. The
+<code><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom()</a></code> draw then turns that probability into a presence
+or absence at each site, so a site near a species centre almost always
+records it and a site far away rarely does.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
-<span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
-<span><span class="va">n_sites</span> <span class="op">&lt;-</span> <span class="fl">80</span></span>
-<span><span class="va">n_species</span> <span class="op">&lt;-</span> <span class="fl">40</span></span>
-<span></span>
-<span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span>,</span>
-<span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Simulate presence/absence with spatial structure</span></span>
-<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="va">n_sites</span>, <span class="va">n_species</span><span class="op">)</span></span>
+<span><span class="va">n_sites</span> <span class="op">&lt;-</span> <span class="fl">80</span>; <span class="va">n_species</span> <span class="op">&lt;-</span> <span class="fl">40</span></span>
+<span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="va">n_sites</span>, <span class="va">n_species</span><span class="op">)</span>   <span class="co"># presence/absence, spatially clustered</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">sp</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_species</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">cx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">20</span>, <span class="fl">80</span><span class="op">)</span></span>
-<span>  <span class="va">cy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">20</span>, <span class="fl">80</span><span class="op">)</span></span>
+<span>  <span class="va">cx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">20</span>, <span class="fl">80</span><span class="op">)</span>; <span class="va">cy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">20</span>, <span class="fl">80</span><span class="op">)</span></span>
 <span>  <span class="va">prob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.001</span> <span class="op">*</span> <span class="op">(</span><span class="op">(</span><span class="va">coords</span><span class="op">$</span><span class="va">x</span> <span class="op">-</span> <span class="va">cx</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="op">(</span><span class="va">coords</span><span class="op">$</span><span class="va">y</span> <span class="op">-</span> <span class="va">cy</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">species</span><span class="op">[</span>, <span class="va">sp</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">1</span>, <span class="va">prob</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_species</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="basic-spatial-accumulation-curve">Basic Spatial Accumulation Curve<a class="anchor" aria-label="anchor" href="#basic-spatial-accumulation-curve"></a>
-</h2>
-<p>The core function <code><a href="../reference/spacc.html">spacc()</a></code> computes kNN-based
-accumulation curves from multiple random starting sites (seeds):</p>
+<p>The input is a site-by-species matrix: one row per site, one column
+per species, holding presence/absence or abundance. The coordinates come
+as a data frame with columns <code>x</code> and <code>y</code> in the
+same row order. spacc joins the two by position, so the row order of
+<code>species</code> and <code>coords</code> must match. A common source
+of silent error is sorting or filtering one table without the other,
+which scrambles the pairing; building both from the same source in one
+step, as above, avoids it. Abundance matrices are accepted directly, and
+the distance-based richness curves binarise them internally, while the
+Hill and coverage functions keep the counts because they need them.</p>
+<p><code><a href="../reference/spacc.html">spacc()</a></code> is the core function. It samples
+<code>n_seeds</code> random starting sites, runs a k-nearest-neighbour
+accumulation from each, and stacks the resulting curves into a
+matrix.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, method <span class="op">=</span> <span class="st">"knn"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">sac</span></span>
 <span><span class="co">#&gt; spacc: 80 sites, 40 species, 30 seeds (knn)</span></span></code></pre></div>
+<p>The print line reports the number of sites, the total species pool,
+the number of seeds, and the method. The object itself is a list. Its
+central element is <code>curves</code>, a matrix with one row per seed
+and one column per accumulation step. Entry <span class="math inline">\((s, k)\)</span> is the cumulative species count
+for seed <span class="math inline">\(s\)</span> after <span class="math inline">\(k\)</span> sites. Every seed walks all the way out
+to the full site set, so the last column is identical across seeds and
+equals observed total richness. The early columns are where seeds
+disagree, because where a walk begins decides which patch it explores
+first.</p>
+<p>This matrix layout is the heart of the package. Rather than store a
+single averaged curve, spacc keeps every seed’s walk, so any summary
+statistic, quantile, or comparison can be computed afterward from the
+raw replicates. A 30-seed run on 80 sites holds a 30-by-80 matrix; the
+rows are the replicates and the columns are the effort axis. Reading
+down a column gives the across-seed distribution of richness at that
+effort, which is exactly what the confidence ribbon plots.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">sac</span><span class="op">$</span><span class="va">curves</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 30 80</span></span>
+<span><span class="va">sac</span><span class="op">$</span><span class="va">curves</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span></span>
+<span><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
+<span><span class="co">#&gt; [1,]    7   13   20   23   27   29</span></span>
+<span><span class="co">#&gt; [2,]   12   19   20   25   25   25</span></span>
+<span><span class="co">#&gt; [3,]   16   25   29   33   33   36</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> condenses the matrix into per-step statistics.
+The mean curve is the column mean; the confidence bounds are across-seed
+quantiles, not parametric standard errors. Using quantiles rather than a
+normal-theory interval matters because the seed curves are bounded below
+by zero and above by total richness, so their distribution at a given
+step is skewed near both ends. A quantile band respects those bounds,
+while a mean-plus-or-minus interval can stray outside them. With
+<code>ci_level = 0.95</code> the bounds are the 2.5th and 97.5th
+percentiles of the seed curves at each step, and lowering the level
+narrows the band to the chosen central fraction of seeds.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Spatial Species Accumulation Curve</span></span>
+<span><span class="co">#&gt; ------------------------------------ </span></span>
+<span><span class="co">#&gt; Method:           knn </span></span>
+<span><span class="co">#&gt; Seeds:            30 </span></span>
+<span><span class="co">#&gt; Sites:            80 </span></span>
+<span><span class="co">#&gt; Total species:    40 </span></span>
+<span><span class="co">#&gt; Final species:   40.0 (95% CI: 40.0 - 40.0)</span></span>
+<span><span class="co">#&gt; Saturation (90%): 21 sites</span></span>
+<span><span class="co">#&gt; CV at midpoint:  1.6%</span></span></code></pre></div>
+<p>The saturation point is the first step where the mean curve reaches
+90% of its final value, a quick read on how much area must be surveyed
+to capture most of the regional pool. A saturation point at 25 sites out
+of 80 means most species turn up early and the rest of the survey adds
+little; a saturation point near the end means richness keeps climbing
+right up to the last site, a warning that the regional pool is
+undersampled. The threshold is adjustable through
+<code>saturation_threshold</code>. The CV at midpoint divides the
+across-seed standard deviation by the mean halfway along the curve; a
+large value flags that richness depends strongly on where sampling
+starts, which is the spatial structure showing through in the spread of
+the seeds.</p>
+<p>The <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method draws the mean curve with a shaded
+ribbon between the quantile bounds.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
@@ -226,27 +346,184 @@ accumulation curves from multiple random starting sites (seeds):</p>
 Spatial species accumulation curve with 95% confidence ribbon.
 </p>
 </div>
-<p>The grey ribbon shows variability across starting points — wider
-ribbons indicate that species richness depends on <em>where</em> you
-start sampling.</p>
+<p>The grey ribbon shows variability across starting points. A wide
+ribbon means richness depends on where you start; a narrow one means the
+community looks much the same wherever a survey begins. The ribbon
+narrows toward the right because every walk converges on the same full
+site set, and it is widest in the middle, where the seeds have diverged
+into different patches but have not yet reconverged. The plot method
+takes <code>ci = FALSE</code> to drop the ribbon,
+<code>show_seeds = TRUE</code> to draw the individual walks behind the
+mean, and <code>ci_level</code> to change the quantile band, so the same
+object yields a clean summary figure or a diagnostic of the raw spread
+depending on the audience.</p>
+<p><code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> returns the summary as a tidy table, one
+row per step, with the mean, the quantile bounds, and the across-seed
+standard deviation. This is the form to pass to a custom ggplot or to
+export. The built-in plot covers the common case, but the table is there
+for anything beyond it: overlaying several curves with bespoke styling,
+annotating a threshold, faceting by a grouping variable, or dropping the
+figure into a report theme. Keeping the summary and the plot in step
+means a custom figure never drifts from what <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>
+reports.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sac_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sac_df</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   sites     mean  lower  upper       sd</span></span>
+<span><span class="co">#&gt; 1     1  9.70000  1.000 18.375 4.935096</span></span>
+<span><span class="co">#&gt; 2     2 14.83333  1.725 25.550 5.942734</span></span>
+<span><span class="co">#&gt; 3     3 17.80000  2.725 29.000 6.364774</span></span>
+<span><span class="co">#&gt; 4     4 20.03333  3.000 30.100 6.697829</span></span>
+<span><span class="co">#&gt; 5     5 22.20000  9.900 30.825 5.973505</span></span>
+<span><span class="co">#&gt; 6     6 23.76667 11.175 33.100 6.344606</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">sac_df</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    sites mean lower upper sd</span></span>
+<span><span class="co">#&gt; 78    78   40    40    40  0</span></span>
+<span><span class="co">#&gt; 79    79   40    40    40  0</span></span>
+<span><span class="co">#&gt; 80    80   40    40    40  0</span></span></code></pre></div>
+<p>A custom plot reads straight from that table. Note the transparent
+backgrounds so the figure sits cleanly on the page.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">sac_df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">sites</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">lower</span>, ymax <span class="op">=</span> <span class="va">upper</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.3</span>, fill <span class="op">=</span> <span class="st">"#4CAF50"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">1</span>, colour <span class="op">=</span> <span class="st">"#2E7D32"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Sites"</span>, y <span class="op">=</span> <span class="st">"Cumulative species"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
+<span>        plot.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.07; stroke: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpMzMuMTN8NDk4LjUyfDUuNDh8MzI4LjUw'>
+    <rect x='33.13' y='5.48' width='465.39' height='323.02' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzMuMTN8NDk4LjUyfDUuNDh8MzI4LjUw)'>
+<rect x='33.13' y='5.48' width='465.39' height='323.02' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<polyline points='33.13,283.70 498.52,283.70 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,208.40 498.52,208.40 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,133.11 498.52,133.11 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,57.81 498.52,57.81 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='102.48,328.50 102.48,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='209.59,328.50 209.59,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='316.70,328.50 316.70,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='423.81,328.50 423.81,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,321.35 498.52,321.35 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,246.05 498.52,246.05 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,170.76 498.52,170.76 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,95.46 498.52,95.46 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,20.16 498.52,20.16 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='48.93,328.50 48.93,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='156.04,328.50 156.04,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='263.15,328.50 263.15,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='370.26,328.50 370.26,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='477.37,328.50 477.37,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polygon points='54.28,182.99 59.64,128.97 64.99,102.99 70.35,94.71 75.70,89.25 81.06,72.12 86.41,61.20 91.77,55.74 97.13,50.28 102.48,50.28 107.84,42.75 113.19,27.69 118.55,20.16 123.90,20.16 129.26,20.16 134.61,20.16 139.97,20.16 145.32,20.16 150.68,20.16 156.04,20.16 161.39,20.16 166.75,20.16 172.10,20.16 177.46,20.16 182.81,20.16 188.17,20.16 193.52,20.16 198.88,20.16 204.24,20.16 209.59,20.16 214.95,20.16 220.30,20.16 225.66,20.16 231.01,20.16 236.37,20.16 241.72,20.16 247.08,20.16 252.44,20.16 257.79,20.16 263.15,20.16 268.50,20.16 273.86,20.16 279.21,20.16 284.57,20.16 289.92,20.16 295.28,20.16 300.63,20.16 305.99,20.16 311.35,20.16 316.70,20.16 322.06,20.16 327.41,20.16 332.77,20.16 338.12,20.16 343.48,20.16 348.83,20.16 354.19,20.16 359.55,20.16 364.90,20.16 370.26,20.16 375.61,20.16 380.97,20.16 386.32,20.16 391.68,20.16 397.03,20.16 402.39,20.16 407.74,20.16 413.10,20.16 418.46,20.16 423.81,20.16 429.17,20.16 434.52,20.16 439.88,20.16 445.23,20.16 450.59,20.16 455.94,20.16 461.30,20.16 466.66,20.16 472.01,20.16 477.37,20.16 477.37,20.16 472.01,20.16 466.66,20.16 461.30,20.16 455.94,20.16 450.59,20.16 445.23,20.16 439.88,20.16 434.52,20.16 429.17,20.16 423.81,20.16 418.46,20.16 413.10,20.16 407.74,20.16 402.39,20.16 397.03,20.16 391.68,20.16 386.32,20.16 380.97,20.16 375.61,20.16 370.26,20.16 364.90,20.16 359.55,20.16 354.19,20.16 348.83,20.16 343.48,20.16 338.12,20.16 332.77,20.16 327.41,20.16 322.06,20.16 316.70,20.16 311.35,20.16 305.99,20.16 300.63,20.16 295.28,20.16 289.92,20.16 284.57,27.69 279.21,27.69 273.86,35.22 268.50,35.22 263.15,35.22 257.79,35.22 252.44,35.22 247.08,42.75 241.72,42.75 236.37,42.75 231.01,50.28 225.66,50.28 220.30,50.28 214.95,50.28 209.59,54.42 204.24,65.34 198.88,65.34 193.52,65.34 188.17,67.41 182.81,72.87 177.46,72.87 172.10,72.87 166.75,72.87 161.39,82.47 156.04,90.00 150.68,90.00 145.32,94.14 139.97,99.60 134.61,110.52 129.26,112.59 123.90,127.65 118.55,129.72 113.19,144.78 107.84,159.84 102.48,170.76 97.13,187.89 91.77,200.88 86.41,218.01 81.06,237.21 75.70,246.81 70.35,298.76 64.99,300.83 59.64,308.36 54.28,313.82 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.30;' />
+<polyline points='54.28,182.99 59.64,128.97 64.99,102.99 70.35,94.71 75.70,89.25 81.06,72.12 86.41,61.20 91.77,55.74 97.13,50.28 102.48,50.28 107.84,42.75 113.19,27.69 118.55,20.16 123.90,20.16 129.26,20.16 134.61,20.16 139.97,20.16 145.32,20.16 150.68,20.16 156.04,20.16 161.39,20.16 166.75,20.16 172.10,20.16 177.46,20.16 182.81,20.16 188.17,20.16 193.52,20.16 198.88,20.16 204.24,20.16 209.59,20.16 214.95,20.16 220.30,20.16 225.66,20.16 231.01,20.16 236.37,20.16 241.72,20.16 247.08,20.16 252.44,20.16 257.79,20.16 263.15,20.16 268.50,20.16 273.86,20.16 279.21,20.16 284.57,20.16 289.92,20.16 295.28,20.16 300.63,20.16 305.99,20.16 311.35,20.16 316.70,20.16 322.06,20.16 327.41,20.16 332.77,20.16 338.12,20.16 343.48,20.16 348.83,20.16 354.19,20.16 359.55,20.16 364.90,20.16 370.26,20.16 375.61,20.16 380.97,20.16 386.32,20.16 391.68,20.16 397.03,20.16 402.39,20.16 407.74,20.16 413.10,20.16 418.46,20.16 423.81,20.16 429.17,20.16 434.52,20.16 439.88,20.16 445.23,20.16 450.59,20.16 455.94,20.16 461.30,20.16 466.66,20.16 472.01,20.16 477.37,20.16 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.37,20.16 472.01,20.16 466.66,20.16 461.30,20.16 455.94,20.16 450.59,20.16 445.23,20.16 439.88,20.16 434.52,20.16 429.17,20.16 423.81,20.16 418.46,20.16 413.10,20.16 407.74,20.16 402.39,20.16 397.03,20.16 391.68,20.16 386.32,20.16 380.97,20.16 375.61,20.16 370.26,20.16 364.90,20.16 359.55,20.16 354.19,20.16 348.83,20.16 343.48,20.16 338.12,20.16 332.77,20.16 327.41,20.16 322.06,20.16 316.70,20.16 311.35,20.16 305.99,20.16 300.63,20.16 295.28,20.16 289.92,20.16 284.57,27.69 279.21,27.69 273.86,35.22 268.50,35.22 263.15,35.22 257.79,35.22 252.44,35.22 247.08,42.75 241.72,42.75 236.37,42.75 231.01,50.28 225.66,50.28 220.30,50.28 214.95,50.28 209.59,54.42 204.24,65.34 198.88,65.34 193.52,65.34 188.17,67.41 182.81,72.87 177.46,72.87 172.10,72.87 166.75,72.87 161.39,82.47 156.04,90.00 150.68,90.00 145.32,94.14 139.97,99.60 134.61,110.52 129.26,112.59 123.90,127.65 118.55,129.72 113.19,144.78 107.84,159.84 102.48,170.76 97.13,187.89 91.77,200.88 86.41,218.01 81.06,237.21 75.70,246.81 70.35,298.76 64.99,300.83 59.64,308.36 54.28,313.82 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='54.28,248.31 59.64,209.66 64.99,187.32 70.35,170.51 75.70,154.19 81.06,142.39 86.41,131.35 91.77,118.80 97.13,105.25 102.48,95.71 107.84,89.69 113.19,82.91 118.55,76.38 123.90,71.11 129.26,66.34 134.61,63.08 139.97,59.32 145.32,58.06 150.68,54.80 156.04,52.29 161.39,48.78 166.75,44.51 172.10,43.00 177.46,42.00 182.81,41.25 188.17,39.99 193.52,38.48 198.88,37.73 204.24,34.22 209.59,31.46 214.95,29.95 220.30,27.94 225.66,26.69 231.01,25.43 236.37,24.43 241.72,24.18 247.08,23.93 252.44,22.92 257.79,22.17 263.15,21.92 268.50,21.67 273.86,21.67 279.21,20.92 284.57,20.66 289.92,20.16 295.28,20.16 300.63,20.16 305.99,20.16 311.35,20.16 316.70,20.16 322.06,20.16 327.41,20.16 332.77,20.16 338.12,20.16 343.48,20.16 348.83,20.16 354.19,20.16 359.55,20.16 364.90,20.16 370.26,20.16 375.61,20.16 380.97,20.16 386.32,20.16 391.68,20.16 397.03,20.16 402.39,20.16 407.74,20.16 413.10,20.16 418.46,20.16 423.81,20.16 429.17,20.16 434.52,20.16 439.88,20.16 445.23,20.16 450.59,20.16 455.94,20.16 461.30,20.16 466.66,20.16 472.01,20.16 477.37,20.16 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='28.20' y='324.50' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='28.20' y='249.20' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='28.20' y='173.91' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='28.20' y='98.61' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='28.20' y='23.31' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<polyline points='30.39,321.35 33.13,321.35 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,246.05 33.13,246.05 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,170.76 33.13,170.76 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,95.46 33.13,95.46 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,20.16 33.13,20.16 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='48.93,331.24 48.93,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='156.04,331.24 156.04,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='263.15,331.24 263.15,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='370.26,331.24 370.26,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='477.37,331.24 477.37,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<text x='48.93' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='156.04' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='263.15' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='370.26' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='477.37' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='265.82' y='352.20' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='24.47px' lengthAdjust='spacingAndGlyphs'>Sites</text>
+<text transform='translate(13.36,166.99) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='95.41px' lengthAdjust='spacingAndGlyphs'>Cumulative species</text>
+</g>
+</g>
+</svg></div><p class="caption">
+Manual ggplot from the summary data frame.
+</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="comparing-methods">Comparing Methods<a class="anchor" aria-label="anchor" href="#comparing-methods"></a>
+<h2 id="accumulation-methods">Accumulation methods<a class="anchor" aria-label="anchor" href="#accumulation-methods"></a>
 </h2>
-<p>spacc supports several accumulation methods:</p>
-<ul>
-<li><p><strong>knn</strong>: k-Nearest Neighbour (default,
-fast)</p></li>
-<li><p><strong>kncn</strong>: k-Nearest Centroid Neighbour
-(geometrically centred expansion)</p></li>
-<li><p><strong>random</strong>: Classical random accumulation (no
-spatial structure)</p></li>
-</ul>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<p>The walk order is set by <code>method</code>. The default
+<code>"knn"</code> always steps to the closest unvisited site, tracing a
+compact, often elongated path. <code>"kncn"</code> steps to the site
+closest to the centroid of everything visited so far, which grows a
+rounder, more area-like footprint. <code>"random"</code> ignores
+geography entirely and gives the classical effort-based curve. spacc
+also offers <code>"radius"</code> (admit every site within a growing
+distance band), <code>"gaussian"</code> (probabilistic selection
+weighted by distance), <code>"cone"</code> (directional expansion inside
+an angular wedge), and <code>"collector"</code> (sites in data order, a
+single curve with no randomization).</p>
+<p>The difference between kNN and kNCN is worth dwelling on, because it
+changes the shape of the sampled region and therefore the curve. A kNN
+walk chases the single nearest point, which can string out into a thin
+chain that wanders across the map without ever filling an area. A kNCN
+walk anchors each step to the centre of mass of the visited set, so the
+footprint grows outward in all directions like an inflating disc. When
+the goal is to mimic an expanding survey area, kNCN is the closer match;
+when the goal is to follow whatever local structure the points happen to
+have, kNN is more faithful and runs faster. The radius and gaussian
+methods need a distance matrix and so use the exact backend, while kNN
+and kNCN can switch to a spatial tree for large datasets, chosen
+automatically above 500 sites.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac_kncn</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, method <span class="op">=</span> <span class="st">"kncn"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">sac_rand</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, method <span class="op">=</span> <span class="st">"random"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p>Combine curves for comparison:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p>The <code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code> method combines several <code>spacc</code>
+objects into one grouped object, which <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> overlays. The
+names supplied become the legend labels.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>knn <span class="op">=</span> <span class="va">sac</span>, kncn <span class="op">=</span> <span class="va">sac_kncn</span>, random <span class="op">=</span> <span class="va">sac_rand</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">combined</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
@@ -335,40 +612,133 @@ spatial structure)</p></li>
 </g>
 </g>
 </svg></div><p class="caption">
-Comparison of accumulation methods.
+kNN, kNCN, and random accumulation compared.
 </p>
 </div>
+<p>The random curve rises above both spatial curves at every
+intermediate step. That separation is the spatial signal: random draws
+pull in distant, compositionally different sites early, so they rack up
+species faster than a walk confined to one neighbourhood. The kNN and
+kNCN curves run close together here because the patches are large
+relative to the spacing between sites. With tighter patches the two
+spatial methods would split apart, with kNN lagging further as it traced
+single-file paths through one patch before reaching the next. Reading
+the three curves together turns the plot into a diagnostic: the height
+of the random curve above the spatial pair quantifies how much the
+spatial design constrains discovery.</p>
 <div class="section level3">
-<h3 id="custom-accumulation-order">Custom Accumulation Order<a class="anchor" aria-label="anchor" href="#custom-accumulation-order"></a>
+<h3 id="custom-accumulation-order">Custom accumulation order<a class="anchor" aria-label="anchor" href="#custom-accumulation-order"></a>
 </h3>
-<p>To accumulate sites in a sequence you control, pass
-<code>order</code>: a permutation of site indices, or a matrix with one
-ordering per row to get confidence bounds across orderings. This
-bypasses the distance-based methods and accumulates sites in exactly the
-order given:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>When the sequence should follow something other than distance, pass
+it through <code>order</code>: a permutation of site indices for a
+single curve, or a matrix with one ordering per row to get bounds across
+orderings. Supplying <code>order</code> bypasses the distance methods
+and the seed sampling, accumulating sites in exactly the order given.
+Useful drivers include an elevation rank, a survey date, or a transect
+position.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Accumulate west-to-east (e.g. an elevation rank or survey date)</span></span>
 <span><span class="va">sweep_order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">coords</span><span class="op">$</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="va">sac_order</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, order <span class="op">=</span> <span class="va">sweep_order</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">sac_order</span></span>
 <span><span class="co">#&gt; spacc: 80 sites, 40 species, 1 seeds (user)</span></span></code></pre></div>
+<p>The method label switches to <code>user</code>, and because a single
+ordering yields a single curve there is no ribbon to draw. To get
+uncertainty from user-defined orders, stack several plausible sequences
+as rows of a matrix; each row then behaves like a seed, and the
+across-row quantiles form the ribbon. A west-to-east sweep like the one
+above traces how richness builds along a gradient, which differs from a
+nearest-neighbour walk whenever the gradient itself structures the
+community. The ordering must be a permutation of all site indices, each
+site appearing exactly once, so the walk visits the whole dataset.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="extrapolation">Extrapolation<a class="anchor" aria-label="anchor" href="#extrapolation"></a>
+<h2 id="comparing-curves">Comparing curves<a class="anchor" aria-label="anchor" href="#comparing-curves"></a>
 </h2>
-<p>Fit an asymptotic model to estimate total species richness:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<p>Two curves often need a formal test rather than an eyeball comparison
+of overlapping ribbons. <code><a href="../reference/compare.html">compare()</a></code> provides one. The default
+permutation test pools the seed curves from both objects, repeatedly
+splits the pool at random into two groups of the original sizes, and
+records the difference in area under the mean curve for each split. The
+<span class="math inline">\(p\)</span>-value is the fraction of permuted
+differences whose magnitude matches or exceeds the observed one. The
+logic is the standard one for a label-shuffle test: if the two objects
+really come from the same process, then which curve belongs to which
+group is arbitrary, and the observed difference should look ordinary
+among the shuffled differences. A difference that sits far out in the
+shuffled distribution is evidence the two curves are genuinely
+distinct.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sac_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">]</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">sac_b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span>, <span class="fl">21</span><span class="op">:</span><span class="fl">40</span><span class="op">]</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac_a</span>, <span class="va">sac_b</span>, method <span class="op">=</span> <span class="st">"permutation"</span>, n_perm <span class="op">=</span> <span class="fl">199</span><span class="op">)</span></span>
+<span><span class="va">comp</span></span>
+<span><span class="co">#&gt; Comparison: sac_a vs sac_b </span></span>
+<span><span class="co">#&gt; ---------------------------------------- </span></span>
+<span><span class="co">#&gt; Method: permutation (n=199)</span></span>
+<span><span class="co">#&gt; AUC difference: -8.6 (p = 0.573)</span></span>
+<span><span class="co">#&gt; Saturation: sac_a at 23 sites, sac_b at 19 sites</span></span></code></pre></div>
+<p>The printout names the two objects, gives the area-under-curve
+difference, the <span class="math inline">\(p\)</span>-value with
+significance stars, and the saturation point of each. A small <span class="math inline">\(p\)</span>-value means the two curves accumulate
+species at genuinely different rates rather than differing by chance
+across starting points. Here the two halves of the species pool were
+simulated the same way, so a non-significant result is the expected
+outcome. Setting <code>normalize = TRUE</code> rescales each curve to
+its own final value first, which compares the <em>shape</em> of
+accumulation rather than absolute counts; that isolates differences in
+how fast richness saturates from differences in how much richness there
+is. The <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> method on a comparison returns a
+one-row table with both areas, the difference, both saturation points,
+and the <span class="math inline">\(p\)</span>-value.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">comp</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       comparison    auc_x    auc_y auc_diff saturation_x saturation_y</span></span>
+<span><span class="co">#&gt; 1 sac_a vs sac_b 1451.867 1460.467     -8.6           23           19</span></span>
+<span><span class="co">#&gt;   saturation_diff   p_value      method</span></span>
+<span><span class="co">#&gt; 1               4 0.5728643 permutation</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="extrapolation-and-prediction">Extrapolation and prediction<a class="anchor" aria-label="anchor" href="#extrapolation-and-prediction"></a>
+</h2>
+<p>A finished SAC stops at the sites in hand, but the regional pool
+usually holds more. <code><a href="../reference/extrapolate.html">extrapolate()</a></code> fits an asymptotic model
+to the mean curve and reads off the asymptote as an estimate of total
+richness. Several model forms are available; the Lomolino sigmoid and
+the Michaelis-Menten hyperbola are common starting choices. Each model
+is a parametric curve that rises and flattens, and each is fit by
+nonlinear least squares to the mean accumulation curve. The asymptote is
+the value the curve approaches as effort grows without bound, so it
+stands in for the richness a complete survey would record. The models
+differ in how sharply they bend and how fast they flatten, which is why
+one form can fit a dataset well and another poorly.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="st">"lomolino"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Waiting for profiling to be done...</span></span>
 <span><span class="va">fit</span></span>
 <span><span class="co">#&gt; Extrapolation: lomolino </span></span>
-<span><span class="co">#&gt; ------------------------------ </span></span>
+<span><span class="co">#&gt; -------------------------------------- </span></span>
 <span><span class="co">#&gt; Estimated asymptote: 42.7 species</span></span>
-<span><span class="co">#&gt; 95% CI: 42.2 - 43.3</span></span>
-<span><span class="co">#&gt; AIC: 165.3</span></span>
-<span><span class="co">#&gt; Observed: 40.0 species (94% of estimated)</span></span></code></pre></div>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt; 95% CI (bootstrap):       40.2 - 70.1</span></span>
+<span><span class="co">#&gt; Observed:            40.0 species (94% of estimated)</span></span>
+<span><span class="co">#&gt; AIC: 165.3   RMSE: 0.65 (1.8% of mean)</span></span>
+<span><span class="co">#&gt; Reliable to ~200 sites (2.5x sampled effort of 80)</span></span>
+<span><span class="co">#&gt; -------------------------------------- </span></span>
+<span><span class="co">#&gt; Nonparametric:  chao2 = 40.0   iChao2 = 40.0</span></span>
+<span><span class="co">#&gt; (prefer these for calibrated total-richness intervals; see ?extrapolate)</span></span></code></pre></div>
+<p>The asymptote is the model’s ceiling, with a confidence interval from
+the nonlinear fit and the AIC for model comparison. The final line
+reports observed richness as a percentage of the estimated total, a
+direct read on sampling completeness: a survey at 95% of its estimated
+asymptote is nearly done, while one at 60% has substantial discovery
+left. Read that percentage alongside the confidence interval, because a
+tight interval at high completeness is trustworthy while a wide interval
+at low completeness warns that the asymptote is extrapolated rather than
+observed. The <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method shows the observed curve, the
+fitted curve extended past the data, and the asymptote as a horizontal
+line, which makes the extrapolated portion visually distinct from the
+part backed by data.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
@@ -416,96 +786,100 @@ order given:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
-<circle cx='57.11' cy='297.80' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='59.76' cy='261.06' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='62.40' cy='239.83' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='65.04' cy='223.84' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='67.68' cy='208.34' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='70.32' cy='197.12' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='72.96' cy='186.63' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='75.60' cy='174.70' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='78.24' cy='161.82' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='80.88' cy='152.75' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='83.52' cy='147.03' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='86.17' cy='140.58' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='88.81' cy='134.38' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='91.45' cy='129.37' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='94.09' cy='124.84' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='96.73' cy='121.74' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='99.37' cy='118.16' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='102.01' cy='116.97' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='104.65' cy='113.86' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='107.29' cy='111.48' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='109.93' cy='108.14' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='112.57' cy='104.08' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='115.22' cy='102.65' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='117.86' cy='101.70' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='120.50' cy='100.98' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='123.14' cy='99.79' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='125.78' cy='98.36' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='128.42' cy='97.64' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='131.06' cy='94.30' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='133.70' cy='91.68' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='136.34' cy='90.25' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='138.98' cy='88.34' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='141.63' cy='87.14' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='144.27' cy='85.95' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='146.91' cy='85.00' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='149.55' cy='84.76' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='152.19' cy='84.52' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='154.83' cy='83.57' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='157.47' cy='82.85' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='160.11' cy='82.61' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='162.75' cy='82.37' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='165.39' cy='82.37' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='168.03' cy='81.66' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='170.68' cy='81.42' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='173.32' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='175.96' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='178.60' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='181.24' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='183.88' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='186.52' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='189.16' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='191.80' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='194.44' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='197.09' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='199.73' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='202.37' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='205.01' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='207.65' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='210.29' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='212.93' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='215.57' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='218.21' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='220.85' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='223.50' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='226.14' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='228.78' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='231.42' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='234.06' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='236.70' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='239.34' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='241.98' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='244.62' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='247.26' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='249.90' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='252.55' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='255.19' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='257.83' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='260.47' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='263.11' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='265.75' cy='80.94' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<polyline points='57.11,297.80 59.76,261.06 62.40,239.83 65.04,223.84 67.68,208.34 70.32,197.12 72.96,186.63 75.60,174.70 78.24,161.82 80.88,152.75 83.52,147.03 86.17,140.58 88.81,134.38 91.45,129.37 94.09,124.84 96.73,121.74 99.37,118.16 102.01,116.97 104.65,113.86 107.29,111.48 109.93,108.14 112.57,104.08 115.22,102.65 117.86,101.70 120.50,100.98 123.14,99.79 125.78,98.36 128.42,97.64 131.06,94.30 133.70,91.68 136.34,90.25 138.98,88.34 141.63,87.14 144.27,85.95 146.91,85.00 149.55,84.76 152.19,84.52 154.83,83.57 157.47,82.85 160.11,82.61 162.75,82.37 165.39,82.37 168.03,81.66 170.68,81.42 173.32,80.94 175.96,80.94 178.60,80.94 181.24,80.94 183.88,80.94 186.52,80.94 189.16,80.94 191.80,80.94 194.44,80.94 197.09,80.94 199.73,80.94 202.37,80.94 205.01,80.94 207.65,80.94 210.29,80.94 212.93,80.94 215.57,80.94 218.21,80.94 220.85,80.94 223.50,80.94 226.14,80.94 228.78,80.94 231.42,80.94 234.06,80.94 236.70,80.94 239.34,80.94 241.98,80.94 244.62,80.94 247.26,80.94 249.90,80.94 252.55,80.94 255.19,80.94 257.83,80.94 260.47,80.94 263.11,80.94 265.75,80.94 ' style='stroke-width: 1.16; stroke: #2E7D32; stroke-linecap: butt;' />
-<polyline points='57.11,312.78 59.22,279.56 61.34,253.54 63.45,232.77 65.56,215.86 67.67,201.86 69.78,190.10 71.89,180.08 74.00,171.46 76.11,163.97 78.22,157.40 80.33,151.60 82.44,146.44 84.55,141.82 86.66,137.66 88.77,133.90 90.88,130.48 92.99,127.35 95.10,124.50 97.21,121.87 99.32,119.44 101.43,117.20 103.54,115.12 105.65,113.18 107.76,111.38 109.87,109.69 111.98,108.11 114.09,106.63 116.20,105.24 118.31,103.93 120.42,102.69 122.53,101.52 124.64,100.41 126.75,99.36 128.86,98.36 130.97,97.42 133.08,96.52 135.19,95.66 137.30,94.84 139.41,94.06 141.52,93.31 143.63,92.60 145.74,91.91 147.85,91.26 149.96,90.63 152.07,90.03 154.18,89.45 156.29,88.89 158.40,88.36 160.51,87.84 162.62,87.34 164.73,86.86 166.84,86.40 168.95,85.95 171.06,85.52 173.17,85.11 175.28,84.70 177.39,84.31 179.50,83.94 181.61,83.57 183.72,83.22 185.83,82.87 187.94,82.54 190.05,82.22 192.16,81.90 194.27,81.60 196.38,81.30 198.49,81.02 200.60,80.74 202.71,80.46 204.82,80.20 206.93,79.94 209.04,79.69 211.15,79.45 213.26,79.21 215.37,78.98 217.48,78.75 219.59,78.53 221.70,78.32 223.81,78.11 225.92,77.90 228.03,77.70 230.14,77.50 232.25,77.31 234.36,77.13 236.47,76.94 238.58,76.77 240.69,76.59 242.80,76.42 244.91,76.25 247.02,76.09 249.13,75.93 251.25,75.77 253.36,75.62 255.47,75.47 257.58,75.32 259.69,75.18 261.80,75.04 263.91,74.90 266.02,74.76 268.13,74.63 270.24,74.50 272.35,74.37 274.46,74.25 276.57,74.12 278.68,74.00 280.79,73.88 282.90,73.77 285.01,73.65 287.12,73.54 289.23,73.43 291.34,73.32 293.45,73.21 295.56,73.11 297.67,73.01 299.78,72.90 301.89,72.80 304.00,72.71 306.11,72.61 308.22,72.52 310.33,72.42 312.44,72.33 314.55,72.24 316.66,72.15 318.77,72.06 320.88,71.98 322.99,71.89 325.10,71.81 327.21,71.73 329.32,71.65 331.43,71.57 333.54,71.49 335.65,71.41 337.76,71.34 339.87,71.26 341.98,71.19 344.09,71.11 346.20,71.04 348.31,70.97 350.42,70.90 352.53,70.83 354.64,70.76 356.75,70.70 358.86,70.63 360.97,70.57 363.08,70.50 365.19,70.44 367.30,70.38 369.41,70.32 371.52,70.25 373.63,70.19 375.74,70.13 377.85,70.08 379.96,70.02 382.07,69.96 384.18,69.91 386.29,69.85 388.40,69.80 390.51,69.74 392.62,69.69 394.73,69.63 396.84,69.58 398.95,69.53 401.06,69.48 403.17,69.43 405.28,69.38 407.39,69.33 409.50,69.28 411.61,69.23 413.72,69.19 415.83,69.14 417.94,69.09 420.05,69.05 422.16,69.00 424.27,68.96 426.38,68.91 428.49,68.87 430.60,68.83 432.71,68.78 434.82,68.74 436.93,68.70 439.04,68.66 441.15,68.62 443.27,68.58 445.38,68.54 447.49,68.50 449.60,68.46 451.71,68.42 453.82,68.38 455.93,68.34 458.04,68.31 460.15,68.27 462.26,68.23 464.37,68.20 466.48,68.16 468.59,68.13 470.70,68.09 472.81,68.06 474.92,68.02 477.03,67.99 ' style='stroke-width: 2.13; stroke: #FF9800; stroke-dasharray: 11.38,11.38; stroke-linecap: butt;' />
-<line x1='36.12' y1='61.37' x2='498.02' y2='61.37' style='stroke-width: 1.16; stroke: #F44336; stroke-dasharray: 1.55,4.66; stroke-linecap: butt;' />
-<text x='434.77' y='58.82' text-anchor='end' style='font-size: 9.96px;fill: #F44336; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='63.62px' lengthAdjust='spacingAndGlyphs'>Asymptote: 43</text>
+<circle cx='57.11' cy='260.11' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='59.76' cy='230.28' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='62.40' cy='213.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='65.04' cy='200.06' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='67.68' cy='187.47' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='70.32' cy='178.37' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='72.96' cy='169.85' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='75.60' cy='160.16' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='78.24' cy='149.71' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='80.88' cy='142.35' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='83.52' cy='137.70' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='86.17' cy='132.47' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='88.81' cy='127.43' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='91.45' cy='123.36' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='94.09' cy='119.68' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='96.73' cy='117.17' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='99.37' cy='114.26' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='102.01' cy='113.29' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='104.65' cy='110.77' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='107.29' cy='108.84' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='109.93' cy='106.13' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='112.57' cy='102.83' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='115.22' cy='101.67' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='117.86' cy='100.90' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='120.50' cy='100.31' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='123.14' cy='99.35' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='125.78' cy='98.18' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='128.42' cy='97.60' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='131.06' cy='94.89' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='133.70' cy='92.76' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='136.34' cy='91.60' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='138.98' cy='90.05' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='141.63' cy='89.08' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='144.27' cy='88.11' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='146.91' cy='87.34' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='149.55' cy='87.14' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='152.19' cy='86.95' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='154.83' cy='86.18' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='157.47' cy='85.59' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='160.11' cy='85.40' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='162.75' cy='85.21' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='165.39' cy='85.21' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='168.03' cy='84.63' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='170.68' cy='84.43' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='173.32' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='175.96' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='178.60' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='181.24' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='183.88' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='186.52' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='189.16' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='191.80' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='194.44' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='197.09' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='199.73' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='202.37' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='205.01' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='207.65' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='210.29' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='212.93' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='215.57' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='218.21' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='220.85' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='223.50' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='226.14' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='228.78' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='231.42' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='234.06' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='236.70' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='239.34' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='241.98' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='244.62' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='247.26' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='249.90' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='252.55' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='255.19' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='257.83' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='260.47' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='263.11' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<circle cx='265.75' cy='84.04' r='2.13' style='stroke-width: 0.77; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
+<polyline points='57.11,260.11 59.76,230.28 62.40,213.04 65.04,200.06 67.68,187.47 70.32,178.37 72.96,169.85 75.60,160.16 78.24,149.71 80.88,142.35 83.52,137.70 86.17,132.47 88.81,127.43 91.45,123.36 94.09,119.68 96.73,117.17 99.37,114.26 102.01,113.29 104.65,110.77 107.29,108.84 109.93,106.13 112.57,102.83 115.22,101.67 117.86,100.90 120.50,100.31 123.14,99.35 125.78,98.18 128.42,97.60 131.06,94.89 133.70,92.76 136.34,91.60 138.98,90.05 141.63,89.08 144.27,88.11 146.91,87.34 149.55,87.14 152.19,86.95 154.83,86.18 157.47,85.59 160.11,85.40 162.75,85.21 165.39,85.21 168.03,84.63 170.68,84.43 173.32,84.04 175.96,84.04 178.60,84.04 181.24,84.04 183.88,84.04 186.52,84.04 189.16,84.04 191.80,84.04 194.44,84.04 197.09,84.04 199.73,84.04 202.37,84.04 205.01,84.04 207.65,84.04 210.29,84.04 212.93,84.04 215.57,84.04 218.21,84.04 220.85,84.04 223.50,84.04 226.14,84.04 228.78,84.04 231.42,84.04 234.06,84.04 236.70,84.04 239.34,84.04 241.98,84.04 244.62,84.04 247.26,84.04 249.90,84.04 252.55,84.04 255.19,84.04 257.83,84.04 260.47,84.04 263.11,84.04 265.75,84.04 ' style='stroke-width: 1.16; stroke: #2E7D32; stroke-linecap: butt;' />
+<polygon points='57.11,192.47 59.22,176.98 61.34,158.41 63.45,146.07 65.56,137.21 67.67,130.53 69.78,125.30 71.89,121.09 74.00,117.62 76.11,114.71 78.22,111.88 80.33,108.72 82.44,106.08 84.55,103.84 86.66,101.93 88.77,100.29 90.88,98.86 92.99,97.61 95.10,96.51 97.21,95.54 99.32,94.68 101.43,93.90 103.54,93.21 105.65,92.58 107.76,92.01 109.87,91.49 111.98,91.02 114.09,90.59 116.20,90.19 118.31,89.83 120.42,89.49 122.53,89.18 124.64,88.89 126.75,88.63 128.86,88.38 130.97,88.14 133.08,87.93 135.19,87.72 137.30,87.53 139.41,87.35 141.52,87.18 143.63,87.02 145.74,86.87 147.85,86.72 149.96,86.56 152.07,86.41 154.18,86.26 156.29,86.12 158.40,85.99 160.51,85.87 162.62,85.75 164.73,85.64 166.84,85.51 168.95,85.36 171.06,85.22 173.17,85.09 175.28,84.97 177.39,84.84 179.50,84.67 181.61,84.39 183.72,84.13 185.83,83.87 187.94,83.62 190.05,83.37 192.16,83.03 194.27,82.70 196.38,82.38 198.49,82.07 200.60,81.77 202.71,81.47 204.82,81.19 206.93,80.91 209.04,80.64 211.15,80.38 213.26,80.12 215.37,79.87 217.48,79.63 219.59,79.40 221.70,79.17 223.81,78.94 225.92,78.72 228.03,78.51 230.14,78.30 232.25,78.10 234.36,77.81 236.47,77.44 238.58,77.08 240.69,76.72 242.80,76.37 244.91,76.02 247.02,75.68 249.13,75.34 251.25,75.01 253.36,74.69 255.47,74.36 257.58,74.05 259.69,73.74 261.80,73.43 263.91,73.13 266.02,72.83 268.13,72.54 270.24,72.25 272.35,71.96 274.46,71.68 276.57,71.41 278.68,71.13 280.79,70.86 282.90,70.60 285.01,70.34 287.12,70.08 289.23,69.82 291.34,69.57 293.45,69.32 295.56,69.08 297.67,68.84 299.78,68.60 301.89,68.36 304.00,68.13 306.11,67.90 308.22,67.67 310.33,67.45 312.44,67.23 314.55,67.01 316.66,66.79 318.77,66.58 320.88,66.37 322.99,66.16 325.10,65.95 327.21,65.75 329.32,65.55 331.43,65.35 333.54,65.15 335.65,64.96 337.76,64.77 339.87,64.58 341.98,64.39 344.09,64.20 346.20,64.02 348.31,63.84 350.42,63.66 352.53,63.48 354.64,63.30 356.75,63.13 358.86,62.96 360.97,62.79 363.08,62.62 365.19,62.45 367.30,62.28 369.41,62.12 371.52,61.96 373.63,61.80 375.74,61.64 377.85,61.48 379.96,61.33 382.07,61.17 384.18,61.02 386.29,60.87 388.40,60.72 390.51,60.57 392.62,60.42 394.73,60.28 396.84,60.13 398.95,59.99 401.06,59.85 403.17,59.71 405.28,59.57 407.39,59.43 409.50,59.30 411.61,59.16 413.72,59.03 415.83,58.90 417.94,58.77 420.05,58.64 422.16,58.51 424.27,58.38 426.38,58.25 428.49,58.13 430.60,58.00 432.71,57.88 434.82,57.76 436.93,57.63 439.04,57.51 441.15,57.39 443.27,57.28 445.38,57.16 447.49,57.04 449.60,56.93 451.71,56.80 453.82,56.66 455.93,56.53 458.04,56.40 460.15,56.27 462.26,56.14 464.37,56.01 466.48,55.88 468.59,55.75 470.70,55.63 472.81,55.50 474.92,55.38 477.03,55.25 477.03,83.08 474.92,83.08 472.81,83.09 470.70,83.09 468.59,83.09 466.48,83.10 464.37,83.10 462.26,83.10 460.15,83.11 458.04,83.11 455.93,83.12 453.82,83.12 451.71,83.12 449.60,83.13 447.49,83.13 445.38,83.13 443.27,83.14 441.15,83.14 439.04,83.15 436.93,83.15 434.82,83.15 432.71,83.16 430.60,83.16 428.49,83.17 426.38,83.17 424.27,83.17 422.16,83.18 420.05,83.18 417.94,83.19 415.83,83.19 413.72,83.20 411.61,83.20 409.50,83.21 407.39,83.21 405.28,83.22 403.17,83.22 401.06,83.23 398.95,83.23 396.84,83.24 394.73,83.24 392.62,83.25 390.51,83.25 388.40,83.26 386.29,83.27 384.18,83.27 382.07,83.28 379.96,83.28 377.85,83.29 375.74,83.30 373.63,83.30 371.52,83.31 369.41,83.31 367.30,83.32 365.19,83.33 363.08,83.33 360.97,83.34 358.86,83.35 356.75,83.36 354.64,83.36 352.53,83.37 350.42,83.38 348.31,83.39 346.20,83.39 344.09,83.40 341.98,83.41 339.87,83.42 337.76,83.43 335.65,83.44 333.54,83.45 331.43,83.45 329.32,83.46 327.21,83.47 325.10,83.48 322.99,83.49 320.88,83.51 318.77,83.54 316.66,83.57 314.55,83.60 312.44,83.63 310.33,83.66 308.22,83.70 306.11,83.73 304.00,83.76 301.89,83.79 299.78,83.83 297.67,83.86 295.56,83.90 293.45,83.93 291.34,83.97 289.23,84.01 287.12,84.04 285.01,84.08 282.90,84.12 280.79,84.16 278.68,84.20 276.57,84.24 274.46,84.28 272.35,84.32 270.24,84.37 268.13,84.41 266.02,84.46 263.91,84.50 261.80,84.55 259.69,84.59 257.58,84.64 255.47,84.69 253.36,84.74 251.25,84.79 249.13,84.84 247.02,84.90 244.91,84.95 242.80,85.01 240.69,85.06 238.58,85.12 236.47,85.18 234.36,85.24 232.25,85.30 230.14,85.37 228.03,85.43 225.92,85.50 223.81,85.56 221.70,85.65 219.59,85.77 217.48,85.89 215.37,86.10 213.26,86.35 211.15,86.60 209.04,86.86 206.93,87.12 204.82,87.39 202.71,87.66 200.60,87.94 198.49,88.22 196.38,88.51 194.27,88.80 192.16,89.10 190.05,89.61 187.94,90.18 185.83,90.75 183.72,91.33 181.61,91.93 179.50,92.54 177.39,93.16 175.28,93.79 173.17,94.44 171.06,95.10 168.95,95.78 166.84,96.47 164.73,97.18 162.62,97.91 160.51,98.66 158.40,99.42 156.29,100.20 154.18,101.00 152.07,101.82 149.96,102.67 147.85,103.54 145.74,104.43 143.63,105.34 141.52,106.29 139.41,107.26 137.30,108.26 135.19,109.29 133.08,110.35 130.97,111.45 128.86,112.58 126.75,113.75 124.64,114.96 122.53,116.22 120.42,117.52 118.31,118.87 116.20,120.28 114.09,121.73 111.98,123.25 109.87,124.99 107.76,126.84 105.65,128.78 103.54,130.82 101.43,132.97 99.32,135.24 97.21,137.63 95.10,140.16 92.99,142.85 90.88,147.35 88.77,152.99 86.66,159.28 84.55,166.28 82.44,174.08 80.33,182.74 78.22,192.35 76.11,202.94 74.00,214.53 71.89,227.09 69.78,240.47 67.67,254.44 65.56,268.58 63.45,282.31 61.34,294.87 59.22,305.34 57.11,312.78 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #FF9800; fill-opacity: 0.20;' />
+<polyline points='57.11,192.47 59.22,176.98 61.34,158.41 63.45,146.07 65.56,137.21 67.67,130.53 69.78,125.30 71.89,121.09 74.00,117.62 76.11,114.71 78.22,111.88 80.33,108.72 82.44,106.08 84.55,103.84 86.66,101.93 88.77,100.29 90.88,98.86 92.99,97.61 95.10,96.51 97.21,95.54 99.32,94.68 101.43,93.90 103.54,93.21 105.65,92.58 107.76,92.01 109.87,91.49 111.98,91.02 114.09,90.59 116.20,90.19 118.31,89.83 120.42,89.49 122.53,89.18 124.64,88.89 126.75,88.63 128.86,88.38 130.97,88.14 133.08,87.93 135.19,87.72 137.30,87.53 139.41,87.35 141.52,87.18 143.63,87.02 145.74,86.87 147.85,86.72 149.96,86.56 152.07,86.41 154.18,86.26 156.29,86.12 158.40,85.99 160.51,85.87 162.62,85.75 164.73,85.64 166.84,85.51 168.95,85.36 171.06,85.22 173.17,85.09 175.28,84.97 177.39,84.84 179.50,84.67 181.61,84.39 183.72,84.13 185.83,83.87 187.94,83.62 190.05,83.37 192.16,83.03 194.27,82.70 196.38,82.38 198.49,82.07 200.60,81.77 202.71,81.47 204.82,81.19 206.93,80.91 209.04,80.64 211.15,80.38 213.26,80.12 215.37,79.87 217.48,79.63 219.59,79.40 221.70,79.17 223.81,78.94 225.92,78.72 228.03,78.51 230.14,78.30 232.25,78.10 234.36,77.81 236.47,77.44 238.58,77.08 240.69,76.72 242.80,76.37 244.91,76.02 247.02,75.68 249.13,75.34 251.25,75.01 253.36,74.69 255.47,74.36 257.58,74.05 259.69,73.74 261.80,73.43 263.91,73.13 266.02,72.83 268.13,72.54 270.24,72.25 272.35,71.96 274.46,71.68 276.57,71.41 278.68,71.13 280.79,70.86 282.90,70.60 285.01,70.34 287.12,70.08 289.23,69.82 291.34,69.57 293.45,69.32 295.56,69.08 297.67,68.84 299.78,68.60 301.89,68.36 304.00,68.13 306.11,67.90 308.22,67.67 310.33,67.45 312.44,67.23 314.55,67.01 316.66,66.79 318.77,66.58 320.88,66.37 322.99,66.16 325.10,65.95 327.21,65.75 329.32,65.55 331.43,65.35 333.54,65.15 335.65,64.96 337.76,64.77 339.87,64.58 341.98,64.39 344.09,64.20 346.20,64.02 348.31,63.84 350.42,63.66 352.53,63.48 354.64,63.30 356.75,63.13 358.86,62.96 360.97,62.79 363.08,62.62 365.19,62.45 367.30,62.28 369.41,62.12 371.52,61.96 373.63,61.80 375.74,61.64 377.85,61.48 379.96,61.33 382.07,61.17 384.18,61.02 386.29,60.87 388.40,60.72 390.51,60.57 392.62,60.42 394.73,60.28 396.84,60.13 398.95,59.99 401.06,59.85 403.17,59.71 405.28,59.57 407.39,59.43 409.50,59.30 411.61,59.16 413.72,59.03 415.83,58.90 417.94,58.77 420.05,58.64 422.16,58.51 424.27,58.38 426.38,58.25 428.49,58.13 430.60,58.00 432.71,57.88 434.82,57.76 436.93,57.63 439.04,57.51 441.15,57.39 443.27,57.28 445.38,57.16 447.49,57.04 449.60,56.93 451.71,56.80 453.82,56.66 455.93,56.53 458.04,56.40 460.15,56.27 462.26,56.14 464.37,56.01 466.48,55.88 468.59,55.75 470.70,55.63 472.81,55.50 474.92,55.38 477.03,55.25 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,83.08 474.92,83.08 472.81,83.09 470.70,83.09 468.59,83.09 466.48,83.10 464.37,83.10 462.26,83.10 460.15,83.11 458.04,83.11 455.93,83.12 453.82,83.12 451.71,83.12 449.60,83.13 447.49,83.13 445.38,83.13 443.27,83.14 441.15,83.14 439.04,83.15 436.93,83.15 434.82,83.15 432.71,83.16 430.60,83.16 428.49,83.17 426.38,83.17 424.27,83.17 422.16,83.18 420.05,83.18 417.94,83.19 415.83,83.19 413.72,83.20 411.61,83.20 409.50,83.21 407.39,83.21 405.28,83.22 403.17,83.22 401.06,83.23 398.95,83.23 396.84,83.24 394.73,83.24 392.62,83.25 390.51,83.25 388.40,83.26 386.29,83.27 384.18,83.27 382.07,83.28 379.96,83.28 377.85,83.29 375.74,83.30 373.63,83.30 371.52,83.31 369.41,83.31 367.30,83.32 365.19,83.33 363.08,83.33 360.97,83.34 358.86,83.35 356.75,83.36 354.64,83.36 352.53,83.37 350.42,83.38 348.31,83.39 346.20,83.39 344.09,83.40 341.98,83.41 339.87,83.42 337.76,83.43 335.65,83.44 333.54,83.45 331.43,83.45 329.32,83.46 327.21,83.47 325.10,83.48 322.99,83.49 320.88,83.51 318.77,83.54 316.66,83.57 314.55,83.60 312.44,83.63 310.33,83.66 308.22,83.70 306.11,83.73 304.00,83.76 301.89,83.79 299.78,83.83 297.67,83.86 295.56,83.90 293.45,83.93 291.34,83.97 289.23,84.01 287.12,84.04 285.01,84.08 282.90,84.12 280.79,84.16 278.68,84.20 276.57,84.24 274.46,84.28 272.35,84.32 270.24,84.37 268.13,84.41 266.02,84.46 263.91,84.50 261.80,84.55 259.69,84.59 257.58,84.64 255.47,84.69 253.36,84.74 251.25,84.79 249.13,84.84 247.02,84.90 244.91,84.95 242.80,85.01 240.69,85.06 238.58,85.12 236.47,85.18 234.36,85.24 232.25,85.30 230.14,85.37 228.03,85.43 225.92,85.50 223.81,85.56 221.70,85.65 219.59,85.77 217.48,85.89 215.37,86.10 213.26,86.35 211.15,86.60 209.04,86.86 206.93,87.12 204.82,87.39 202.71,87.66 200.60,87.94 198.49,88.22 196.38,88.51 194.27,88.80 192.16,89.10 190.05,89.61 187.94,90.18 185.83,90.75 183.72,91.33 181.61,91.93 179.50,92.54 177.39,93.16 175.28,93.79 173.17,94.44 171.06,95.10 168.95,95.78 166.84,96.47 164.73,97.18 162.62,97.91 160.51,98.66 158.40,99.42 156.29,100.20 154.18,101.00 152.07,101.82 149.96,102.67 147.85,103.54 145.74,104.43 143.63,105.34 141.52,106.29 139.41,107.26 137.30,108.26 135.19,109.29 133.08,110.35 130.97,111.45 128.86,112.58 126.75,113.75 124.64,114.96 122.53,116.22 120.42,117.52 118.31,118.87 116.20,120.28 114.09,121.73 111.98,123.25 109.87,124.99 107.76,126.84 105.65,128.78 103.54,130.82 101.43,132.97 99.32,135.24 97.21,137.63 95.10,140.16 92.99,142.85 90.88,147.35 88.77,152.99 86.66,159.28 84.55,166.28 82.44,174.08 80.33,182.74 78.22,192.35 76.11,202.94 74.00,214.53 71.89,227.09 69.78,240.47 67.67,254.44 65.56,268.58 63.45,282.31 61.34,294.87 59.22,305.34 57.11,312.78 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,272.27 59.22,245.29 61.34,224.17 63.45,207.31 65.56,193.58 67.67,182.22 69.78,172.66 71.89,164.54 74.00,157.54 76.11,151.46 78.22,146.12 80.33,141.41 82.44,137.22 84.55,133.47 86.66,130.09 88.77,127.04 90.88,124.26 92.99,121.73 95.10,119.41 97.21,117.27 99.32,115.30 101.43,113.48 103.54,111.79 105.65,110.22 107.76,108.76 109.87,107.39 111.98,106.11 114.09,104.90 116.20,103.77 118.31,102.70 120.42,101.70 122.53,100.75 124.64,99.85 126.75,99.00 128.86,98.19 130.97,97.42 133.08,96.69 135.19,95.99 137.30,95.33 139.41,94.69 141.52,94.09 143.63,93.51 145.74,92.95 147.85,92.42 149.96,91.91 152.07,91.42 154.18,90.95 156.29,90.50 158.40,90.06 160.51,89.64 162.62,89.24 164.73,88.85 166.84,88.48 168.95,88.11 171.06,87.76 173.17,87.43 175.28,87.10 177.39,86.78 179.50,86.48 181.61,86.18 183.72,85.89 185.83,85.61 187.94,85.34 190.05,85.08 192.16,84.83 194.27,84.58 196.38,84.34 198.49,84.11 200.60,83.88 202.71,83.66 204.82,83.44 206.93,83.23 209.04,83.03 211.15,82.83 213.26,82.64 215.37,82.45 217.48,82.27 219.59,82.09 221.70,81.91 223.81,81.74 225.92,81.58 228.03,81.41 230.14,81.25 232.25,81.10 234.36,80.95 236.47,80.80 238.58,80.65 240.69,80.51 242.80,80.37 244.91,80.24 247.02,80.11 249.13,79.98 251.25,79.85 253.36,79.73 255.47,79.60 257.58,79.48 259.69,79.37 261.80,79.25 263.91,79.14 266.02,79.03 268.13,78.92 270.24,78.82 272.35,78.71 274.46,78.61 276.57,78.51 278.68,78.41 280.79,78.31 282.90,78.22 285.01,78.13 287.12,78.04 289.23,77.95 291.34,77.86 293.45,77.77 295.56,77.69 297.67,77.60 299.78,77.52 301.89,77.44 304.00,77.36 306.11,77.28 308.22,77.20 310.33,77.13 312.44,77.05 314.55,76.98 316.66,76.91 318.77,76.84 320.88,76.77 322.99,76.70 325.10,76.63 327.21,76.56 329.32,76.50 331.43,76.43 333.54,76.37 335.65,76.31 337.76,76.25 339.87,76.18 341.98,76.12 344.09,76.07 346.20,76.01 348.31,75.95 350.42,75.89 352.53,75.84 354.64,75.78 356.75,75.73 358.86,75.67 360.97,75.62 363.08,75.57 365.19,75.52 367.30,75.47 369.41,75.42 371.52,75.37 373.63,75.32 375.74,75.27 377.85,75.22 379.96,75.18 382.07,75.13 384.18,75.08 386.29,75.04 388.40,75.00 390.51,74.95 392.62,74.91 394.73,74.86 396.84,74.82 398.95,74.78 401.06,74.74 403.17,74.70 405.28,74.66 407.39,74.62 409.50,74.58 411.61,74.54 413.72,74.50 415.83,74.46 417.94,74.43 420.05,74.39 422.16,74.35 424.27,74.32 426.38,74.28 428.49,74.24 430.60,74.21 432.71,74.17 434.82,74.14 436.93,74.11 439.04,74.07 441.15,74.04 443.27,74.01 445.38,73.97 447.49,73.94 449.60,73.91 451.71,73.88 453.82,73.85 455.93,73.82 458.04,73.79 460.15,73.76 462.26,73.73 464.37,73.70 466.48,73.67 468.59,73.64 470.70,73.61 472.81,73.58 474.92,73.55 477.03,73.53 ' style='stroke-width: 2.13; stroke: #FF9800; stroke-dasharray: 11.38,11.38; stroke-linecap: butt;' />
+<line x1='36.12' y1='68.15' x2='498.02' y2='68.15' style='stroke-width: 1.16; stroke: #F44336; stroke-dasharray: 1.55,4.66; stroke-linecap: butt;' />
+<text x='434.77' y='66.75' text-anchor='end' style='font-size: 9.96px;fill: #F44336; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='63.62px' lengthAdjust='spacingAndGlyphs'>Asymptote: 43</text>
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='30.74' y='299.09' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='30.74' y='227.52' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='30.74' y='155.95' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
-<text x='30.74' y='84.38' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='30.74' y='319.91' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='30.74' y='261.80' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='30.74' y='203.69' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='30.74' y='145.59' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='30.74' y='87.48' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
 <text x='54.47' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
 <text x='186.52' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>50</text>
 <text x='318.57' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='15.98px' lengthAdjust='spacingAndGlyphs'>100</text>
@@ -520,30 +894,718 @@ order given:</p>
 Fitted Lomolino curve with asymptote estimate.
 </p>
 </div>
+<p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> evaluates the fitted model at any effort
+level, including effort beyond the observed range, which is the point of
+fitting a model in the first place. It answers questions of the form
+“how many species would a survey of <span class="math inline">\(n\)</span> sites be expected to record”, whether
+<span class="math inline">\(n\)</span> is inside the data or past it.
+Note the distinction between two predict methods in the package: calling
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on the <code>spacc</code> object interpolates the
+observed curve directly with no model, while calling it on the fitted
+<code>spacc_fit</code> object evaluates the model and so can extend past
+the data. Use the first to read off observed behaviour, the second to
+forecast.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">80</span>, <span class="fl">160</span>, <span class="fl">320</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Predicting beyond ~2.5x the sampled effort (max sampled = 80 sites);</span></span>
+<span><span class="co">#&gt; extrapolation is unreliable this far out.</span></span>
+<span><span class="co">#&gt; [1] 39.02289 40.86077 41.81017 42.28386</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns the fitted parameters, and
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> returns their intervals. In every model here the
+parameter <code>a</code> is the asymptote, so its interval is the
+interval on estimated total richness.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         a         b         c </span></span>
+<span><span class="co">#&gt; 42.734620  2.864745  4.278227</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">fit</span>, parm <span class="op">=</span> <span class="st">"a"</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      2.5 %   97.5 %</span></span>
+<span><span class="co">#&gt; a 40.23679 70.13477</span></span></code></pre></div>
+<p>To weigh several model forms at once rather than committing to one,
+<code><a href="../reference/compareModels.html">compareModels()</a></code> fits a set of them and ranks them by AIC
+with Akaike weights. The model with the largest weight is the
+best-supported fit for the data at hand. The Akaike weight of a model is
+its relative likelihood among the candidates, normalised to sum to one
+across the set, so a weight of 0.7 means that model carries most of the
+support. When two models share the weight roughly evenly, their
+asymptotes bracket a plausible range and neither should be reported
+alone. Picking a single asymptote from a clear winner is safer than
+averaging across forms that disagree.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compareModels.html">compareModels</a></span><span class="op">(</span><span class="va">sac</span>, models <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"michaelis-menten"</span>, <span class="st">"lomolino"</span>, <span class="st">"asymptotic"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cm</span></span>
+<span><span class="co">#&gt; SAR Model Comparison</span></span>
+<span><span class="co">#&gt; ------------------------------ </span></span>
+<span><span class="co">#&gt;   lomolino             AIC:    165.3  dAIC:    0.0  w: 0.648  S_max:   42.7 *</span></span>
+<span><span class="co">#&gt;   michaelis-menten     AIC:    166.5  dAIC:    1.2  w: 0.352  S_max:   43.2</span></span>
+<span><span class="co">#&gt;   asymptotic           AIC:    257.1  dAIC:   91.7  w: 0.000  S_max:   39.6</span></span>
+<span><span class="co">#&gt; ------------------------------ </span></span>
+<span><span class="co">#&gt; Best model: lomolino</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="pre-computing-distances">Pre-computing Distances<a class="anchor" aria-label="anchor" href="#pre-computing-distances"></a>
+<h2 id="pre-computing-distances">Pre-computing distances<a class="anchor" aria-label="anchor" href="#pre-computing-distances"></a>
 </h2>
-<p>For repeated analyses on the same sites, pre-compute the distance
-matrix once:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<p>The distance-based methods build a pairwise distance matrix before
+they walk. When several analyses run on the same sites, computing that
+matrix once and reusing it skips the repeated work.
+<code><a href="../reference/distances.html">distances()</a></code> returns a <code>spacc_dist</code> object that
+any spacc function accepts in place of a coordinate data frame.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/distances.html">distances</a></span><span class="op">(</span><span class="va">coords</span>, method <span class="op">=</span> <span class="st">"euclidean"</span><span class="op">)</span></span>
+<span><span class="va">d</span></span>
+<span><span class="co">#&gt; spacc distance matrix: 80 x 80</span></span>
+<span><span class="co">#&gt; Method: euclidean</span></span>
+<span><span class="co">#&gt; Distance range: 1.2 - 127.2</span></span>
 <span></span>
 <span><span class="va">sac1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">]</span>, <span class="va">d</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">sac2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span>, <span class="fl">21</span><span class="op">:</span><span class="fl">40</span><span class="op">]</span>, <span class="va">d</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>The same <code>d</code> drives both calls above, and it can feed
+<code><a href="../reference/spaccHill.html">spaccHill()</a></code>, <code><a href="../reference/spaccBeta.html">spaccBeta()</a></code>,
+<code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code>, and the rest. The <code>spacc_dist</code>
+object carries the coordinates as an attribute, so the downstream
+functions still know where each site sits. Reusing it is purely a speed
+gain; the results are identical to passing the raw coordinates each
+time, because the same matrix would be rebuilt internally.</p>
+<p>For projected coordinates (UTM and similar) Euclidean distance is
+correct, because the projection has already flattened the curvature of
+the Earth into a plane where straight-line distance is meaningful. For
+longitude/latitude pass an <code>sf</code> object to
+<code><a href="../reference/distances.html">distances()</a></code>; it auto-detects the geographic CRS and
+switches to accurate geodesic distance, which follows the curve of the
+globe. Using Euclidean distance on raw lat/lon degrees is a common
+mistake that distorts distances badly away from the equator, so the
+auto-detection guards against it.</p>
 </div>
 <div class="section level2">
-<h2 id="comparing-curves">Comparing Curves<a class="anchor" aria-label="anchor" href="#comparing-curves"></a>
+<h2 id="taste-tests">Taste tests<a class="anchor" aria-label="anchor" href="#taste-tests"></a>
 </h2>
-<p>Test whether two accumulation curves differ significantly:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac1</span>, <span class="va">sac2</span>, method <span class="op">=</span> <span class="st">"permutation"</span>, n_perm <span class="op">=</span> <span class="fl">199</span><span class="op">)</span></span>
-<span><span class="va">comp</span></span>
-<span><span class="co">#&gt; Comparison: sac1 vs sac2 </span></span>
-<span><span class="co">#&gt; ---------------------------------------- </span></span>
-<span><span class="co">#&gt; Method: permutation (n=199)</span></span>
-<span><span class="co">#&gt; AUC difference: -8.6 (p = 0.573)</span></span>
-<span><span class="co">#&gt; Saturation: sac1 at 23 sites, sac2 at 19 sites</span></span></code></pre></div>
+<p>The sections below each call one downstream function once, on the
+same simulated data, to show what it returns. Each links to the vignette
+that covers it in depth.</p>
+<div class="section level3">
+<h3 id="hill-numbers">Hill numbers<a class="anchor" aria-label="anchor" href="#hill-numbers"></a>
+</h3>
+<p>Raw richness (<span class="math inline">\(q = 0\)</span>) counts
+every species equally, so a single record of a rare species weighs as
+much as a thousand records of a common one. Hill numbers tune that
+weighting through the order <span class="math inline">\(q\)</span>,
+which controls how much rare species count toward the total. At <span class="math inline">\(q = 0\)</span> every present species contributes
+one regardless of abundance; as <span class="math inline">\(q\)</span>
+rises, rare species fade and abundant ones dominate the index. At <span class="math inline">\(q = 1\)</span> the index is the exponential of
+Shannon entropy (effective number of common species); at <span class="math inline">\(q = 2\)</span> it is the inverse Simpson
+concentration (effective number of dominant species). All three share a
+unit, the effective number of species, so a community with <span class="math inline">\(q=1\)</span> diversity of 12 is as diverse, in the
+common-species sense, as 12 equally abundant species. That shared unit
+is what makes the orders comparable on one plot.
+<code><a href="../reference/spaccHill.html">spaccHill()</a></code> accumulates all three along the spatial walk.
+The example uses abundances, since the weighting only bites when counts
+vary.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
+<span><span class="va">abund</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">n_sites</span> <span class="op">*</span> <span class="va">n_species</span>, lambda <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, <span class="va">n_sites</span>, <span class="va">n_species</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">abund</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">hill</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccHill.html">spaccHill</a></span><span class="op">(</span><span class="va">abund</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">hill</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     sites q     mean    lower    upper          sd</span></span>
+<span><span class="co">#&gt; 238    78 2 39.84999 39.83787 39.85988 0.006083326</span></span>
+<span><span class="co">#&gt; 239    79 2 39.84926 39.84334 39.85909 0.005067254</span></span>
+<span><span class="co">#&gt; 240    80 2 39.85458 39.85458 39.85458 0.000000000</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpMzYuMTJ8NDk4LjAyfDI1LjI4fDI4NC40Ng=='>
+    <rect x='36.12' y='25.28' width='461.90' height='259.18' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDI1LjI4fDI4NC40Ng==)'>
+<polygon points='57.11,67.53 62.43,37.06 67.75,37.06 73.06,37.06 78.38,37.06 83.69,37.06 89.01,37.06 94.32,37.06 99.64,37.06 104.95,37.06 110.27,37.06 115.58,37.06 120.90,37.06 126.21,37.06 131.53,37.06 136.84,37.06 142.16,37.06 147.48,37.06 152.79,37.06 158.11,37.06 163.42,37.06 168.74,37.06 174.05,37.06 179.37,37.06 184.68,37.06 190.00,37.06 195.31,37.06 200.63,37.06 205.94,37.06 211.26,37.06 216.58,37.06 221.89,37.06 227.21,37.06 232.52,37.06 237.84,37.06 243.15,37.06 248.47,37.06 253.78,37.06 259.10,37.06 264.41,37.06 269.73,37.06 275.04,37.06 280.36,37.06 285.67,37.06 290.99,37.06 296.31,37.06 301.62,37.06 306.94,37.06 312.25,37.06 317.57,37.06 322.88,37.06 328.20,37.06 333.51,37.06 338.83,37.06 344.14,37.06 349.46,37.06 354.77,37.06 360.09,37.06 365.40,37.06 370.72,37.06 376.04,37.06 381.35,37.06 386.67,37.06 391.98,37.06 397.30,37.06 402.61,37.06 407.93,37.06 413.24,37.06 418.56,37.06 423.87,37.06 429.19,37.06 434.50,37.06 439.82,37.06 445.13,37.06 450.45,37.06 455.77,37.06 461.08,37.06 466.40,37.06 471.71,37.06 477.03,37.06 477.03,37.06 471.71,37.06 466.40,37.06 461.08,37.06 455.77,37.06 450.45,37.06 445.13,37.06 439.82,37.06 434.50,37.06 429.19,37.06 423.87,37.06 418.56,37.06 413.24,37.06 407.93,37.06 402.61,37.06 397.30,37.06 391.98,37.06 386.67,37.06 381.35,37.06 376.04,37.06 370.72,37.06 365.40,37.06 360.09,37.06 354.77,37.06 349.46,37.06 344.14,37.06 338.83,37.06 333.51,37.06 328.20,37.06 322.88,37.06 317.57,37.06 312.25,37.06 306.94,37.06 301.62,37.06 296.31,37.06 290.99,37.06 285.67,37.06 280.36,37.06 275.04,37.06 269.73,37.06 264.41,37.06 259.10,37.06 253.78,37.06 248.47,37.06 243.15,37.06 237.84,37.06 232.52,37.06 227.21,37.06 221.89,37.06 216.58,37.06 211.26,37.06 205.94,37.06 200.63,37.06 195.31,37.06 190.00,37.06 184.68,37.06 179.37,37.06 174.05,37.06 168.74,37.06 163.42,37.06 158.11,37.06 152.79,37.06 147.48,37.06 142.16,37.06 136.84,37.06 131.53,37.06 126.21,37.06 120.90,37.06 115.58,37.06 110.27,37.06 104.95,37.06 99.64,37.06 94.32,37.06 89.01,37.06 83.69,37.06 78.38,37.06 73.06,37.06 67.75,52.29 62.43,75.52 57.11,159.68 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
+<polyline points='57.11,67.53 62.43,37.06 67.75,37.06 73.06,37.06 78.38,37.06 83.69,37.06 89.01,37.06 94.32,37.06 99.64,37.06 104.95,37.06 110.27,37.06 115.58,37.06 120.90,37.06 126.21,37.06 131.53,37.06 136.84,37.06 142.16,37.06 147.48,37.06 152.79,37.06 158.11,37.06 163.42,37.06 168.74,37.06 174.05,37.06 179.37,37.06 184.68,37.06 190.00,37.06 195.31,37.06 200.63,37.06 205.94,37.06 211.26,37.06 216.58,37.06 221.89,37.06 227.21,37.06 232.52,37.06 237.84,37.06 243.15,37.06 248.47,37.06 253.78,37.06 259.10,37.06 264.41,37.06 269.73,37.06 275.04,37.06 280.36,37.06 285.67,37.06 290.99,37.06 296.31,37.06 301.62,37.06 306.94,37.06 312.25,37.06 317.57,37.06 322.88,37.06 328.20,37.06 333.51,37.06 338.83,37.06 344.14,37.06 349.46,37.06 354.77,37.06 360.09,37.06 365.40,37.06 370.72,37.06 376.04,37.06 381.35,37.06 386.67,37.06 391.98,37.06 397.30,37.06 402.61,37.06 407.93,37.06 413.24,37.06 418.56,37.06 423.87,37.06 429.19,37.06 434.50,37.06 439.82,37.06 445.13,37.06 450.45,37.06 455.77,37.06 461.08,37.06 466.40,37.06 471.71,37.06 477.03,37.06 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,37.06 471.71,37.06 466.40,37.06 461.08,37.06 455.77,37.06 450.45,37.06 445.13,37.06 439.82,37.06 434.50,37.06 429.19,37.06 423.87,37.06 418.56,37.06 413.24,37.06 407.93,37.06 402.61,37.06 397.30,37.06 391.98,37.06 386.67,37.06 381.35,37.06 376.04,37.06 370.72,37.06 365.40,37.06 360.09,37.06 354.77,37.06 349.46,37.06 344.14,37.06 338.83,37.06 333.51,37.06 328.20,37.06 322.88,37.06 317.57,37.06 312.25,37.06 306.94,37.06 301.62,37.06 296.31,37.06 290.99,37.06 285.67,37.06 280.36,37.06 275.04,37.06 269.73,37.06 264.41,37.06 259.10,37.06 253.78,37.06 248.47,37.06 243.15,37.06 237.84,37.06 232.52,37.06 227.21,37.06 221.89,37.06 216.58,37.06 211.26,37.06 205.94,37.06 200.63,37.06 195.31,37.06 190.00,37.06 184.68,37.06 179.37,37.06 174.05,37.06 168.74,37.06 163.42,37.06 158.11,37.06 152.79,37.06 147.48,37.06 142.16,37.06 136.84,37.06 131.53,37.06 126.21,37.06 120.90,37.06 115.58,37.06 110.27,37.06 104.95,37.06 99.64,37.06 94.32,37.06 89.01,37.06 83.69,37.06 78.38,37.06 73.06,37.06 67.75,52.29 62.43,75.52 57.11,159.68 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polygon points='57.11,139.91 62.43,91.21 67.75,71.31 73.06,62.49 78.38,58.56 83.69,56.02 89.01,54.09 94.32,50.66 99.64,48.40 104.95,48.90 110.27,48.09 115.58,46.48 120.90,45.27 126.21,45.06 131.53,44.17 136.84,43.85 142.16,43.27 147.48,43.10 152.79,42.58 158.11,41.71 163.42,41.49 168.74,40.66 174.05,40.58 179.37,40.57 184.68,40.46 190.00,40.40 195.31,40.18 200.63,39.99 205.94,39.51 211.26,39.25 216.58,39.34 221.89,39.36 227.21,39.26 232.52,39.10 237.84,39.23 243.15,39.06 248.47,39.12 253.78,39.23 259.10,39.16 264.41,39.20 269.73,39.15 275.04,39.05 280.36,39.10 285.67,38.95 290.99,38.96 296.31,38.87 301.62,38.82 306.94,38.80 312.25,38.86 317.57,38.77 322.88,38.74 328.20,38.63 333.51,38.62 338.83,38.60 344.14,38.61 349.46,38.55 354.77,38.46 360.09,38.44 365.40,38.40 370.72,38.43 376.04,38.45 381.35,38.40 386.67,38.27 391.98,38.23 397.30,38.12 402.61,38.11 407.93,38.09 413.24,38.11 418.56,38.15 423.87,38.18 429.19,38.13 434.50,38.14 439.82,38.17 445.13,38.18 450.45,38.19 455.77,38.22 461.08,38.18 466.40,38.14 471.71,38.15 477.03,38.19 477.03,38.19 471.71,38.28 466.40,38.32 461.08,38.34 455.77,38.42 450.45,38.43 445.13,38.53 439.82,38.61 434.50,38.64 429.19,38.70 423.87,38.72 418.56,38.79 413.24,38.88 407.93,38.94 402.61,39.04 397.30,39.03 391.98,39.05 386.67,39.03 381.35,39.05 376.04,38.99 370.72,39.08 365.40,39.15 360.09,39.24 354.77,39.37 349.46,39.40 344.14,39.48 338.83,39.42 333.51,39.51 328.20,39.71 322.88,39.69 317.57,39.91 312.25,39.93 306.94,39.93 301.62,40.08 296.31,40.23 290.99,40.50 285.67,40.71 280.36,40.81 275.04,41.09 269.73,40.83 264.41,41.34 259.10,41.47 253.78,41.20 248.47,41.66 243.15,42.05 237.84,42.26 232.52,42.26 227.21,43.26 221.89,43.00 216.58,43.71 211.26,44.05 205.94,44.62 200.63,44.91 195.31,44.97 190.00,44.80 184.68,45.04 179.37,44.84 174.05,45.09 168.74,46.07 163.42,45.97 158.11,46.28 152.79,47.48 147.48,46.30 142.16,47.12 136.84,47.61 131.53,48.26 126.21,48.77 120.90,50.90 115.58,51.32 110.27,51.96 104.95,52.87 99.64,56.32 94.32,60.70 89.01,63.25 83.69,71.58 78.38,77.67 73.06,85.01 67.75,98.15 62.43,126.59 57.11,222.95 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
+<polyline points='57.11,139.91 62.43,91.21 67.75,71.31 73.06,62.49 78.38,58.56 83.69,56.02 89.01,54.09 94.32,50.66 99.64,48.40 104.95,48.90 110.27,48.09 115.58,46.48 120.90,45.27 126.21,45.06 131.53,44.17 136.84,43.85 142.16,43.27 147.48,43.10 152.79,42.58 158.11,41.71 163.42,41.49 168.74,40.66 174.05,40.58 179.37,40.57 184.68,40.46 190.00,40.40 195.31,40.18 200.63,39.99 205.94,39.51 211.26,39.25 216.58,39.34 221.89,39.36 227.21,39.26 232.52,39.10 237.84,39.23 243.15,39.06 248.47,39.12 253.78,39.23 259.10,39.16 264.41,39.20 269.73,39.15 275.04,39.05 280.36,39.10 285.67,38.95 290.99,38.96 296.31,38.87 301.62,38.82 306.94,38.80 312.25,38.86 317.57,38.77 322.88,38.74 328.20,38.63 333.51,38.62 338.83,38.60 344.14,38.61 349.46,38.55 354.77,38.46 360.09,38.44 365.40,38.40 370.72,38.43 376.04,38.45 381.35,38.40 386.67,38.27 391.98,38.23 397.30,38.12 402.61,38.11 407.93,38.09 413.24,38.11 418.56,38.15 423.87,38.18 429.19,38.13 434.50,38.14 439.82,38.17 445.13,38.18 450.45,38.19 455.77,38.22 461.08,38.18 466.40,38.14 471.71,38.15 477.03,38.19 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,38.19 471.71,38.28 466.40,38.32 461.08,38.34 455.77,38.42 450.45,38.43 445.13,38.53 439.82,38.61 434.50,38.64 429.19,38.70 423.87,38.72 418.56,38.79 413.24,38.88 407.93,38.94 402.61,39.04 397.30,39.03 391.98,39.05 386.67,39.03 381.35,39.05 376.04,38.99 370.72,39.08 365.40,39.15 360.09,39.24 354.77,39.37 349.46,39.40 344.14,39.48 338.83,39.42 333.51,39.51 328.20,39.71 322.88,39.69 317.57,39.91 312.25,39.93 306.94,39.93 301.62,40.08 296.31,40.23 290.99,40.50 285.67,40.71 280.36,40.81 275.04,41.09 269.73,40.83 264.41,41.34 259.10,41.47 253.78,41.20 248.47,41.66 243.15,42.05 237.84,42.26 232.52,42.26 227.21,43.26 221.89,43.00 216.58,43.71 211.26,44.05 205.94,44.62 200.63,44.91 195.31,44.97 190.00,44.80 184.68,45.04 179.37,44.84 174.05,45.09 168.74,46.07 163.42,45.97 158.11,46.28 152.79,47.48 147.48,46.30 142.16,47.12 136.84,47.61 131.53,48.26 126.21,48.77 120.90,50.90 115.58,51.32 110.27,51.96 104.95,52.87 99.64,56.32 94.32,60.70 89.01,63.25 83.69,71.58 78.38,77.67 73.06,85.01 67.75,98.15 62.43,126.59 57.11,222.95 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polygon points='57.11,189.65 62.43,133.17 67.75,99.98 73.06,85.19 78.38,77.80 83.69,73.09 89.01,69.48 94.32,63.00 99.64,58.79 104.95,59.77 110.27,58.44 115.58,54.82 120.90,52.43 126.21,51.85 131.53,50.99 136.84,50.48 142.16,49.19 147.48,48.77 152.79,47.86 158.11,46.15 163.42,45.76 168.74,44.14 174.05,44.08 179.37,44.03 184.68,43.83 190.00,43.72 195.31,43.27 200.63,42.86 205.94,41.90 211.26,41.38 216.58,41.55 221.89,41.58 227.21,41.40 232.52,41.07 237.84,41.31 243.15,41.01 248.47,41.12 253.78,41.34 259.10,41.22 264.41,41.29 269.73,41.21 275.04,41.01 280.36,41.10 285.67,40.83 290.99,40.83 296.31,40.65 301.62,40.55 306.94,40.52 312.25,40.62 317.57,40.42 322.88,40.37 328.20,40.15 333.51,40.13 338.83,40.08 344.14,40.10 349.46,39.99 354.77,39.83 360.09,39.80 365.40,39.72 370.72,39.77 376.04,39.81 381.35,39.70 386.67,39.44 391.98,39.37 397.30,39.14 402.61,39.13 407.93,39.09 413.24,39.13 418.56,39.22 423.87,39.29 429.19,39.18 434.50,39.19 439.82,39.26 445.13,39.27 450.45,39.28 455.77,39.34 461.08,39.26 466.40,39.20 471.71,39.21 477.03,39.28 477.03,39.28 471.71,39.45 466.40,39.53 461.08,39.57 455.77,39.72 450.45,39.75 445.13,39.94 439.82,40.11 434.50,40.16 429.19,40.28 423.87,40.31 418.56,40.45 413.24,40.63 407.93,40.75 402.61,40.94 397.30,40.93 391.98,40.97 386.67,40.93 381.35,40.98 376.04,40.86 370.72,41.02 365.40,41.18 360.09,41.35 354.77,41.60 349.46,41.64 344.14,41.84 338.83,41.75 333.51,41.91 328.20,42.31 322.88,42.28 317.57,42.71 312.25,42.78 306.94,42.74 301.62,43.04 296.31,43.33 290.99,43.86 285.67,44.25 280.36,44.45 275.04,45.01 269.73,44.53 264.41,45.50 259.10,45.73 253.78,45.26 248.47,46.18 243.15,46.94 237.84,47.42 232.52,47.37 227.21,49.25 221.89,48.79 216.58,50.18 211.26,50.71 205.94,51.75 200.63,52.35 195.31,52.59 190.00,52.36 184.68,52.85 179.37,52.28 174.05,52.78 168.74,54.60 163.42,54.30 158.11,54.82 152.79,56.96 147.48,54.71 142.16,56.27 136.84,57.18 131.53,58.31 126.21,59.31 120.90,63.77 115.58,64.13 110.27,64.83 104.95,67.10 99.64,72.30 94.32,80.16 89.01,83.75 83.69,100.19 78.38,107.57 73.06,122.10 67.75,140.00 62.43,178.49 57.11,272.68 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
+<polyline points='57.11,189.65 62.43,133.17 67.75,99.98 73.06,85.19 78.38,77.80 83.69,73.09 89.01,69.48 94.32,63.00 99.64,58.79 104.95,59.77 110.27,58.44 115.58,54.82 120.90,52.43 126.21,51.85 131.53,50.99 136.84,50.48 142.16,49.19 147.48,48.77 152.79,47.86 158.11,46.15 163.42,45.76 168.74,44.14 174.05,44.08 179.37,44.03 184.68,43.83 190.00,43.72 195.31,43.27 200.63,42.86 205.94,41.90 211.26,41.38 216.58,41.55 221.89,41.58 227.21,41.40 232.52,41.07 237.84,41.31 243.15,41.01 248.47,41.12 253.78,41.34 259.10,41.22 264.41,41.29 269.73,41.21 275.04,41.01 280.36,41.10 285.67,40.83 290.99,40.83 296.31,40.65 301.62,40.55 306.94,40.52 312.25,40.62 317.57,40.42 322.88,40.37 328.20,40.15 333.51,40.13 338.83,40.08 344.14,40.10 349.46,39.99 354.77,39.83 360.09,39.80 365.40,39.72 370.72,39.77 376.04,39.81 381.35,39.70 386.67,39.44 391.98,39.37 397.30,39.14 402.61,39.13 407.93,39.09 413.24,39.13 418.56,39.22 423.87,39.29 429.19,39.18 434.50,39.19 439.82,39.26 445.13,39.27 450.45,39.28 455.77,39.34 461.08,39.26 466.40,39.20 471.71,39.21 477.03,39.28 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,39.28 471.71,39.45 466.40,39.53 461.08,39.57 455.77,39.72 450.45,39.75 445.13,39.94 439.82,40.11 434.50,40.16 429.19,40.28 423.87,40.31 418.56,40.45 413.24,40.63 407.93,40.75 402.61,40.94 397.30,40.93 391.98,40.97 386.67,40.93 381.35,40.98 376.04,40.86 370.72,41.02 365.40,41.18 360.09,41.35 354.77,41.60 349.46,41.64 344.14,41.84 338.83,41.75 333.51,41.91 328.20,42.31 322.88,42.28 317.57,42.71 312.25,42.78 306.94,42.74 301.62,43.04 296.31,43.33 290.99,43.86 285.67,44.25 280.36,44.45 275.04,45.01 269.73,44.53 264.41,45.50 259.10,45.73 253.78,45.26 248.47,46.18 243.15,46.94 237.84,47.42 232.52,47.37 227.21,49.25 221.89,48.79 216.58,50.18 211.26,50.71 205.94,51.75 200.63,52.35 195.31,52.59 190.00,52.36 184.68,52.85 179.37,52.28 174.05,52.78 168.74,54.60 163.42,54.30 158.11,54.82 152.79,56.96 147.48,54.71 142.16,56.27 136.84,57.18 131.53,58.31 126.21,59.31 120.90,63.77 115.58,64.13 110.27,64.83 104.95,67.10 99.64,72.30 94.32,80.16 89.01,83.75 83.69,100.19 78.38,107.57 73.06,122.10 67.75,140.00 62.43,178.49 57.11,272.68 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,111.70 62.43,44.68 67.75,39.35 73.06,37.06 78.38,37.06 83.69,37.06 89.01,37.06 94.32,37.06 99.64,37.06 104.95,37.06 110.27,37.06 115.58,37.06 120.90,37.06 126.21,37.06 131.53,37.06 136.84,37.06 142.16,37.06 147.48,37.06 152.79,37.06 158.11,37.06 163.42,37.06 168.74,37.06 174.05,37.06 179.37,37.06 184.68,37.06 190.00,37.06 195.31,37.06 200.63,37.06 205.94,37.06 211.26,37.06 216.58,37.06 221.89,37.06 227.21,37.06 232.52,37.06 237.84,37.06 243.15,37.06 248.47,37.06 253.78,37.06 259.10,37.06 264.41,37.06 269.73,37.06 275.04,37.06 280.36,37.06 285.67,37.06 290.99,37.06 296.31,37.06 301.62,37.06 306.94,37.06 312.25,37.06 317.57,37.06 322.88,37.06 328.20,37.06 333.51,37.06 338.83,37.06 344.14,37.06 349.46,37.06 354.77,37.06 360.09,37.06 365.40,37.06 370.72,37.06 376.04,37.06 381.35,37.06 386.67,37.06 391.98,37.06 397.30,37.06 402.61,37.06 407.93,37.06 413.24,37.06 418.56,37.06 423.87,37.06 429.19,37.06 434.50,37.06 439.82,37.06 445.13,37.06 450.45,37.06 455.77,37.06 461.08,37.06 466.40,37.06 471.71,37.06 477.03,37.06 ' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
+<polyline points='57.11,179.79 62.43,108.43 67.75,87.28 73.06,75.05 78.38,68.01 83.69,62.68 89.01,58.19 94.32,55.15 99.64,52.71 104.95,51.58 110.27,50.06 115.58,48.70 120.90,47.59 126.21,46.88 131.53,46.00 136.84,45.44 142.16,44.99 147.48,44.57 152.79,44.28 158.11,43.76 163.42,43.25 168.74,42.93 174.05,42.51 179.37,42.34 184.68,42.12 190.00,41.93 195.31,41.67 200.63,41.55 205.94,41.24 211.26,40.98 216.58,40.88 221.89,40.64 227.21,40.56 232.52,40.30 237.84,40.24 243.15,40.14 248.47,39.98 253.78,39.87 259.10,39.85 264.41,39.77 269.73,39.70 275.04,39.60 280.36,39.56 285.67,39.48 290.99,39.40 296.31,39.36 301.62,39.34 306.94,39.27 312.25,39.24 317.57,39.19 322.88,39.12 328.20,39.08 333.51,39.02 338.83,38.98 344.14,38.94 349.46,38.92 354.77,38.90 360.09,38.86 365.40,38.81 370.72,38.76 376.04,38.73 381.35,38.69 386.67,38.64 391.98,38.62 397.30,38.53 402.61,38.51 407.93,38.51 413.24,38.51 418.56,38.50 423.87,38.46 429.19,38.39 434.50,38.39 439.82,38.37 445.13,38.34 450.45,38.29 455.77,38.28 461.08,38.25 466.40,38.22 471.71,38.23 477.03,38.19 ' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
+<polyline points='57.11,229.61 62.43,153.27 67.75,122.72 73.06,104.58 78.38,92.18 83.69,83.65 89.01,76.16 94.32,70.87 99.64,66.70 104.95,64.72 110.27,61.90 115.58,59.35 120.90,57.22 126.21,55.85 131.53,54.31 136.84,53.20 142.16,52.38 147.48,51.56 152.79,51.07 158.11,50.10 163.42,49.10 168.74,48.49 174.05,47.72 179.37,47.38 184.68,46.97 190.00,46.59 195.31,46.08 200.63,45.85 205.94,45.25 211.26,44.77 216.58,44.59 221.89,44.10 227.21,43.95 232.52,43.45 237.84,43.33 243.15,43.12 248.47,42.81 253.78,42.60 259.10,42.56 264.41,42.39 269.73,42.27 275.04,42.09 280.36,41.99 285.67,41.84 290.99,41.68 296.31,41.60 301.62,41.56 306.94,41.42 312.25,41.35 317.57,41.25 322.88,41.12 328.20,41.03 333.51,40.91 338.83,40.85 344.14,40.76 349.46,40.72 354.77,40.69 360.09,40.59 365.40,40.51 370.72,40.42 376.04,40.36 381.35,40.27 386.67,40.17 391.98,40.13 397.30,39.96 402.61,39.92 407.93,39.91 413.24,39.92 418.56,39.89 423.87,39.82 429.19,39.67 434.50,39.69 439.82,39.63 445.13,39.57 450.45,39.48 455.77,39.45 461.08,39.40 466.40,39.35 471.71,39.36 477.03,39.28 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='30.74' y='268.97' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>25</text>
+<text x='30.74' y='192.81' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='30.74' y='116.66' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>35</text>
+<text x='30.74' y='40.50' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='51.80' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='158.11' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='264.41' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='370.72' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='477.03' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='267.07' y='310.31' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='98.03px' lengthAdjust='spacingAndGlyphs'>Sites accumulated</text>
+<text transform='translate(14.57,154.87) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='160.50px' lengthAdjust='spacingAndGlyphs'>Hill number (effective species)</text>
+<text x='175.47' y='343.70' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='30.67px' lengthAdjust='spacingAndGlyphs'>Order</text>
+<rect x='212.89' y='331.54' width='15.73' height='15.73' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
+<line x1='213.85' y1='339.40' x2='227.67' y2='339.40' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
+<rect x='263.74' y='331.54' width='15.73' height='15.73' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
+<line x1='264.69' y1='339.40' x2='278.51' y2='339.40' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
+<rect x='314.58' y='331.54' width='15.73' height='15.73' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
+<line x1='315.53' y1='339.40' x2='329.36' y2='339.40' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
+<text x='235.38' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='21.61px' lengthAdjust='spacingAndGlyphs'>q = 0</text>
+<text x='286.22' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='21.61px' lengthAdjust='spacingAndGlyphs'>q = 1</text>
+<text x='337.06' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='21.61px' lengthAdjust='spacingAndGlyphs'>q = 2</text>
+<text x='36.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='212.77px' lengthAdjust='spacingAndGlyphs'>Spatial Hill Number Accumulation</text>
+</g>
+</g>
+</svg></div><p class="caption">
+Hill number accumulation at q = 0, 1, 2.
+</p>
+</div>
+<p>The three curves fan out: <span class="math inline">\(q = 0\)</span>
+sits highest because it counts rare species, while <span class="math inline">\(q = 2\)</span> sits lowest because it discounts
+them. The gap between the curves measures how uneven the community is.
+See <a href="diversity.html">Diversity</a> for the full Hill framework,
+including phylogenetic and functional analogues.</p>
+</div>
+<div class="section level3">
+<h3 id="beta-diversity">Beta diversity<a class="anchor" aria-label="anchor" href="#beta-diversity"></a>
+</h3>
+<p>As a spatial walk admits each new site, some of its species are
+already in the accumulated pool and some are new.
+<code><a href="../reference/spaccBeta.html">spaccBeta()</a></code> tracks the dissimilarity between the new site
+and the running pool and splits it into two parts following Baselga
+(2010): turnover (species replaced by different species) and nestedness
+(species simply absent because the new site holds a subset). Their sum
+is total beta diversity.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccBeta.html">spaccBeta</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, index <span class="op">=</span> <span class="st">"sorensen"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    sites beta_total beta_turnover beta_nestedness beta_total_sd</span></span>
+<span><span class="co">#&gt; 77    77  0.7795576             0       0.7795576     0.2029501</span></span>
+<span><span class="co">#&gt; 78    78  0.8474036             0       0.8474036     0.1242948</span></span>
+<span><span class="co">#&gt; 79    79  0.8598322             0       0.8598322     0.1552436</span></span>
+<span><span class="co">#&gt;    beta_turnover_sd beta_nestedness_sd</span></span>
+<span><span class="co">#&gt; 77                0          0.2029501</span></span>
+<span><span class="co">#&gt; 78                0          0.1242948</span></span>
+<span><span class="co">#&gt; 79                0          0.1552436</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpNDQuMTJ8NDk4LjAyfDI1LjI4fDI4NC40Ng=='>
+    <rect x='44.12' y='25.28' width='453.90' height='259.18' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNDQuMTJ8NDk4LjAyfDI1LjI4fDI4NC40Ng==)'>
+<polyline points='64.75,146.90 70.04,149.09 75.33,143.49 80.62,122.73 85.91,147.25 91.20,135.06 96.49,136.99 101.78,133.13 107.07,142.38 112.36,136.48 117.65,144.42 122.94,142.92 128.23,127.75 133.52,137.50 138.81,123.01 144.10,117.65 149.40,119.01 154.69,107.45 159.98,120.88 165.27,114.02 170.56,110.20 175.85,107.23 181.14,120.48 186.43,110.13 191.72,127.67 197.01,122.05 202.30,123.09 207.59,113.38 212.88,107.82 218.17,105.24 223.46,117.34 228.75,100.36 234.04,106.68 239.33,111.72 244.62,107.59 249.91,113.62 255.20,99.24 260.49,115.86 265.78,125.34 271.07,125.82 276.36,115.90 281.65,118.33 286.94,113.71 292.23,112.59 297.52,110.63 302.81,119.97 308.10,127.67 313.39,133.22 318.68,121.34 323.97,121.99 329.26,120.67 334.55,112.32 339.84,107.24 345.13,97.19 350.42,84.75 355.71,89.37 361.01,88.18 366.30,100.39 371.59,100.59 376.88,95.03 382.17,83.79 387.46,91.36 392.75,99.99 398.04,79.69 403.33,69.59 408.62,76.13 413.91,40.93 419.20,52.34 424.49,66.24 429.78,68.05 435.07,89.74 440.36,101.99 445.65,116.17 450.94,132.11 456.23,120.52 461.52,45.95 466.81,59.06 472.10,40.47 477.39,37.06 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+<polyline points='64.75,168.17 70.04,219.71 75.33,211.83 80.62,220.83 85.91,226.95 91.20,233.25 96.49,238.44 101.78,235.30 107.07,253.09 112.36,258.66 117.65,246.47 122.94,261.89 128.23,255.82 133.52,259.56 138.81,260.30 144.10,261.75 149.40,261.29 154.69,263.40 159.98,269.03 165.27,268.90 170.56,255.27 175.85,267.50 181.14,265.18 186.43,267.84 191.72,270.02 197.01,268.74 202.30,269.37 207.59,269.14 212.88,265.81 218.17,269.09 223.46,263.14 228.75,264.84 234.04,271.77 239.33,269.26 244.62,269.64 249.91,272.03 255.20,272.68 260.49,271.92 265.78,272.03 271.07,271.44 276.36,272.68 281.65,271.77 286.94,272.68 292.23,272.68 297.52,272.68 302.81,272.68 308.10,272.68 313.39,272.68 318.68,272.68 323.97,272.68 329.26,272.68 334.55,272.68 339.84,272.68 345.13,272.68 350.42,272.68 355.71,272.68 361.01,272.68 366.30,272.68 371.59,272.68 376.88,272.68 382.17,272.68 387.46,272.68 392.75,272.68 398.04,272.68 403.33,272.68 408.62,272.68 413.91,272.68 419.20,272.68 424.49,272.68 429.78,272.68 435.07,272.68 440.36,272.68 445.65,272.68 450.94,272.68 456.23,272.68 461.52,272.68 466.81,272.68 472.10,272.68 477.39,272.68 ' style='stroke-width: 2.13; stroke: #1565C0; stroke-linecap: butt;' />
+<polyline points='64.75,251.42 70.04,202.06 75.33,204.34 80.62,174.58 85.91,192.97 91.20,174.49 96.49,171.24 101.78,170.51 107.07,161.97 112.36,150.50 117.65,170.63 122.94,153.72 128.23,144.62 133.52,150.62 138.81,135.39 144.10,128.58 149.40,130.40 154.69,116.73 159.98,124.53 165.27,117.81 170.56,127.61 175.85,112.40 181.14,127.98 186.43,114.97 191.72,130.34 197.01,125.99 202.30,126.40 207.59,116.92 212.88,114.69 218.17,108.83 223.46,126.88 228.75,108.20 234.04,107.60 239.33,115.15 244.62,110.63 249.91,114.28 255.20,99.24 260.49,116.62 265.78,125.99 271.07,127.07 276.36,115.90 281.65,119.24 286.94,113.71 292.23,112.59 297.52,110.63 302.81,119.97 308.10,127.67 313.39,133.22 318.68,121.34 323.97,121.99 329.26,120.67 334.55,112.32 339.84,107.24 345.13,97.19 350.42,84.75 355.71,89.37 361.01,88.18 366.30,100.39 371.59,100.59 376.88,95.03 382.17,83.79 387.46,91.36 392.75,99.99 398.04,79.69 403.33,69.59 408.62,76.13 413.91,40.93 419.20,52.34 424.49,66.24 429.78,68.05 435.07,89.74 440.36,101.99 445.65,116.17 450.94,132.11 456.23,120.52 461.52,45.95 466.81,59.06 472.10,40.47 477.39,37.06 ' style='stroke-width: 2.13; stroke: #C62828; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='38.74' y='276.12' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.00</text>
+<text x='38.74' y='207.61' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.25</text>
+<text x='38.74' y='139.10' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.50</text>
+<text x='38.74' y='70.59' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.75</text>
+<text x='54.17' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='159.98' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='265.78' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='371.59' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='477.39' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='271.07' y='310.31' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='98.03px' lengthAdjust='spacingAndGlyphs'>Sites accumulated</text>
+<text transform='translate(14.57,154.87) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='132.70px' lengthAdjust='spacingAndGlyphs'>Beta diversity (sorensen)</text>
+<text x='141.77' y='343.70' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='62.03px' lengthAdjust='spacingAndGlyphs'>Component</text>
+<line x1='211.51' y1='339.40' x2='225.33' y2='339.40' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+<line x1='260.99' y1='339.40' x2='274.82' y2='339.40' style='stroke-width: 2.13; stroke: #1565C0; stroke-linecap: butt;' />
+<line x1='328.21' y1='339.40' x2='342.04' y2='339.40' style='stroke-width: 2.13; stroke: #C62828; stroke-linecap: butt;' />
+<text x='233.04' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='20.25px' lengthAdjust='spacingAndGlyphs'>Total</text>
+<text x='282.52' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='37.98px' lengthAdjust='spacingAndGlyphs'>Turnover</text>
+<text x='349.74' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='50.62px' lengthAdjust='spacingAndGlyphs'>Nestedness</text>
+<text x='44.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='226.39px' lengthAdjust='spacingAndGlyphs'>Spatial Beta Diversity Accumulation</text>
+</g>
+</g>
+</svg></div><p class="caption">
+Beta diversity partitioned into turnover and nestedness.
+</p>
+</div>
+<p>When turnover dominates, the region is a mosaic of distinct
+communities, each holding species the others lack; when nestedness
+dominates, poorer sites are orderly subsets of richer ones and the
+contrast is one of richness rather than identity. The distinction guides
+conservation: a turnover-driven region needs many reserves to capture
+its species, while a nested region can be protected by securing its
+richest sites. <a href="diversity.html">Diversity</a> covers the
+partition and its Hill-number counterpart in detail.</p>
+</div>
+<div class="section level3">
+<h3 id="coverage-standardization">Coverage standardization<a class="anchor" aria-label="anchor" href="#coverage-standardization"></a>
+</h3>
+<p>Comparing richness across sites with unequal sampling is unfair: more
+individuals find more species, so the better-sampled site looks richer
+even when the underlying communities are identical. Coverage
+standardization fixes the comparison at equal completeness instead of
+equal effort. Sample coverage is the estimated fraction of the
+community’s total abundance that the observed species represent, so a
+coverage of 0.9 means the recorded species account for 90% of the
+individuals out there and the missing 10% sits among species not yet
+seen. Standardising to a common coverage compares communities at the
+same point on their respective discovery curves, which is fairer than
+standardising to a common count of individuals when the communities
+differ in evenness. <code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code> tracks richness,
+individuals, and coverage together along the walk.</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">abund</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, coverage <span class="op">=</span> <span class="st">"chiu"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cov</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    sites richness individuals coverage richness_sd coverage_sd</span></span>
+<span><span class="co">#&gt; 78    78       40      6229.5        1           0           0</span></span>
+<span><span class="co">#&gt; 79    79       40      6308.4        1           0           0</span></span>
+<span><span class="co">#&gt; 80    80       40      6388.0        1           0           0</span></span></code></pre></div>
+<p><code><a href="../reference/interpolateCoverage.html">interpolateCoverage()</a></code> then reads the richness reached at
+chosen coverage targets, the value used for fair cross-site
+comparison.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolateCoverage.html">interpolateCoverage</a></span><span class="op">(</span><span class="va">cov</span>, target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.90</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">ic</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      C90      C95 </span></span>
+<span><span class="co">#&gt; 39.28706 39.49189</span></span></code></pre></div>
+<p>The Chiu (2023) estimator used here is built for plot-based spatial
+data, where sites rather than individuals are the sampling units. See <a href="rarefaction-standardization.html">Rarefaction and
+standardization</a> for the choice between coverage- and size-based
+methods.</p>
+</div>
+<div class="section level3">
+<h3 id="richness-estimators">Richness estimators<a class="anchor" aria-label="anchor" href="#richness-estimators"></a>
+</h3>
+<p>Non-parametric estimators infer the unseen part of the pool from the
+frequency of the rarest species. The intuition is that undetected
+species leave a trace in the detected-but-barely ones: a community with
+many species seen exactly once very likely hides more that were seen
+zero times, while a community whose rarest species are all well
+represented is probably close to fully sampled. Chao1 works from
+abundances and leans on singletons and doubletons (species seen once or
+twice in total); Chao2 works from incidence and leans on uniques and
+duplicates (species found at one or two sites). The two are analogues
+built for the two kinds of data, and they often disagree slightly
+because abundance and incidence carry different information about
+rarity. Both return a point estimate, a standard error, and a confidence
+interval.</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">abund</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Richness Estimator: chao1</span></span>
+<span><span class="co">#&gt; -------------------------------- </span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 40</span></span>
+<span><span class="co">#&gt; Estimated richness:       40.0</span></span>
+<span><span class="co">#&gt; Standard error:           0.0</span></span>
+<span><span class="co">#&gt; 95% CI:                   [40.0, 40.0]</span></span>
+<span><span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Richness Estimator: chao2</span></span>
+<span><span class="co">#&gt; -------------------------------- </span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 40</span></span>
+<span><span class="co">#&gt; Estimated richness:       40.0</span></span>
+<span><span class="co">#&gt; Standard error:           0.0</span></span>
+<span><span class="co">#&gt; 95% CI:                   [40.0, 40.0]</span></span></code></pre></div>
+<p>The estimate exceeds observed richness by an amount that grows with
+the number of rare species: many singletons imply many more species
+still unseen. Compare across estimators with
+<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>.</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">abund</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;   estimator S_obs estimate se lower upper</span></span>
+<span><span class="co">#&gt; 1     chao1    40       40  0    40    40</span></span>
+<span><span class="co">#&gt; 2     chao2    40       40  0    40    40</span></span></code></pre></div>
+<p><a href="richness-estimation.html">Richness estimation</a> walks
+through the full estimator family and the completeness profile.</p>
+</div>
+<div class="section level3">
+<h3 id="community-turnover">Community turnover<a class="anchor" aria-label="anchor" href="#community-turnover"></a>
+</h3>
+<p><code><a href="../reference/betaDecay.html">betaDecay()</a></code> asks how compositional similarity falls off
+with geographic distance, the spatial pattern that the basic SAC only
+hints at. It computes the dissimilarity of every site pair, plots it
+against the distance between the pair, and fits decline models. Distance
+decay is one of the oldest regularities in biogeography: nearby places
+share species because dispersal is easy and the environment is similar,
+and that overlap erodes with separation. For an exponential fit the
+half-life is the distance at which similarity has halved, a single
+number summarising how fast communities differentiate across space.</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/betaDecay.html">betaDecay</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, index <span class="op">=</span> <span class="st">"sorensen"</span>, model <span class="op">=</span> <span class="st">"exponential"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">bd</span></span>
+<span><span class="co">#&gt; Beta distance-decay: 80 sites, 3,160 pairs</span></span>
+<span><span class="co">#&gt; Index: sorensen, Distance: euclidean</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Fitted models:</span></span>
+<span><span class="co">#&gt;   exponential: a=0.6873, b=0.024703, AIC=-3681.0 *</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Best model: exponential</span></span>
+<span><span class="co">#&gt; Half-life (exp): 28.06</span></span></code></pre></div>
+<p>A short half-life means species are swapped over small distances; a
+long one means the community changes slowly across the region. <a href="community-assembly.html">Community assembly</a> covers distance
+decay alongside zeta diversity and null-model tests.</p>
+</div>
+<div class="section level3">
+<h3 id="conservation-and-spatial-metrics">Conservation and spatial metrics<a class="anchor" aria-label="anchor" href="#conservation-and-spatial-metrics"></a>
+</h3>
+<p><code><a href="../reference/spaccMetrics.html">spaccMetrics()</a></code> runs an accumulation from every site as
+its own seed and extracts per-site curve descriptors: the initial slope,
+the area where half the pool is reached, and the area under the curve.
+Rather than averaging seeds into one curve, it keeps a curve per site
+and condenses each into a few numbers. Because every site gets its own
+value, the result maps the spatial pattern of accumulation behaviour,
+turning the curve shape into a layer that can be plotted on the map or
+joined to environmental covariates.</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccMetrics.html">spaccMetrics</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slope_10"</span>, <span class="st">"half_richness"</span>, <span class="st">"auc"</span><span class="op">)</span>,</span>
+<span>                  method <span class="op">=</span> <span class="st">"knn"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">m</span></span>
+<span><span class="co">#&gt; spacc_metrics: 80 sites, 40 species</span></span>
+<span><span class="co">#&gt; Method: knn</span></span>
+<span><span class="co">#&gt; Metrics: slope_10, half_richness, auc</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    slope_10 half_richness     auc site_id        x        y</span></span>
+<span><span class="co">#&gt; 1 1.7500000             3 37.0375       1 91.48060 58.16040</span></span>
+<span><span class="co">#&gt; 2 1.6666667             8 35.7125       2 93.70754 15.79052</span></span>
+<span><span class="co">#&gt; 3 1.6904762             2 37.6500       3 28.61395 35.90283</span></span>
+<span><span class="co">#&gt; 4 1.6904762             4 35.3500       4 83.04476 64.56319</span></span>
+<span><span class="co">#&gt; 5 1.8809524             4 36.0875       5 64.17455 77.58234</span></span>
+<span><span class="co">#&gt; 6 0.6071429             1 36.9625       6 51.90959 56.36468</span></span></code></pre></div>
+<p>Sites with steep initial slopes sit in species-rich neighbourhoods;
+sites that need a large area to reach half the pool sit in depauperate
+or isolated ground. Mapping these per-site descriptors can flag
+candidate hotspots before any modelling. <a href="spatial-analysis.html">Spatial analysis</a> covers endemism-area
+curves, fragmentation effects, and effort correction.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="s3-methods">S3 methods<a class="anchor" aria-label="anchor" href="#s3-methods"></a>
+</h2>
+<p>Every spacc object answers the standard R generics, which keeps the
+interface uniform across the pipeline. Once a Hill, beta, or coverage
+object is in hand, the same verbs apply, so there is one set of habits
+to learn rather than one per function. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> gives a
+one-line overview, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> returns per-step statistics,
+<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> draws the curve, and <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>
+returns a tidy table. The data-frame method is the bridge to the wider R
+ecosystem: from there a result flows into dplyr, ggplot, a model
+formula, or a CSV without any object-specific handling.</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spacc: 80 sites, 40 species, 30 seeds (knn)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   sites     mean lower  upper       sd</span></span>
+<span><span class="co">#&gt; 1     1  9.70000 1.000 18.375 4.935096</span></span>
+<span><span class="co">#&gt; 2     2 14.83333 1.725 25.550 5.942734</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code> combines objects into a grouped object, and
+<code>[</code> subsets the seed rows of the curve matrix, which is handy
+for inspecting a slice of the seeds or for thinning a large run. A
+grouped object behaves like a single spacc object for printing,
+plotting, and conversion, but carries one curve matrix per group, which
+is how the method comparison earlier overlaid three curves. Subsetting
+with <code>[</code> keeps the chosen seed rows and updates the seed
+count, so <code>sac[1:5]</code> is a five-seed view of the same walk
+that can be plotted or summarised on its own.</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grouped</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>first <span class="op">=</span> <span class="va">sac1</span>, second <span class="op">=</span> <span class="va">sac2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">grouped</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spacc: 2 groups (knn)</span></span>
+<span><span class="co">#&gt;   first: 80 sites, 20 species</span></span>
+<span><span class="co">#&gt;   second: 80 sites, 20 species</span></span>
+<span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="va">sac</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sub</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spacc: 80 sites, 40 species, 5 seeds (knn)</span></span></code></pre></div>
+<p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">ggplot2::autoplot()</a></code> returns the same figure as
+<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> for objects that support it. The two differ only in
+dispatch: <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> follows the base-graphics convention,
+<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> the ggplot one, and both return a ggplot object
+that accepts further layers with <code>+</code>. Pipelines already built
+around <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> fold spacc objects in without a special
+case. Either entry point accepts the usual <code><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme()</a></code>, scale,
+and facet layers, so a house style applies to spacc figures the same way
+it does to any other ggplot.</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
+    <rect x='36.12' y='42.38' width='461.90' height='283.28' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
+<polygon points='57.11,198.05 62.43,150.67 67.75,127.89 73.06,120.62 78.38,115.84 83.69,100.81 89.01,91.24 94.32,86.45 99.64,81.67 104.95,81.67 110.27,75.06 115.58,61.86 120.90,55.25 126.21,55.25 131.53,55.25 136.84,55.25 142.16,55.25 147.48,55.25 152.79,55.25 158.11,55.25 163.42,55.25 168.74,55.25 174.05,55.25 179.37,55.25 184.68,55.25 190.00,55.25 195.31,55.25 200.63,55.25 205.94,55.25 211.26,55.25 216.58,55.25 221.89,55.25 227.21,55.25 232.52,55.25 237.84,55.25 243.15,55.25 248.47,55.25 253.78,55.25 259.10,55.25 264.41,55.25 269.73,55.25 275.04,55.25 280.36,55.25 285.67,55.25 290.99,55.25 296.31,55.25 301.62,55.25 306.94,55.25 312.25,55.25 317.57,55.25 322.88,55.25 328.20,55.25 333.51,55.25 338.83,55.25 344.14,55.25 349.46,55.25 354.77,55.25 360.09,55.25 365.40,55.25 370.72,55.25 376.04,55.25 381.35,55.25 386.67,55.25 391.98,55.25 397.30,55.25 402.61,55.25 407.93,55.25 413.24,55.25 418.56,55.25 423.87,55.25 429.19,55.25 434.50,55.25 439.82,55.25 445.13,55.25 450.45,55.25 455.77,55.25 461.08,55.25 466.40,55.25 471.71,55.25 477.03,55.25 477.03,55.25 471.71,55.25 466.40,55.25 461.08,55.25 455.77,55.25 450.45,55.25 445.13,55.25 439.82,55.25 434.50,55.25 429.19,55.25 423.87,55.25 418.56,55.25 413.24,55.25 407.93,55.25 402.61,55.25 397.30,55.25 391.98,55.25 386.67,55.25 381.35,55.25 376.04,55.25 370.72,55.25 365.40,55.25 360.09,55.25 354.77,55.25 349.46,55.25 344.14,55.25 338.83,55.25 333.51,55.25 328.20,55.25 322.88,55.25 317.57,55.25 312.25,55.25 306.94,55.25 301.62,55.25 296.31,55.25 290.99,55.25 285.67,61.86 280.36,61.86 275.04,68.46 269.73,68.46 264.41,68.46 259.10,68.46 253.78,68.46 248.47,75.06 243.15,75.06 237.84,75.06 232.52,81.67 227.21,81.67 221.89,81.67 216.58,81.67 211.26,85.30 205.94,94.87 200.63,94.87 195.31,94.87 190.00,96.69 184.68,101.48 179.37,101.48 174.05,101.48 168.74,101.48 163.42,109.89 158.11,116.50 152.79,116.50 147.48,120.13 142.16,124.92 136.84,134.49 131.53,136.31 126.21,149.51 120.90,151.33 115.58,164.54 110.27,177.74 104.95,187.32 99.64,202.34 94.32,213.73 89.01,228.75 83.69,245.59 78.38,254.01 73.06,299.57 67.75,301.39 62.43,307.99 57.11,312.78 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.30;' />
+<polyline points='57.11,198.05 62.43,150.67 67.75,127.89 73.06,120.62 78.38,115.84 83.69,100.81 89.01,91.24 94.32,86.45 99.64,81.67 104.95,81.67 110.27,75.06 115.58,61.86 120.90,55.25 126.21,55.25 131.53,55.25 136.84,55.25 142.16,55.25 147.48,55.25 152.79,55.25 158.11,55.25 163.42,55.25 168.74,55.25 174.05,55.25 179.37,55.25 184.68,55.25 190.00,55.25 195.31,55.25 200.63,55.25 205.94,55.25 211.26,55.25 216.58,55.25 221.89,55.25 227.21,55.25 232.52,55.25 237.84,55.25 243.15,55.25 248.47,55.25 253.78,55.25 259.10,55.25 264.41,55.25 269.73,55.25 275.04,55.25 280.36,55.25 285.67,55.25 290.99,55.25 296.31,55.25 301.62,55.25 306.94,55.25 312.25,55.25 317.57,55.25 322.88,55.25 328.20,55.25 333.51,55.25 338.83,55.25 344.14,55.25 349.46,55.25 354.77,55.25 360.09,55.25 365.40,55.25 370.72,55.25 376.04,55.25 381.35,55.25 386.67,55.25 391.98,55.25 397.30,55.25 402.61,55.25 407.93,55.25 413.24,55.25 418.56,55.25 423.87,55.25 429.19,55.25 434.50,55.25 439.82,55.25 445.13,55.25 450.45,55.25 455.77,55.25 461.08,55.25 466.40,55.25 471.71,55.25 477.03,55.25 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,55.25 471.71,55.25 466.40,55.25 461.08,55.25 455.77,55.25 450.45,55.25 445.13,55.25 439.82,55.25 434.50,55.25 429.19,55.25 423.87,55.25 418.56,55.25 413.24,55.25 407.93,55.25 402.61,55.25 397.30,55.25 391.98,55.25 386.67,55.25 381.35,55.25 376.04,55.25 370.72,55.25 365.40,55.25 360.09,55.25 354.77,55.25 349.46,55.25 344.14,55.25 338.83,55.25 333.51,55.25 328.20,55.25 322.88,55.25 317.57,55.25 312.25,55.25 306.94,55.25 301.62,55.25 296.31,55.25 290.99,55.25 285.67,61.86 280.36,61.86 275.04,68.46 269.73,68.46 264.41,68.46 259.10,68.46 253.78,68.46 248.47,75.06 243.15,75.06 237.84,75.06 232.52,81.67 227.21,81.67 221.89,81.67 216.58,81.67 211.26,85.30 205.94,94.87 200.63,94.87 195.31,94.87 190.00,96.69 184.68,101.48 179.37,101.48 174.05,101.48 168.74,101.48 163.42,109.89 158.11,116.50 152.79,116.50 147.48,120.13 142.16,124.92 136.84,134.49 131.53,136.31 126.21,149.51 120.90,151.33 115.58,164.54 110.27,177.74 104.95,187.32 99.64,202.34 94.32,213.73 89.01,228.75 83.69,245.59 78.38,254.01 73.06,299.57 67.75,301.39 62.43,307.99 57.11,312.78 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,255.33 62.43,221.43 67.75,201.84 73.06,187.10 78.38,172.79 83.69,162.44 89.01,152.76 94.32,141.75 99.64,129.87 104.95,121.50 110.27,116.22 115.58,110.28 120.90,104.56 126.21,99.93 131.53,95.75 136.84,92.89 142.16,89.59 147.48,88.49 152.79,85.63 158.11,83.43 163.42,80.34 168.74,76.60 174.05,75.28 179.37,74.40 184.68,73.74 190.00,72.64 195.31,71.32 200.63,70.66 205.94,67.58 211.26,65.16 216.58,63.84 221.89,62.08 227.21,60.98 232.52,59.88 237.84,58.99 243.15,58.77 248.47,58.55 253.78,57.67 259.10,57.01 264.41,56.79 269.73,56.57 275.04,56.57 280.36,55.91 285.67,55.69 290.99,55.25 296.31,55.25 301.62,55.25 306.94,55.25 312.25,55.25 317.57,55.25 322.88,55.25 328.20,55.25 333.51,55.25 338.83,55.25 344.14,55.25 349.46,55.25 354.77,55.25 360.09,55.25 365.40,55.25 370.72,55.25 376.04,55.25 381.35,55.25 386.67,55.25 391.98,55.25 397.30,55.25 402.61,55.25 407.93,55.25 413.24,55.25 418.56,55.25 423.87,55.25 429.19,55.25 434.50,55.25 439.82,55.25 445.13,55.25 450.45,55.25 455.77,55.25 461.08,55.25 466.40,55.25 471.71,55.25 477.03,55.25 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='30.74' y='322.81' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='30.74' y='256.78' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='30.74' y='190.75' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='30.74' y='124.72' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='30.74' y='58.69' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='51.80' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='158.11' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='264.41' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='370.72' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='477.03' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='267.07' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='75.36px' lengthAdjust='spacingAndGlyphs'>Sites sampled</text>
+<text transform='translate(14.57,184.01) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='104.05px' lengthAdjust='spacingAndGlyphs'>Cumulative species</text>
+<text x='36.12' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='120.69px' lengthAdjust='spacingAndGlyphs'>knn, 30 seeds, 95% CI</text>
+<text x='36.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='183.19px' lengthAdjust='spacingAndGlyphs'>Species Accumulation Curve</text>
+</g>
+</g>
+</svg></div><p class="caption">
+autoplot returns a ggplot object.
+</p>
+</div>
+<p><code><a href="../reference/as_sf.html">as_sf()</a></code> turns a per-site result into an <code>sf</code>
+point layer for mapping or spatial joins. It applies to objects that
+carry per-site values, such as <code><a href="../reference/spaccMetrics.html">spaccMetrics()</a></code> output and
+the <code>map = TRUE</code> variants of <code><a href="../reference/spaccHill.html">spaccHill()</a></code>,
+<code><a href="../reference/spaccBeta.html">spaccBeta()</a></code>, and <code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code>. The returned
+object is a normal <code>sf</code> data frame, so it overlays on
+basemaps, joins to polygons, and exports to a shapefile or GeoPackage
+through the usual sf functions.</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m_sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_sf.html">as_sf</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">m_sf</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "sf"         "data.frame"</span></span>
+<span><span class="va">m_sf</span></span>
+<span><span class="co">#&gt; Simple feature collection with 80 features and 4 fields</span></span>
+<span><span class="co">#&gt; Geometry type: POINT</span></span>
+<span><span class="co">#&gt; Dimension:     XY</span></span>
+<span><span class="co">#&gt; Bounding box:  xmin: 0.1570554 ymin: 0.02388966 xmax: 98.88917 ymax: 96.2608</span></span>
+<span><span class="co">#&gt; CRS:           NA</span></span>
+<span><span class="co">#&gt; First 10 features:</span></span>
+<span><span class="co">#&gt;     slope_10 half_richness     auc site_id                  geometry</span></span>
+<span><span class="co">#&gt; 1  1.7500000             3 37.0375       1   POINT (91.4806 58.1604)</span></span>
+<span><span class="co">#&gt; 2  1.6666667             8 35.7125       2 POINT (93.70754 15.79052)</span></span>
+<span><span class="co">#&gt; 3  1.6904762             2 37.6500       3 POINT (28.61395 35.90283)</span></span>
+<span><span class="co">#&gt; 4  1.6904762             4 35.3500       4 POINT (83.04476 64.56319)</span></span>
+<span><span class="co">#&gt; 5  1.8809524             4 36.0875       5 POINT (64.17455 77.58234)</span></span>
+<span><span class="co">#&gt; 6  0.6071429             1 36.9625       6 POINT (51.90959 56.36468)</span></span>
+<span><span class="co">#&gt; 7  2.7380952             2 38.4250       7 POINT (73.65883 23.37034)</span></span>
+<span><span class="co">#&gt; 8  2.5595238             4 37.7750       8 POINT (13.46666 8.998052)</span></span>
+<span><span class="co">#&gt; 9  3.6666667             3 37.9250       9 POINT (65.69923 8.561206)</span></span>
+<span><span class="co">#&gt; 10 0.8214286             1 37.0125      10 POINT (70.50648 30.52184)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
+</h2>
+<p>The defaults work for a first pass, but a handful of choices repay
+attention once results matter. The settings below trade runtime for
+stability, and the right balance depends on how the curve will be used:
+a quick visual check tolerates fewer seeds than a published asymptote. A
+few rules of thumb keep results stable and the runs honest.</p>
+<ul>
+<li>Use at least 30 seeds for a usable confidence ribbon, and 50 to 100
+when the across-seed CV at midpoint exceeds about 20%. With fewer than
+20 seeds the quantile bounds are too noisy to trust.</li>
+<li>Extrapolate no further than about twice the observed effort.
+Asymptotic models are interpolators dressed as forecasters; a Lomolino
+fit pushed to ten times the data is a guess, and its confidence interval
+will say so by widening sharply.</li>
+<li>Treat the asymptote as reliable only when observed richness already
+reaches roughly 70% of the estimate. Below that the curve has not yet
+bent over, and the asymptote is poorly constrained.</li>
+<li>Pre-compute distances with <code><a href="../reference/distances.html">distances()</a></code> whenever more
+than two analyses share the same sites; the matrix is the expensive part
+of a distance-based method.</li>
+</ul>
+<p>The methods suit different questions:</p>
+<table class="table">
+<colgroup>
+<col width="13%">
+<col width="32%">
+<col width="16%">
+<col width="38%">
+</colgroup>
+<thead><tr class="header">
+<th>Method</th>
+<th>Walk rule</th>
+<th>Footprint</th>
+<th>Use when</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>knn</code></td>
+<td>nearest unvisited site</td>
+<td>elongated path</td>
+<td>default; fast, follows local structure</td>
+</tr>
+<tr class="even">
+<td><code>kncn</code></td>
+<td>nearest to centroid of visited</td>
+<td>rounder, compact</td>
+<td>area-like expansion from a focal patch</td>
+</tr>
+<tr class="odd">
+<td><code>random</code></td>
+<td>random order</td>
+<td>none (spatial)</td>
+<td>classical effort curve, null comparison</td>
+</tr>
+<tr class="even">
+<td><code>radius</code></td>
+<td>all sites within a growing band</td>
+<td>concentric</td>
+<td>modelling outward spread or buffers</td>
+</tr>
+<tr class="odd">
+<td><code>collector</code></td>
+<td>data order, single curve</td>
+<td>fixed</td>
+<td>a survey already run in a known sequence</td>
+</tr>
+</tbody>
+</table>
+<p>Sample-size guidance: aim for at least 20 sites before a spatial SAC
+is worth drawing, and at least 40 before extrapolating, since the
+asymptotic fits need enough points past the curve’s bend to pin the
+ceiling. Below 20 sites the across-seed spread swamps any spatial
+signal, and the ribbon spans most of the plot. For the richness
+estimators, Chao2 needs presence/absence across several sites to have
+any uniques and duplicates to work with; a handful of sites gives
+unstable estimates with intervals so wide they carry little information.
+The coverage estimators want genuine abundances rather than
+presence/absence, because coverage is defined through individual counts;
+feeding them binary data collapses the singleton and doubleton counts
+that the estimator relies on.</p>
+<p>The backend choice is automatic but worth knowing. Below 500 sites
+spacc builds the full distance matrix and uses the exact walk; above 500
+it switches to a spatial tree that avoids the matrix and scales better.
+Force either with <code>backend = "exact"</code> or
+<code>backend = "kdtree"</code> when a run straddles that line and
+timing matters. Parallelism is on by default and splits the seeds across
+cores, so more seeds cost less than linearly in wall-clock time on a
+multi-core machine.</p>
+<p>When not to use this: if sites carry no meaningful coordinates, or
+the sampling design already randomised location, the spatial walk adds
+nothing over the random curve. Use <code>method = "random"</code>, or a
+non-spatial tool, and keep the simpler interpretation. Likewise, if
+every site holds nearly the same species, the spatial and random curves
+coincide and the spatial machinery only adds runtime. And if the goal is
+a single regional richness estimate rather than a curve, a direct
+estimator such as <code><a href="../reference/chao2.html">chao2()</a></code> answers that question without the
+accumulation step at all.</p>
 </div>
 <div class="section level2">
 <h2 id="next-steps">Next Steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
@@ -556,8 +1618,43 @@ diversity, phylogenetic and functional diversity accumulation</li>
 <a href="extrapolation.html">Extrapolation</a>: Coverage-based
 extrapolation, EVT models, diversity-area relationships</li>
 <li>
+<a href="rarefaction-standardization.html">Rarefaction and
+standardization</a>: individual-based rarefaction, coverage
+standardization</li>
+<li>
+<a href="richness-estimation.html">Richness estimation</a>:
+non-parametric estimators and completeness profiles</li>
+<li>
+<a href="community-assembly.html">Community assembly</a>: distance
+decay, zeta diversity, null-model tests</li>
+<li>
 <a href="spatial-analysis.html">Spatial Analysis</a>: Endemism
 curves, fragmentation analysis, sampling-effort correction</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<ul>
+<li>Baselga, A. (2010). Partitioning the turnover and nestedness
+components of beta diversity. Global Ecology and Biogeography, 19,
+134-143.</li>
+<li>Chao, A. (1984). Nonparametric estimation of the number of classes
+in a population. Scandinavian Journal of Statistics, 11, 265-270.</li>
+<li>Chao, A. &amp; Jost, L. (2012). Coverage-based rarefaction and
+extrapolation. Ecology, 93, 2533-2547.</li>
+<li>Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+extrapolation with Hill numbers. Ecological Monographs, 84, 45-67.</li>
+<li>Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
+Ecology, 104, e4099.</li>
+<li>Colwell, R.K., Mao, C.X. &amp; Chang, J. (2004). Interpolating,
+extrapolating, and comparing incidence-based species accumulation
+curves. Ecology, 85, 2717-2727.</li>
+<li>Lomolino, M.V. (2000). Ecology’s most general, yet protean pattern:
+the species-area relationship. Journal of Biogeography, 27, 17-26.</li>
+<li>Nekola, J.C. &amp; White, P.S. (1999). The distance decay of
+similarity in biogeography and ecology. Journal of Biogeography, 26,
+867-878.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -133,8 +133,9 @@ studies. Ecological Monographs, 84, 45-67.
 ## See also
 
 [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) for
-richness-only accumulation, `iNEXT::iNEXT()` for non-spatial Hill number
-rarefaction
+richness-only accumulation,
+[`iNEXT::iNEXT()`](https://rdrr.io/pkg/iNEXT/man/iNEXT.html) for
+non-spatial Hill number rarefaction
 
 ## Examples
 

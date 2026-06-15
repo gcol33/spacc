@@ -148,6 +148,9 @@ reference:
   - c.spacc_hill
   - compareModels
   - predict.spacc
+  - predict.spacc_fit
+  - predict.spacc_area
+  - confint.spacc_fit
   - plot.spacc
   - plot.spacc_metrics
   - autoplot.spacc

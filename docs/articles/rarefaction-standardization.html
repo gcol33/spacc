@@ -41,7 +41,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-06-14</h4>
+            <h4 data-toc-skip class="date">2026-06-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/rarefaction-standardization.Rmd" class="external-link"><code>vignettes/rarefaction-standardization.Rmd</code></a></small>
       <div class="d-none name"><code>rarefaction-standardization.Rmd</code></div>
@@ -110,25 +110,196 @@ Colling</h4>
     
     
 <div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>Comparing diversity across sites with unequal sampling effort
-requires standardization. <strong>spacc</strong> offers three
-approaches:</p>
-<ol style="list-style-type: decimal">
-<li><p><strong>Individual-based rarefaction</strong>: Subsample to equal
-number of individuals</p></li>
-<li><p><strong>Coverage-based rarefaction</strong>: Standardize by
-sample completeness</p></li>
-<li><p><strong>Spatial coverage tracking</strong>: Monitor coverage
-along accumulation curves</p></li>
-</ol>
-<p>This vignette compares these methods and provides guidance on when to
-use each.</p>
+<p>Species richness counted from raw data confounds two things: how
+diverse a community is and how hard it was sampled. A plot visited for
+an afternoon yields fewer species than the same plot visited for a week,
+even though the underlying community has not changed. The same effect
+appears across sites. A site with 500 recorded individuals will, on
+average, show more species than a neighbour with 50, because more
+individuals expose more of the rare tail of the community. Any
+comparison of raw counts therefore partly measures effort rather than
+ecology.</p>
+<p>The bias is large. Richness rises steeply with the first few dozen
+individuals and only flattens once the common species are saturated and
+new records start repeating species already seen. Two sites at different
+points on that rising curve are not comparable. Reporting that site A
+has 18 species and site B has 11 says little until both numbers refer to
+the same amount of sampling.</p>
+<p>Standardization removes the effort axis so that the diversity axis
+can be read on its own. Two families of methods do this. Rarefaction
+fixes a common sample size and asks how many species would be expected
+at that size. Coverage-based methods fix a common completeness, the
+fraction of total community abundance that the observed species account
+for, and compare richness at that shared completeness. This vignette
+develops both, shows the estimators <strong>spacc</strong> provides for
+each, and ends with concrete rules for choosing between them. The
+running theme is that the standardization target, equal size or equal
+coverage, can change which site looks more diverse.</p>
+<p>The distinction matters because size and coverage are not
+interchangeable. A fixed number of individuals corresponds to very
+different completeness depending on how even the community is. In an
+even community a few hundred individuals already capture almost every
+species, so coverage is high. In a community with a handful of dominants
+and a long tail of rare species, the same few hundred individuals leave
+much of the tail undetected, so coverage stays low. Comparing two such
+communities at equal sample size therefore compares them at unequal
+completeness, which reintroduces a version of the bias that rarefaction
+was meant to remove. Coverage-based standardization closes that gap by
+making completeness itself the common currency.</p>
+<p>The cost of coverage standardization is that it needs counts of
+individuals. The singleton and doubleton frequencies that drive the
+coverage estimate exist only in abundance data, not in presence/absence
+records. When the data are binary, or when effort varies through the
+number of plots rather than the number of individuals within a plot, the
+sample-based rarefaction family is the right tool instead.
+<strong>spacc</strong> carries all three families, and the sections
+below show how to move between them on a single simulated dataset where
+the true community is known.</p>
 </div>
 <div class="section level2">
-<h2 id="data-setup">Data setup<a class="anchor" aria-label="anchor" href="#data-setup"></a>
+<h2 id="methods-and-theory">Methods and theory<a class="anchor" aria-label="anchor" href="#methods-and-theory"></a>
 </h2>
+<div class="section level3">
+<h3 id="individual-based-rarefaction">Individual-based rarefaction<a class="anchor" aria-label="anchor" href="#individual-based-rarefaction"></a>
+</h3>
+<p>Individual-based rarefaction asks a counterfactual question. Given a
+pooled sample of <span class="math inline">\(N\)</span> individuals
+containing <span class="math inline">\(S_{obs}\)</span> species, how
+many species would be expected in a random subsample of <span class="math inline">\(n \le N\)</span> individuals drawn without
+replacement. Hurlbert (1971) gives the exact expectation. Let <span class="math inline">\(N_i\)</span> be the total abundance of species
+<span class="math inline">\(i\)</span>, so that <span class="math inline">\(N = \sum_i N_i\)</span>. The probability that
+species <span class="math inline">\(i\)</span> appears at least once in
+a subsample of <span class="math inline">\(n\)</span> is one minus the
+probability of drawing <span class="math inline">\(n\)</span>
+individuals that all avoid species <span class="math inline">\(i\)</span>:</p>
+<p><span class="math display">\[
+P(\text{species } i \in \text{subsample}) = 1 - \frac{\binom{N -
+N_i}{n}}{\binom{N}{n}}.
+\]</span></p>
+<p>Summing detection probabilities over all observed species gives the
+expected rarefied richness, since the expectation of a sum of indicators
+is the sum of their probabilities:</p>
+<p><span class="math display">\[
+E[S_n] = \sum_{i=1}^{S_{obs}} \left[ 1 - \frac{\binom{N -
+N_i}{n}}{\binom{N}{n}} \right].
+\]</span></p>
+<p>Here <span class="math inline">\(E[S_n]\)</span> is expected richness
+at subsample size <span class="math inline">\(n\)</span>, <span class="math inline">\(N\)</span> is the total number of individuals
+pooled across the sites being compared, <span class="math inline">\(N_i\)</span> is the abundance of species <span class="math inline">\(i\)</span>, and <span class="math inline">\(S_{obs}\)</span> is the number of species observed
+in the full pooled sample. The curve <span class="math inline">\(E[S_n]\)</span> starts at 1 when <span class="math inline">\(n = 1\)</span>, rises monotonically, and reaches
+<span class="math inline">\(S_{obs}\)</span> exactly when <span class="math inline">\(n = N\)</span>. The formula is computed on a log
+scale in <strong>spacc</strong> to avoid overflow in the binomial
+coefficients.</p>
+<p>The expectation is exact, not a simulation average. Drawing many
+random subsamples of size <span class="math inline">\(n\)</span> and
+averaging their richness would converge to <span class="math inline">\(E[S_n]\)</span>, but the Hurlbert formula gives
+that limit in closed form, which is both faster and free of Monte Carlo
+noise. The shape of the curve carries information of its own. A curve
+that has flattened by <span class="math inline">\(n = N/2\)</span>
+indicates a community whose common species are saturated, so doubling
+the remaining effort would add few species. A curve still rising steeply
+at <span class="math inline">\(n = N\)</span> indicates an undersampled
+community where the species total is an underestimate.
+<strong>spacc</strong> attaches a bootstrap interval to the curve by
+resampling individuals with replacement and recomputing the expectation,
+which captures sampling variation in the underlying frequencies.</p>
+<p>The same logic extends to Hill numbers of order <span class="math inline">\(q\)</span>, which weight species by abundance.
+Order <span class="math inline">\(q = 0\)</span> is richness, where all
+species count equally and the rare tail dominates. Order <span class="math inline">\(q = 1\)</span> is the exponential of Shannon
+entropy, which weights species by their frequency. Order <span class="math inline">\(q = 2\)</span> is the inverse Simpson
+concentration, dominated by the common species. The Hill number of order
+<span class="math inline">\(q\)</span> of a community with relative
+abundances <span class="math inline">\(p_i\)</span> is</p>
+<p><span class="math display">\[
+{}^{q}D = \left( \sum_{i=1}^{S} p_i^{q} \right)^{1/(1-q)}, \qquad q \ne
+1,
+\]</span></p>
+<p>with the <span class="math inline">\(q = 1\)</span> case taken as the
+limit <span class="math inline">\({}^{1}D = \exp(-\sum_i p_i \log
+p_i)\)</span>. Each <span class="math inline">\({}^{q}D\)</span> is an
+effective number of species, the count of equally abundant species that
+would give the same diversity value. Higher <span class="math inline">\(q\)</span> down-weights rare species, so the
+rarefaction curve for <span class="math inline">\(q = 2\)</span>
+saturates faster and is far less sensitive to subsample size than the
+curve for <span class="math inline">\(q = 0\)</span>.</p>
+<p>The choice of <span class="math inline">\(q\)</span> encodes a
+research question rather than a technical preference. Richness (<span class="math inline">\(q = 0\)</span>) treats a species seen once and a
+species seen a thousand times as equal contributions, which makes it the
+most sensitive to sampling effort and to the rare tail. Shannon
+diversity (<span class="math inline">\(q = 1\)</span>) weights each
+species by its abundance, giving a balanced summary that is less
+affected by the few rarest records. Inverse Simpson (<span class="math inline">\(q = 2\)</span>) is governed almost entirely by the
+common species and barely moves as effort grows, which makes it a stable
+comparison when the rare tail is suspected to be noise. Scanning <span class="math inline">\(q\)</span> from 0 upward across the same data
+traces a diversity profile, and the steepness of that profile is itself
+a measure of how uneven the community is.</p>
+</div>
+<div class="section level3">
+<h3 id="sample-coverage">Sample coverage<a class="anchor" aria-label="anchor" href="#sample-coverage"></a>
+</h3>
+<p>Sample size is a poor common currency when communities differ in
+evenness. A fixed number of individuals can represent a near-complete
+census of an even community yet barely scratch a community with a long
+rare tail. Sample coverage measures completeness directly. Coverage
+<span class="math inline">\(C\)</span> is the fraction of the total
+community abundance belonging to the species already observed, so <span class="math inline">\(1 - C\)</span> is the probability that the next
+individual sampled belongs to a species not yet recorded. Chao and Jost
+(2012) estimate it from the frequency counts of the sample:</p>
+<p><span class="math display">\[
+C = 1 - \frac{f_1}{N} \cdot \frac{(N-1) f_1}{(N-1) f_1 + 2 f_2}.
+\]</span></p>
+<p>Here <span class="math inline">\(f_1\)</span> is the number of
+singletons, species represented by exactly one individual in the pooled
+sample, <span class="math inline">\(f_2\)</span> is the number of
+doubletons, species represented by exactly two individuals, and <span class="math inline">\(N\)</span> is the total number of individuals. The
+estimator rests on the Good-Turing insight that singletons carry the
+signal about undetected species: many singletons relative to doubletons
+means the rare tail is poorly sampled and coverage is low. When <span class="math inline">\(f_1 = 0\)</span> every observed species has been
+seen more than once, the correction vanishes, and <span class="math inline">\(C = 1\)</span>. Coverage-based rarefaction
+interpolates richness or any <span class="math inline">\({}^{q}D\)</span> to a target coverage rather than
+a target sample size, so two communities are compared at equal
+proportional representation.</p>
+<p>The deficit <span class="math inline">\(1 - C\)</span> has a direct
+reading as a probability. It estimates the chance that the next
+individual sampled belongs to a species not yet on the list, so it
+answers the practical question of how much new information one more
+sample would bring. A deficit of 0.05 means coverage of 0.95, and the
+next individual has roughly a one-in-twenty chance of being a new
+species. This interpretation is what makes coverage a fair common
+currency: two samples at the same deficit have the same residual
+probability of discovery, regardless of how many individuals each took
+to reach that point. For plot-based spatial data, where the sampling
+unit is a site rather than an individual, the Chiu (2023) variant uses
+incidence frequencies, the counts of species found in exactly one or two
+sites, and is the more appropriate estimator.
+<code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code> exposes both through its
+<code>coverage</code> argument.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="simulating-uneven-effort">Simulating uneven effort<a class="anchor" aria-label="anchor" href="#simulating-uneven-effort"></a>
+</h2>
+<p>The simulation idiom from the package, a site-by-species matrix of
+Poisson abundances, makes the effort bias concrete because the ground
+truth is known. Here every site is drawn from the same 20-species pool,
+so the true per-site richness ceiling is identical across all sites.
+What differs is the Poisson rate, which sets per-site total abundance.
+Low-rate sites are sampled shallowly and will miss species purely
+because few individuals were drawn.</p>
+<p>Building the matrix this way separates the two things real data
+conflate. The biological signal, the species pool, is held fixed at 20
+species for every site. The sampling signal, the per-site rate <span class="math inline">\(\lambda\)</span>, is varied deliberately across
+three tiers. Any difference in observed richness between tiers is
+therefore attributable to effort alone, because the generating community
+is identical. This is the controlled setting in which a standardization
+method can be checked: a method that works should erase the between-tier
+difference, recovering the shared 20-species ceiling, while a method
+that fails will leave the effort gradient intact. Real surveys never
+come with this guarantee, which is why a simulation with known truth is
+the right place to build intuition before applying the same tools to
+field data.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
@@ -143,14 +314,45 @@ use each.</p>
 <span>  <span class="va">species</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">20</span>, lambda <span class="op">=</span> <span class="va">lambdas</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">)</span></span></code></pre></div>
+<p>The three effort tiers, Poisson rates 1, 3, and 5, span a fivefold
+range in expected individuals per site. The induced bias is visible
+directly in the per-site counts: low-effort sites record fewer
+individuals and fewer species, even though all sites share the same
+underlying community.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tier</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">lambdas</span><span class="op">)</span></span>
+<span><span class="va">indiv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">rich</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">species</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>individuals <span class="op">=</span> <span class="va">indiv</span>, richness <span class="op">=</span> <span class="va">rich</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tier <span class="op">=</span> <span class="va">tier</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   tier individuals richness</span></span>
+<span><span class="co">#&gt; 1    1       18.45    11.80</span></span>
+<span><span class="co">#&gt; 2    3       59.65    18.95</span></span>
+<span><span class="co">#&gt; 3    5       98.05    19.90</span></span></code></pre></div>
+<p>Mean observed richness climbs from the low-effort tier to the
+high-effort tier despite an identical 20-species ceiling. That gap is
+the artefact standardization is built to remove. A naive ranking of
+these sites by raw richness would simply recover the sampling-effort
+gradient.</p>
+<p>The mean individuals per site track the Poisson rates closely, around
+one, three, and five times 20 species, since each cell of the matrix is
+an independent Poisson draw. Mean richness rises with them, but more
+slowly, because the high tiers are already close to the 20-species
+ceiling and have little room left to climb. The low tier sits far below
+the ceiling, missing several species per site purely because few
+individuals were drawn. This is the saturating-curve effect seen at the
+level of a single site: the first individuals reveal common species
+quickly, and each additional individual is progressively more likely to
+repeat a species already recorded.</p>
 </div>
 <div class="section level2">
-<h2 id="individual-based-rarefaction">Individual-based rarefaction<a class="anchor" aria-label="anchor" href="#individual-based-rarefaction"></a>
+<h2 id="individual-based-rarefaction-1">Individual-based rarefaction<a class="anchor" aria-label="anchor" href="#individual-based-rarefaction-1"></a>
 </h2>
-<p>The <code><a href="../reference/rarefy.html">rarefy()</a></code> function subsamples curves to a common
-number of individuals, removing the abundance bias:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Rarefy to minimum observed abundance</span></span>
+<p>The <code><a href="../reference/rarefy.html">rarefy()</a></code> function takes the abundance matrix, pools
+it across sites, and returns the Hurlbert expectation <span class="math inline">\(E[S_n]\)</span> over a grid of subsample sizes.
+The returned <code>spacc_rare</code> object carries the curve, a
+bootstrap standard deviation, and 95 percent bounds.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Rarefy to the pooled abundance grid (q = 0, richness)</span></span>
 <span><span class="va">rare</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">rare</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Individual-based rarefaction</span></span>
@@ -158,8 +360,24 @@ number of individuals, removing the abundance bias:</p>
 <span><span class="co">#&gt; Total individuals: 3523</span></span>
 <span><span class="co">#&gt; Observed species: 20</span></span>
 <span><span class="co">#&gt; Bootstrap replicates: 100</span></span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">rare</span><span class="op">)</span></span></code></pre></div>
+<p>The numeric curve is recovered with <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>,
+which exposes the sample sizes, the expected diversity, and the
+bootstrap interval. The expectation flattens well before the full sample
+size, the signature of a saturating community.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rare_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">rare</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">rare_df</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     n expected           sd    lower    upper</span></span>
+<span><span class="co">#&gt; 1   1  1.00000 2.294488e-15  1.00000  1.00000</span></span>
+<span><span class="co">#&gt; 2  37 17.00820 1.577237e-02 16.94641 17.00393</span></span>
+<span><span class="co">#&gt; 3  72 19.50629 1.006188e-02 19.46492 19.50324</span></span>
+<span><span class="co">#&gt; 4 108 19.92306 3.648140e-03 19.90731 19.92184</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">rare_df</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        n expected sd lower upper</span></span>
+<span><span class="co">#&gt; 99  3487       20  0    20    20</span></span>
+<span><span class="co">#&gt; 100 3523       20  0    20    20</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">rare</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -197,7 +415,7 @@ number of individuals, removing the abundance bias:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
@@ -205,6 +423,7 @@ number of individuals, removing the abundance bias:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
+<rect x='36.12' y='42.38' width='461.90' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 <polygon points='57.11,312.78 61.41,95.86 65.58,61.99 69.87,56.31 74.04,55.43 78.34,55.28 82.51,55.26 86.80,55.25 91.09,55.25 95.27,55.25 99.56,55.25 103.73,55.25 108.02,55.25 112.20,55.25 116.49,55.25 120.78,55.25 124.95,55.25 129.25,55.25 133.42,55.25 137.71,55.25 142.00,55.25 146.18,55.25 150.47,55.25 154.64,55.25 158.93,55.25 163.11,55.25 167.40,55.25 171.69,55.25 175.86,55.25 180.16,55.25 184.33,55.25 188.62,55.25 192.79,55.25 197.09,55.25 201.38,55.25 205.55,55.25 209.84,55.25 214.02,55.25 218.31,55.25 222.48,55.25 226.77,55.25 231.06,55.25 235.24,55.25 239.53,55.25 243.70,55.25 247.99,55.25 252.17,55.25 256.46,55.25 260.75,55.25 264.92,55.25 269.22,55.25 273.39,55.25 277.68,55.25 281.97,55.25 286.15,55.25 290.44,55.25 294.61,55.25 298.90,55.25 303.08,55.25 307.37,55.25 311.66,55.25 315.83,55.25 320.13,55.25 324.30,55.25 328.59,55.25 332.76,55.25 337.06,55.25 341.35,55.25 345.52,55.25 349.81,55.25 353.99,55.25 358.28,55.25 362.45,55.25 366.74,55.25 371.04,55.25 375.21,55.25 379.50,55.25 383.67,55.25 387.97,55.25 392.14,55.25 396.43,55.25 400.72,55.25 404.90,55.25 409.19,55.25 413.36,55.25 417.65,55.25 421.94,55.25 426.12,55.25 430.41,55.25 434.58,55.25 438.87,55.25 443.05,55.25 447.34,55.25 451.63,55.25 455.80,55.25 460.10,55.25 464.27,55.25 468.56,55.25 472.73,55.25 477.03,55.25 477.03,55.25 472.73,55.25 468.56,55.25 464.27,55.25 460.10,55.25 455.80,55.25 451.63,55.25 447.34,55.25 443.05,55.25 438.87,55.25 434.58,55.25 430.41,55.25 426.12,55.25 421.94,55.25 417.65,55.25 413.36,55.25 409.19,55.25 404.90,55.25 400.72,55.25 396.43,55.25 392.14,55.25 387.97,55.25 383.67,55.25 379.50,55.25 375.21,55.25 371.04,55.25 366.74,55.25 362.45,55.25 358.28,55.25 353.99,55.25 349.81,55.25 345.52,55.25 341.35,55.25 337.06,55.25 332.76,55.25 328.59,55.25 324.30,55.25 320.13,55.25 315.83,55.25 311.66,55.25 307.37,55.25 303.08,55.25 298.90,55.25 294.61,55.25 290.44,55.25 286.15,55.25 281.97,55.25 277.68,55.25 273.39,55.25 269.22,55.25 264.92,55.25 260.75,55.25 256.46,55.25 252.17,55.25 247.99,55.25 243.70,55.25 239.53,55.25 235.24,55.25 231.06,55.25 226.77,55.25 222.48,55.25 218.31,55.25 214.02,55.25 209.84,55.25 205.55,55.25 201.38,55.25 197.09,55.25 192.79,55.25 188.62,55.25 184.33,55.25 180.16,55.25 175.86,55.25 171.69,55.25 167.40,55.25 163.11,55.25 158.93,55.25 154.64,55.25 150.47,55.25 146.18,55.25 142.00,55.25 137.71,55.25 133.42,55.25 129.25,55.25 124.95,55.25 120.78,55.25 116.49,55.25 112.20,55.25 108.02,55.25 103.73,55.25 99.56,55.25 95.27,55.25 91.09,55.25 86.80,55.25 82.51,55.26 78.34,55.30 74.04,55.49 69.87,56.51 65.58,62.51 61.41,96.64 57.11,312.78 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.30;' />
 <polyline points='57.11,312.78 61.41,95.86 65.58,61.99 69.87,56.31 74.04,55.43 78.34,55.28 82.51,55.26 86.80,55.25 91.09,55.25 95.27,55.25 99.56,55.25 103.73,55.25 108.02,55.25 112.20,55.25 116.49,55.25 120.78,55.25 124.95,55.25 129.25,55.25 133.42,55.25 137.71,55.25 142.00,55.25 146.18,55.25 150.47,55.25 154.64,55.25 158.93,55.25 163.11,55.25 167.40,55.25 171.69,55.25 175.86,55.25 180.16,55.25 184.33,55.25 188.62,55.25 192.79,55.25 197.09,55.25 201.38,55.25 205.55,55.25 209.84,55.25 214.02,55.25 218.31,55.25 222.48,55.25 226.77,55.25 231.06,55.25 235.24,55.25 239.53,55.25 243.70,55.25 247.99,55.25 252.17,55.25 256.46,55.25 260.75,55.25 264.92,55.25 269.22,55.25 273.39,55.25 277.68,55.25 281.97,55.25 286.15,55.25 290.44,55.25 294.61,55.25 298.90,55.25 303.08,55.25 307.37,55.25 311.66,55.25 315.83,55.25 320.13,55.25 324.30,55.25 328.59,55.25 332.76,55.25 337.06,55.25 341.35,55.25 345.52,55.25 349.81,55.25 353.99,55.25 358.28,55.25 362.45,55.25 366.74,55.25 371.04,55.25 375.21,55.25 379.50,55.25 383.67,55.25 387.97,55.25 392.14,55.25 396.43,55.25 400.72,55.25 404.90,55.25 409.19,55.25 413.36,55.25 417.65,55.25 421.94,55.25 426.12,55.25 430.41,55.25 434.58,55.25 438.87,55.25 443.05,55.25 447.34,55.25 451.63,55.25 455.80,55.25 460.10,55.25 464.27,55.25 468.56,55.25 472.73,55.25 477.03,55.25 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
 <polyline points='477.03,55.25 472.73,55.25 468.56,55.25 464.27,55.25 460.10,55.25 455.80,55.25 451.63,55.25 447.34,55.25 443.05,55.25 438.87,55.25 434.58,55.25 430.41,55.25 426.12,55.25 421.94,55.25 417.65,55.25 413.36,55.25 409.19,55.25 404.90,55.25 400.72,55.25 396.43,55.25 392.14,55.25 387.97,55.25 383.67,55.25 379.50,55.25 375.21,55.25 371.04,55.25 366.74,55.25 362.45,55.25 358.28,55.25 353.99,55.25 349.81,55.25 345.52,55.25 341.35,55.25 337.06,55.25 332.76,55.25 328.59,55.25 324.30,55.25 320.13,55.25 315.83,55.25 311.66,55.25 307.37,55.25 303.08,55.25 298.90,55.25 294.61,55.25 290.44,55.25 286.15,55.25 281.97,55.25 277.68,55.25 273.39,55.25 269.22,55.25 264.92,55.25 260.75,55.25 256.46,55.25 252.17,55.25 247.99,55.25 243.70,55.25 239.53,55.25 235.24,55.25 231.06,55.25 226.77,55.25 222.48,55.25 218.31,55.25 214.02,55.25 209.84,55.25 205.55,55.25 201.38,55.25 197.09,55.25 192.79,55.25 188.62,55.25 184.33,55.25 180.16,55.25 175.86,55.25 171.69,55.25 167.40,55.25 163.11,55.25 158.93,55.25 154.64,55.25 150.47,55.25 146.18,55.25 142.00,55.25 137.71,55.25 133.42,55.25 129.25,55.25 124.95,55.25 120.78,55.25 116.49,55.25 112.20,55.25 108.02,55.25 103.73,55.25 99.56,55.25 95.27,55.25 91.09,55.25 86.80,55.25 82.51,55.26 78.34,55.30 74.04,55.49 69.87,56.51 65.58,62.51 61.41,96.64 57.11,312.78 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
@@ -226,36 +445,64 @@ number of individuals, removing the abundance bias:</p>
 </g>
 </g>
 </svg></div></p>
-<p>You can also rarefy Hill number curves:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Rarefy at different diversity orders</span></span>
-<span><span class="va">rare_q1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">rare_q2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">rare_q1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Individual-based rarefaction (q=1)</span></span>
-<span><span class="co">#&gt; ---------------------------- </span></span>
-<span><span class="co">#&gt; Total individuals: 3523</span></span>
-<span><span class="co">#&gt; Observed species: 20</span></span>
-<span><span class="co">#&gt; Diversity order: q=1</span></span>
-<span><span class="co">#&gt; Bootstrap replicates: 100</span></span></code></pre></div>
-<p><code><a href="../reference/rarefy.html">rarefy()</a></code> accepts any non-negative order <code>q</code>.
-Orders 0, 1, and 2 use exact estimators (Hurlbert’s expectation for
-richness, with the corresponding Shannon and Simpson forms); other
-orders report the Hill number of order <code>q</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rare_q3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">rare_half</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="coverage-based-standardization">Coverage-based standardization<a class="anchor" aria-label="anchor" href="#coverage-based-standardization"></a>
-</h2>
-<p>Coverage-based rarefaction (Chao &amp; Jost 2012) standardizes by
-sample completeness rather than sample size. This is often preferred
-because equal coverage means equal proportional representation of the
-community:</p>
+<p>Rarefaction at higher orders down-weights the rare species. Passing
+<code>q = 1</code> and <code>q = 2</code> returns the Shannon and
+Simpson effective numbers, which saturate faster because they are
+governed by the common species rather than the long tail.
+<code><a href="../reference/rarefy.html">rarefy()</a></code> accepts any non-negative order; orders 0, 1, and 2
+use exact estimators while other orders report the Hill number of order
+<code>q</code> of the sampled composition.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cov_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">10</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cov_result</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">rare_q1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">rare_q2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>q0 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rare</span><span class="op">$</span><span class="va">expected</span><span class="op">)</span>, q1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rare_q1</span><span class="op">$</span><span class="va">expected</span><span class="op">)</span>, q2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rare_q2</span><span class="op">$</span><span class="va">expected</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       q0       q1       q2 </span></span>
+<span><span class="co">#&gt; 20.00000 19.95649 20.01989</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rare_q3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">rare_half</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">species</span>, q <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>q0.5 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rare_half</span><span class="op">$</span><span class="va">expected</span><span class="op">)</span>, q3 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rare_q3</span><span class="op">$</span><span class="va">expected</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     q0.5       q3 </span></span>
+<span><span class="co">#&gt; 19.97833 19.86778</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="analytical-sample-based-alternatives">Analytical sample-based alternatives<a class="anchor" aria-label="anchor" href="#analytical-sample-based-alternatives"></a>
+</h3>
+<p>Rarefaction can also be sample-based: instead of subsampling
+individuals, the unit subsampled is the site. <strong>spacc</strong>
+provides three analytical curves over sites that need no simulation.
+<code><a href="../reference/mao_tau.html">mao_tau()</a></code> is the exact expected sample-based rarefaction of
+Colwell et al. (2004); it binarizes the matrix and returns a data frame
+with <code>sites</code>, <code>expected</code>, <code>sd</code>, and
+analytical 95 percent <code>lower</code>/<code>upper</code> bounds.
+<code><a href="../reference/coleman.html">coleman()</a></code> returns the Coleman et al. (1982) expectation
+with columns <code>sites</code>, <code>expected</code>, <code>sd</code>.
+<code><a href="../reference/collector.html">collector()</a></code> returns the species count in data order, with
+columns <code>sites</code>, <code>species</code>, which traces how the
+actual survey accumulated species rather than a randomized
+expectation.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mao_tau.html">mao_tau</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">cm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coleman.html">coleman</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collector.html">collector</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mt</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   sites expected        sd     lower    upper</span></span>
+<span><span class="co">#&gt; 1     1 16.88333 10.575273 -3.844201 37.61087</span></span>
+<span><span class="co">#&gt; 2     2 19.52655  4.270861 11.155666 27.89744</span></span>
+<span><span class="co">#&gt; 3     3 19.93016  1.648929 16.698256 23.16206</span></span></code></pre></div>
+<p>Plotting the three together shows that the randomized expectations
+from <code><a href="../reference/mao_tau.html">mao_tau()</a></code> and <code><a href="../reference/coleman.html">coleman()</a></code> lie close to each
+other, while the collector’s curve fluctuates around them because it
+follows the arbitrary order of the rows. The Mao Tau band gives the
+analytical uncertainty without any bootstrap.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>sites <span class="op">=</span> <span class="va">mt</span><span class="op">$</span><span class="va">sites</span>, S <span class="op">=</span> <span class="va">mt</span><span class="op">$</span><span class="va">expected</span>, kind <span class="op">=</span> <span class="st">"Mao Tau"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>sites <span class="op">=</span> <span class="va">cm</span><span class="op">$</span><span class="va">sites</span>, S <span class="op">=</span> <span class="va">cm</span><span class="op">$</span><span class="va">expected</span>, kind <span class="op">=</span> <span class="st">"Coleman"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>sites <span class="op">=</span> <span class="va">cl</span><span class="op">$</span><span class="va">sites</span>, S <span class="op">=</span> <span class="va">cl</span><span class="op">$</span><span class="va">species</span>,  kind <span class="op">=</span> <span class="st">"Collector"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">sites</span>, <span class="va">S</span>, color <span class="op">=</span> <span class="va">kind</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Sites"</span>, y <span class="op">=</span> <span class="st">"Species"</span>, color <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -293,7 +540,129 @@ community:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.000000000000064' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpMzMuMTN8NDE4LjY0fDUuNDh8MzI4LjUw'>
+    <rect x='33.13' y='5.48' width='385.51' height='323.02' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzMuMTN8NDE4LjY0fDUuNDh8MzI4LjUw)'>
+<rect x='33.13' y='5.48' width='385.51' height='323.02' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<polyline points='33.13,255.72 418.64,255.72 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,161.50 418.64,161.50 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,67.27 418.64,67.27 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='104.11,328.50 104.11,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='222.91,328.50 222.91,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='341.72,328.50 341.72,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,302.83 418.64,302.83 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,208.61 418.64,208.61 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,114.38 418.64,114.38 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,20.16 418.64,20.16 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='44.71,328.50 44.71,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='163.51,328.50 163.51,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='282.31,328.50 282.31,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='401.12,328.50 401.12,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='50.65,313.82 56.59,64.77 62.53,26.74 68.47,21.09 74.41,20.29 80.35,20.18 86.29,20.16 92.23,20.16 98.17,20.16 104.11,20.16 110.05,20.16 115.99,20.16 121.93,20.16 127.87,20.16 133.81,20.16 139.75,20.16 145.69,20.16 151.63,20.16 157.57,20.16 163.51,20.16 169.45,20.16 175.39,20.16 181.33,20.16 187.27,20.16 193.21,20.16 199.15,20.16 205.09,20.16 211.03,20.16 216.97,20.16 222.91,20.16 228.85,20.16 234.79,20.16 240.73,20.16 246.67,20.16 252.61,20.16 258.55,20.16 264.49,20.16 270.43,20.16 276.37,20.16 282.31,20.16 288.25,20.16 294.19,20.16 300.14,20.16 306.08,20.16 312.02,20.16 317.96,20.16 323.90,20.16 329.84,20.16 335.78,20.16 341.72,20.16 347.66,20.16 353.60,20.16 359.54,20.16 365.48,20.16 371.42,20.16 377.36,20.16 383.30,20.16 389.24,20.16 395.18,20.16 401.12,20.16 ' style='stroke-width: 1.92; stroke: #F8766D; stroke-linecap: butt;' />
+<polyline points='50.65,302.83 56.59,302.83 62.53,114.38 68.47,114.38 74.41,114.38 80.35,114.38 86.29,20.16 92.23,20.16 98.17,20.16 104.11,20.16 110.05,20.16 115.99,20.16 121.93,20.16 127.87,20.16 133.81,20.16 139.75,20.16 145.69,20.16 151.63,20.16 157.57,20.16 163.51,20.16 169.45,20.16 175.39,20.16 181.33,20.16 187.27,20.16 193.21,20.16 199.15,20.16 205.09,20.16 211.03,20.16 216.97,20.16 222.91,20.16 228.85,20.16 234.79,20.16 240.73,20.16 246.67,20.16 252.61,20.16 258.55,20.16 264.49,20.16 270.43,20.16 276.37,20.16 282.31,20.16 288.25,20.16 294.19,20.16 300.14,20.16 306.08,20.16 312.02,20.16 317.96,20.16 323.90,20.16 329.84,20.16 335.78,20.16 341.72,20.16 347.66,20.16 353.60,20.16 359.54,20.16 365.48,20.16 371.42,20.16 377.36,20.16 383.30,20.16 389.24,20.16 395.18,20.16 401.12,20.16 ' style='stroke-width: 1.92; stroke: #00BA38; stroke-linecap: butt;' />
+<polyline points='50.65,313.82 56.59,64.77 62.53,26.74 68.47,21.09 74.41,20.29 80.35,20.18 86.29,20.16 92.23,20.16 98.17,20.16 104.11,20.16 110.05,20.16 115.99,20.16 121.93,20.16 127.87,20.16 133.81,20.16 139.75,20.16 145.69,20.16 151.63,20.16 157.57,20.16 163.51,20.16 169.45,20.16 175.39,20.16 181.33,20.16 187.27,20.16 193.21,20.16 199.15,20.16 205.09,20.16 211.03,20.16 216.97,20.16 222.91,20.16 228.85,20.16 234.79,20.16 240.73,20.16 246.67,20.16 252.61,20.16 258.55,20.16 264.49,20.16 270.43,20.16 276.37,20.16 282.31,20.16 288.25,20.16 294.19,20.16 300.14,20.16 306.08,20.16 312.02,20.16 317.96,20.16 323.90,20.16 329.84,20.16 335.78,20.16 341.72,20.16 347.66,20.16 353.60,20.16 359.54,20.16 365.48,20.16 371.42,20.16 377.36,20.16 383.30,20.16 389.24,20.16 395.18,20.16 401.12,20.16 ' style='stroke-width: 1.92; stroke: #619CFF; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='28.20' y='305.98' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>17</text>
+<text x='28.20' y='211.76' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>18</text>
+<text x='28.20' y='117.53' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>19</text>
+<text x='28.20' y='23.31' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<polyline points='30.39,302.83 33.13,302.83 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,208.61 33.13,208.61 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,114.38 33.13,114.38 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,20.16 33.13,20.16 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='44.71,331.24 44.71,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='163.51,331.24 163.51,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='282.31,331.24 282.31,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='401.12,331.24 401.12,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<text x='44.71' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='163.51' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='282.31' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='401.12' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='225.88' y='352.20' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='24.47px' lengthAdjust='spacingAndGlyphs'>Sites</text>
+<text transform='translate(13.36,166.99) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='39.16px' lengthAdjust='spacingAndGlyphs'>Species</text>
+<rect rx='4' x='429.60' y='135.59' width='68.92' height='62.80' style='stroke-width: 1.07; stroke: none; fill: #F5F6F8;' />
+<rect x='435.08' y='141.07' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<line x1='436.81' y1='149.71' x2='450.63' y2='149.71' style='stroke-width: 1.92; stroke: #F8766D; stroke-linecap: butt;' />
+<rect x='435.08' y='158.35' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<line x1='436.81' y1='166.99' x2='450.63' y2='166.99' style='stroke-width: 1.92; stroke: #00BA38; stroke-linecap: butt;' />
+<rect x='435.08' y='175.63' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<line x1='436.81' y1='184.27' x2='450.63' y2='184.27' style='stroke-width: 1.92; stroke: #619CFF; stroke-linecap: butt;' />
+<text x='457.84' y='152.86' style='font-size: 8.80px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='35.20px' lengthAdjust='spacingAndGlyphs'>Coleman</text>
+<text x='457.84' y='170.14' style='font-size: 8.80px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='34.70px' lengthAdjust='spacingAndGlyphs'>Collector</text>
+<text x='457.84' y='187.42' style='font-size: 8.80px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='33.58px' lengthAdjust='spacingAndGlyphs'>Mao Tau</text>
+</g>
+</g>
+</svg></div></p>
+<p>The Mao Tau and Coleman expectations are the sample-based analogue of
+Hurlbert’s individual-based curve. They standardize on number of sites;
+<code><a href="../reference/rarefy.html">rarefy()</a></code> standardizes on number of individuals. Which axis
+matters depends on whether effort varies through plot count or through
+depth of sampling within plots.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="coverage-based-standardization">Coverage-based standardization<a class="anchor" aria-label="anchor" href="#coverage-based-standardization"></a>
+</h2>
+<p><code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code> accumulates sites spatially while
+tracking the Chao-Jost coverage at each step, across many random
+starting seeds. The default estimator is <code>"chao"</code>; a
+<code>"chiu"</code> option uses incidence frequencies and is recommended
+when the sampling units are plots rather than independent individuals.
+The result is a <code>spacc_coverage</code> object holding
+<code>n_seeds</code> by <code>n_sites</code> matrices of richness,
+individuals, and coverage.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cov_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cov_result</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spacc coverage (Chao-Jost 2012): 60 sites, 20 species, 30 seeds</span></span>
+<span><span class="co">#&gt; Mean final coverage: 100.0%</span></span>
+<span><span class="co">#&gt; Mean final richness: 20.0 species</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cov_result</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpMzYuMTJ8NDk4LjAyfDI1LjI4fDMyNS42NQ=='>
@@ -301,16 +670,17 @@ community:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDI1LjI4fDMyNS42NQ==)'>
-<polygon points='57.11,38.94 64.23,38.94 71.35,38.94 78.47,38.94 85.58,38.94 92.70,38.94 99.82,38.94 106.93,38.94 114.05,38.94 121.17,38.94 128.29,38.94 135.40,38.94 142.52,38.94 149.64,38.94 156.75,38.94 163.87,38.94 170.99,38.94 178.11,38.94 185.22,38.94 192.34,38.94 199.46,38.94 206.58,38.94 213.69,38.94 220.81,38.94 227.93,38.94 235.04,38.94 242.16,38.94 249.28,38.94 256.40,38.94 263.51,38.94 270.63,38.94 277.75,38.94 284.86,38.94 291.98,38.94 299.10,38.94 306.22,38.94 313.33,38.94 320.45,38.94 327.57,38.94 334.68,38.94 341.80,38.94 348.92,38.94 356.04,38.94 363.15,38.94 370.27,38.94 377.39,38.94 384.50,38.94 391.62,38.94 398.74,38.94 405.86,38.94 412.97,38.94 420.09,38.94 427.21,38.94 434.32,38.94 441.44,38.94 448.56,38.94 455.68,38.94 462.79,38.94 469.91,38.94 477.03,38.94 477.03,38.94 469.91,38.94 462.79,38.94 455.68,38.94 448.56,38.94 441.44,38.94 434.32,38.94 427.21,38.94 420.09,38.94 412.97,38.94 405.86,38.94 398.74,38.94 391.62,38.94 384.50,38.94 377.39,38.94 370.27,38.94 363.15,38.94 356.04,38.94 348.92,38.94 341.80,38.94 334.68,38.94 327.57,38.94 320.45,38.94 313.33,38.94 306.22,38.94 299.10,38.94 291.98,38.94 284.86,38.94 277.75,38.94 270.63,38.94 263.51,38.94 256.40,38.94 249.28,38.94 242.16,38.94 235.04,38.94 227.93,38.94 220.81,38.94 213.69,38.94 206.58,38.94 199.46,38.94 192.34,38.94 185.22,38.94 178.11,38.94 170.99,38.94 163.87,38.94 156.75,38.94 149.64,38.94 142.52,38.94 135.40,38.94 128.29,38.94 121.17,38.94 114.05,38.94 106.93,38.94 99.82,38.94 92.70,38.94 85.58,38.94 78.47,38.94 71.35,38.94 64.23,74.21 57.11,312.00 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
+<rect x='36.12' y='25.28' width='461.90' height='300.37' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<polygon points='57.11,38.94 64.23,38.94 71.35,38.94 78.47,38.94 85.58,38.94 92.70,38.94 99.82,38.94 106.93,38.94 114.05,38.94 121.17,38.94 128.29,38.94 135.40,38.94 142.52,38.94 149.64,38.94 156.75,38.94 163.87,38.94 170.99,38.94 178.11,38.94 185.22,38.94 192.34,38.94 199.46,38.94 206.58,38.94 213.69,38.94 220.81,38.94 227.93,38.94 235.04,38.94 242.16,38.94 249.28,38.94 256.40,38.94 263.51,38.94 270.63,38.94 277.75,38.94 284.86,38.94 291.98,38.94 299.10,38.94 306.22,38.94 313.33,38.94 320.45,38.94 327.57,38.94 334.68,38.94 341.80,38.94 348.92,38.94 356.04,38.94 363.15,38.94 370.27,38.94 377.39,38.94 384.50,38.94 391.62,38.94 398.74,38.94 405.86,38.94 412.97,38.94 420.09,38.94 427.21,38.94 434.32,38.94 441.44,38.94 448.56,38.94 455.68,38.94 462.79,38.94 469.91,38.94 477.03,38.94 477.03,38.94 469.91,38.94 462.79,38.94 455.68,38.94 448.56,38.94 441.44,38.94 434.32,38.94 427.21,38.94 420.09,38.94 412.97,38.94 405.86,38.94 398.74,38.94 391.62,38.94 384.50,38.94 377.39,38.94 370.27,38.94 363.15,38.94 356.04,38.94 348.92,38.94 341.80,38.94 334.68,38.94 327.57,38.94 320.45,38.94 313.33,38.94 306.22,38.94 299.10,38.94 291.98,38.94 284.86,38.94 277.75,38.94 270.63,38.94 263.51,38.94 256.40,38.94 249.28,38.94 242.16,38.94 235.04,38.94 227.93,38.94 220.81,38.94 213.69,38.94 206.58,38.94 199.46,38.94 192.34,38.94 185.22,38.94 178.11,38.94 170.99,38.94 163.87,38.94 156.75,38.94 149.64,38.94 142.52,38.94 135.40,38.94 128.29,38.94 121.17,38.94 114.05,38.94 106.93,38.94 99.82,38.94 92.70,38.94 85.58,38.94 78.47,38.94 71.35,64.82 64.23,194.23 57.11,312.00 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
 <polyline points='57.11,38.94 64.23,38.94 71.35,38.94 78.47,38.94 85.58,38.94 92.70,38.94 99.82,38.94 106.93,38.94 114.05,38.94 121.17,38.94 128.29,38.94 135.40,38.94 142.52,38.94 149.64,38.94 156.75,38.94 163.87,38.94 170.99,38.94 178.11,38.94 185.22,38.94 192.34,38.94 199.46,38.94 206.58,38.94 213.69,38.94 220.81,38.94 227.93,38.94 235.04,38.94 242.16,38.94 249.28,38.94 256.40,38.94 263.51,38.94 270.63,38.94 277.75,38.94 284.86,38.94 291.98,38.94 299.10,38.94 306.22,38.94 313.33,38.94 320.45,38.94 327.57,38.94 334.68,38.94 341.80,38.94 348.92,38.94 356.04,38.94 363.15,38.94 370.27,38.94 377.39,38.94 384.50,38.94 391.62,38.94 398.74,38.94 405.86,38.94 412.97,38.94 420.09,38.94 427.21,38.94 434.32,38.94 441.44,38.94 448.56,38.94 455.68,38.94 462.79,38.94 469.91,38.94 477.03,38.94 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='477.03,38.94 469.91,38.94 462.79,38.94 455.68,38.94 448.56,38.94 441.44,38.94 434.32,38.94 427.21,38.94 420.09,38.94 412.97,38.94 405.86,38.94 398.74,38.94 391.62,38.94 384.50,38.94 377.39,38.94 370.27,38.94 363.15,38.94 356.04,38.94 348.92,38.94 341.80,38.94 334.68,38.94 327.57,38.94 320.45,38.94 313.33,38.94 306.22,38.94 299.10,38.94 291.98,38.94 284.86,38.94 277.75,38.94 270.63,38.94 263.51,38.94 256.40,38.94 249.28,38.94 242.16,38.94 235.04,38.94 227.93,38.94 220.81,38.94 213.69,38.94 206.58,38.94 199.46,38.94 192.34,38.94 185.22,38.94 178.11,38.94 170.99,38.94 163.87,38.94 156.75,38.94 149.64,38.94 142.52,38.94 135.40,38.94 128.29,38.94 121.17,38.94 114.05,38.94 106.93,38.94 99.82,38.94 92.70,38.94 85.58,38.94 78.47,38.94 71.35,38.94 64.23,74.21 57.11,312.00 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='57.11,116.30 64.23,43.49 71.35,38.94 78.47,38.94 85.58,38.94 92.70,38.94 99.82,38.94 106.93,38.94 114.05,38.94 121.17,38.94 128.29,38.94 135.40,38.94 142.52,38.94 149.64,38.94 156.75,38.94 163.87,38.94 170.99,38.94 178.11,38.94 185.22,38.94 192.34,38.94 199.46,38.94 206.58,38.94 213.69,38.94 220.81,38.94 227.93,38.94 235.04,38.94 242.16,38.94 249.28,38.94 256.40,38.94 263.51,38.94 270.63,38.94 277.75,38.94 284.86,38.94 291.98,38.94 299.10,38.94 306.22,38.94 313.33,38.94 320.45,38.94 327.57,38.94 334.68,38.94 341.80,38.94 348.92,38.94 356.04,38.94 363.15,38.94 370.27,38.94 377.39,38.94 384.50,38.94 391.62,38.94 398.74,38.94 405.86,38.94 412.97,38.94 420.09,38.94 427.21,38.94 434.32,38.94 441.44,38.94 448.56,38.94 455.68,38.94 462.79,38.94 469.91,38.94 477.03,38.94 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+<polyline points='477.03,38.94 469.91,38.94 462.79,38.94 455.68,38.94 448.56,38.94 441.44,38.94 434.32,38.94 427.21,38.94 420.09,38.94 412.97,38.94 405.86,38.94 398.74,38.94 391.62,38.94 384.50,38.94 377.39,38.94 370.27,38.94 363.15,38.94 356.04,38.94 348.92,38.94 341.80,38.94 334.68,38.94 327.57,38.94 320.45,38.94 313.33,38.94 306.22,38.94 299.10,38.94 291.98,38.94 284.86,38.94 277.75,38.94 270.63,38.94 263.51,38.94 256.40,38.94 249.28,38.94 242.16,38.94 235.04,38.94 227.93,38.94 220.81,38.94 213.69,38.94 206.58,38.94 199.46,38.94 192.34,38.94 185.22,38.94 178.11,38.94 170.99,38.94 163.87,38.94 156.75,38.94 149.64,38.94 142.52,38.94 135.40,38.94 128.29,38.94 121.17,38.94 114.05,38.94 106.93,38.94 99.82,38.94 92.70,38.94 85.58,38.94 78.47,38.94 71.35,64.82 64.23,194.23 57.11,312.00 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,133.84 64.23,52.74 71.35,40.66 78.47,38.94 85.58,38.94 92.70,38.94 99.82,38.94 106.93,38.94 114.05,38.94 121.17,38.94 128.29,38.94 135.40,38.94 142.52,38.94 149.64,38.94 156.75,38.94 163.87,38.94 170.99,38.94 178.11,38.94 185.22,38.94 192.34,38.94 199.46,38.94 206.58,38.94 213.69,38.94 220.81,38.94 227.93,38.94 235.04,38.94 242.16,38.94 249.28,38.94 256.40,38.94 263.51,38.94 270.63,38.94 277.75,38.94 284.86,38.94 291.98,38.94 299.10,38.94 306.22,38.94 313.33,38.94 320.45,38.94 327.57,38.94 334.68,38.94 341.80,38.94 348.92,38.94 356.04,38.94 363.15,38.94 370.27,38.94 377.39,38.94 384.50,38.94 391.62,38.94 398.74,38.94 405.86,38.94 412.97,38.94 420.09,38.94 427.21,38.94 434.32,38.94 441.44,38.94 448.56,38.94 455.68,38.94 462.79,38.94 469.91,38.94 477.03,38.94 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='30.74' y='315.43' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>14</text>
-<text x='30.74' y='224.41' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>16</text>
-<text x='30.74' y='133.39' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>18</text>
-<text x='30.74' y='42.37' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='30.74' y='327.08' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>9</text>
+<text x='30.74' y='249.43' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>12</text>
+<text x='30.74' y='171.78' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
+<text x='30.74' y='94.14' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>18</text>
 <text x='50.00' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
 <text x='192.34' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
 <text x='334.68' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
@@ -324,26 +694,49 @@ community:</p>
 <div class="section level3">
 <h3 id="interpolation-at-fixed-coverage">Interpolation at fixed coverage<a class="anchor" aria-label="anchor" href="#interpolation-at-fixed-coverage"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">interp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolateCoverage.html">interpolateCoverage</a></span><span class="op">(</span><span class="va">cov_result</span>, target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.8</span>, <span class="fl">0.9</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">interp</span><span class="op">)</span></span>
-<span><span class="co">#&gt;         C80      C90      C95</span></span>
-<span><span class="co">#&gt; 1  20.00000 20.00000 20.00000</span></span>
-<span><span class="co">#&gt; 2  20.00000 20.00000 20.00000</span></span>
-<span><span class="co">#&gt; 3  17.29656 18.73054 19.44753</span></span>
-<span><span class="co">#&gt; 4  15.00000 15.00000 15.00000</span></span>
-<span><span class="co">#&gt; 5  16.86118 18.10577 18.72807</span></span>
-<span><span class="co">#&gt; 6  20.00000 20.00000 20.00000</span></span>
-<span><span class="co">#&gt; 7  20.00000 20.00000 20.00000</span></span>
-<span><span class="co">#&gt; 8  20.00000 20.00000 20.00000</span></span>
-<span><span class="co">#&gt; 9  20.00000 20.00000 20.00000</span></span>
-<span><span class="co">#&gt; 10 20.00000 20.00000 20.00000</span></span></code></pre></div>
+<p><code><a href="../reference/interpolateCoverage.html">interpolateCoverage()</a></code> reads richness off each seed’s
+curve at the requested coverage levels by linear interpolation. The
+return is a data frame with one row per seed and one column per target,
+so the spread across rows is the across-seed uncertainty introduced by
+the choice of starting point.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">interp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolateCoverage.html">interpolateCoverage</a></span><span class="op">(</span><span class="va">cov_result</span>, target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.90</span>, <span class="fl">0.95</span>, <span class="fl">0.99</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">interp</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   C90   C95   C99 </span></span>
+<span><span class="co">#&gt; 18.63 19.13 19.66</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">interp</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   C90   C95   C99 </span></span>
+<span><span class="co">#&gt; 1.490 1.273 1.031</span></span></code></pre></div>
+<p>The across-seed standard deviation widens toward higher coverage
+targets, because those targets sit near or beyond the end of some seeds’
+curves where interpolation has less support. The mean richness at 90
+percent coverage is the fair point estimate; the column standard
+deviation is its seed-induced uncertainty.</p>
+<p>Each seed is a different spatial path through the sites, starting
+from a different point and accumulating neighbours in a different order.
+Because the sites are spatially structured, the order in which they are
+added changes the coverage reached at each step, and so two seeds can
+hit 90 percent coverage at different richness values. Averaging over
+seeds marginalizes out the arbitrary choice of starting point, and the
+spread of the per-seed values is the honest uncertainty that choice
+introduces. Reporting only the mean would hide that spread; reporting
+per-seed values exposes it, which is why
+<code><a href="../reference/interpolateCoverage.html">interpolateCoverage()</a></code> returns the full matrix rather than a
+collapsed summary.</p>
 </div>
-<div class="section level3">
-<h3 id="extrapolation-beyond-observed">Extrapolation beyond observed<a class="anchor" aria-label="anchor" href="#extrapolation-beyond-observed"></a>
-</h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">extrap</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolateCoverage.html">extrapolateCoverage</a></span><span class="op">(</span><span class="va">cov_result</span>, target_coverage <span class="op">=</span> <span class="fl">0.99</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+</div>
+<div class="section level2">
+<h2 id="extrapolation-beyond-observed">Extrapolation beyond observed<a class="anchor" aria-label="anchor" href="#extrapolation-beyond-observed"></a>
+</h2>
+<p>When a target coverage exceeds the maximum any seed reached,
+interpolation is impossible and <code><a href="../reference/extrapolateCoverage.html">extrapolateCoverage()</a></code>
+switches to the Chao et al. (2014) asymptotic estimators. For <span class="math inline">\(q = 0\)</span> it uses the Chao1 coverage deficit;
+for <span class="math inline">\(q = 1\)</span> and <span class="math inline">\(q = 2\)</span> it applies the corresponding
+Shannon and Simpson asymptotics. The returned
+<code>spacc_coverage_ext</code> object reports the observed coverage and
+richness alongside the extrapolated values.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">extrap</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolateCoverage.html">extrapolateCoverage</a></span><span class="op">(</span><span class="va">cov_result</span>, target_coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="fl">0.99</span><span class="op">)</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">extrap</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Coverage-based extrapolation</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
@@ -352,26 +745,14 @@ community:</p>
 <span><span class="co">#&gt; Observed richness: 20.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Extrapolated richness:</span></span>
-<span><span class="co">#&gt;   C=99%: 19.7 (+/- 0.9)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="combined-hill-coverage-analysis">Combined Hill + Coverage analysis<a class="anchor" aria-label="anchor" href="#combined-hill-coverage-analysis"></a>
-</h2>
-<p>The <code><a href="../reference/spaccHillCoverage.html">spaccHillCoverage()</a></code> function tracks both Hill
-numbers and coverage simultaneously, enabling standardization across q
-orders:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">hc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccHillCoverage.html">spaccHillCoverage</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>                         target_coverage <span class="op">=</span> <span class="fl">0.9</span>,</span>
-<span>                         n_seeds <span class="op">=</span> <span class="fl">10</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">hc</span><span class="op">)</span></span>
-<span><span class="co">#&gt; spacc Hill + Coverage: 60 sites, 20 species, 10 seeds</span></span>
-<span><span class="co">#&gt; Orders (q): 0, 1, 2</span></span>
-<span><span class="co">#&gt; Mean final coverage: 1.000</span></span>
-<span><span class="co">#&gt; Target coverage: 0.9</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hc</span>, xaxis <span class="op">=</span> <span class="st">"coverage"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt;   C=95%: 19.1 (+/- 1.3)</span></span>
+<span><span class="co">#&gt;   C=99%: 19.7 (+/- 1.0)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">extrap</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     target_coverage mean_richness       sd    lower upper</span></span>
+<span><span class="co">#&gt; C95            0.95      19.13281 1.273474 15.00000    20</span></span>
+<span><span class="co">#&gt; C99            0.99      19.65881 1.030564 16.50835    20</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">extrap</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -409,7 +790,110 @@ orders:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
+    <rect x='36.12' y='42.38' width='461.90' height='283.28' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
+<rect x='36.12' y='42.38' width='461.90' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<polygon points='57.11,55.25 431.32,55.25 462.69,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 462.69,79.66 431.32,201.71 57.11,312.78 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
+<polyline points='57.11,55.25 431.32,55.25 462.69,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 462.69,79.66 431.32,201.71 57.11,312.78 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,144.76 431.32,68.27 462.69,56.88 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 477.03,55.25 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+<line x1='477.03' y1='325.65' x2='477.03' y2='42.38' style='stroke-width: 1.16; stroke: #7F7F7F; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='30.74' y='327.19' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>9</text>
+<text x='30.74' y='253.97' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>12</text>
+<text x='30.74' y='180.74' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
+<text x='30.74' y='107.51' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>18</text>
+<text x='123.39' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.85</text>
+<text x='241.27' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.90</text>
+<text x='359.15' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.95</text>
+<text x='477.03' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>1.00</text>
+<text x='267.07' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='93.38px' lengthAdjust='spacingAndGlyphs'>Sample coverage</text>
+<text transform='translate(14.57,184.01) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='84.36px' lengthAdjust='spacingAndGlyphs'>Diversity (q = 0)</text>
+<text x='36.12' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='152.05px' lengthAdjust='spacingAndGlyphs'>Observed coverage: 100.0%</text>
+<text x='36.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='195.98px' lengthAdjust='spacingAndGlyphs'>Coverage-Based Extrapolation</text>
+</g>
+</g>
+</svg></div></p>
+<p>Extrapolation is reliable only over a limited range past the observed
+coverage. The dashed reference line marks the observed coverage; the
+orange points beyond it are model-based projections whose uncertainty
+grows with distance from the data. Targets far past the observed maximum
+should be read as informed extrapolation, not measurement.</p>
+</div>
+<div class="section level2">
+<h2 id="hill-numbers-with-coverage">Hill numbers with coverage<a class="anchor" aria-label="anchor" href="#hill-numbers-with-coverage"></a>
+</h2>
+<p><code><a href="../reference/spaccHillCoverage.html">spaccHillCoverage()</a></code> tracks Hill numbers for several
+orders and coverage at the same time, so the three diversity orders can
+be standardized to one completeness. Supplying
+<code>target_coverage</code> adds a <code>standardized</code> component
+holding each order’s value interpolated to that coverage for every
+seed.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">hc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccHillCoverage.html">spaccHillCoverage</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>                        target_coverage <span class="op">=</span> <span class="fl">0.9</span>,</span>
+<span>                        n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">hc</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spacc Hill + Coverage: 60 sites, 20 species, 20 seeds</span></span>
+<span><span class="co">#&gt; Orders (q): 0, 1, 2</span></span>
+<span><span class="co">#&gt; Mean final coverage: 1.000</span></span>
+<span><span class="co">#&gt; Target coverage: 0.9</span></span></code></pre></div>
+<p>The <code>standardized</code> list gives the seed-averaged effective
+number of species at 90 percent coverage for each order. Richness (<span class="math inline">\(q = 0\)</span>) is highest and most seed-variable,
+while <span class="math inline">\(q = 2\)</span> is lowest and most
+stable, the expected ordering <span class="math inline">\({}^{0}D \ge
+{}^{1}D \ge {}^{2}D\)</span>.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">hc</span><span class="op">$</span><span class="va">standardized</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     q0.0     q1.0     q2.0 </span></span>
+<span><span class="co">#&gt; 19.04151 16.88006 15.42177</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hc</span>, xaxis <span class="op">=</span> <span class="st">"coverage"</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpMzYuMTJ8NDk4LjAyfDI1LjI4fDI4NC40Ng=='>
@@ -417,27 +901,29 @@ orders:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDI1LjI4fDI4NC40Ng==)'>
-<polygon points='57.11,37.06 445.73,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 445.73,59.79 57.11,218.85 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
-<polyline points='57.11,37.06 445.73,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 445.73,59.79 57.11,218.85 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polygon points='57.11,89.97 445.73,72.49 477.03,61.22 477.03,53.25 477.03,49.75 477.03,49.29 477.03,46.30 477.03,44.25 477.03,42.91 477.03,42.49 477.03,42.44 477.03,42.12 477.03,42.34 477.03,41.95 477.03,41.52 477.03,41.14 477.03,41.05 477.03,40.07 477.03,40.18 477.03,39.40 477.03,38.99 477.03,39.05 477.03,39.27 477.03,38.89 477.03,38.85 477.03,38.54 477.03,38.58 477.03,38.36 477.03,38.22 477.03,38.27 477.03,38.24 477.03,38.35 477.03,38.54 477.03,38.38 477.03,38.35 477.03,38.31 477.03,38.29 477.03,38.27 477.03,38.23 477.03,38.24 477.03,38.27 477.03,38.43 477.03,38.44 477.03,38.43 477.03,38.35 477.03,38.49 477.03,38.30 477.03,38.27 477.03,38.07 477.03,38.04 477.03,38.00 477.03,37.95 477.03,37.85 477.03,37.94 477.03,37.88 477.03,37.91 477.03,37.87 477.03,37.87 477.03,37.97 477.03,38.05 477.03,38.05 477.03,38.14 477.03,38.19 477.03,38.35 477.03,38.42 477.03,38.45 477.03,38.54 477.03,38.73 477.03,38.66 477.03,38.68 477.03,38.96 477.03,38.74 477.03,38.83 477.03,38.88 477.03,39.05 477.03,39.12 477.03,39.03 477.03,39.19 477.03,39.30 477.03,39.32 477.03,39.55 477.03,39.90 477.03,39.94 477.03,39.76 477.03,39.52 477.03,40.00 477.03,40.38 477.03,40.63 477.03,40.42 477.03,40.50 477.03,40.65 477.03,40.77 477.03,40.51 477.03,40.40 477.03,40.38 477.03,40.84 477.03,41.27 477.03,41.29 477.03,41.58 477.03,41.58 477.03,41.58 477.03,41.81 477.03,42.08 477.03,43.05 477.03,42.96 477.03,43.04 477.03,43.91 477.03,44.45 477.03,45.38 477.03,45.85 477.03,47.35 477.03,50.34 477.03,54.22 477.03,61.05 477.03,63.40 477.03,63.54 477.03,80.93 477.03,84.19 445.73,97.73 57.11,248.77 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
-<polyline points='57.11,89.97 445.73,72.49 477.03,61.22 477.03,53.25 477.03,49.75 477.03,49.29 477.03,46.30 477.03,44.25 477.03,42.91 477.03,42.49 477.03,42.44 477.03,42.12 477.03,42.34 477.03,41.95 477.03,41.52 477.03,41.14 477.03,41.05 477.03,40.07 477.03,40.18 477.03,39.40 477.03,38.99 477.03,39.05 477.03,39.27 477.03,38.89 477.03,38.85 477.03,38.54 477.03,38.58 477.03,38.36 477.03,38.22 477.03,38.27 477.03,38.24 477.03,38.35 477.03,38.54 477.03,38.38 477.03,38.35 477.03,38.31 477.03,38.29 477.03,38.27 477.03,38.23 477.03,38.24 477.03,38.27 477.03,38.43 477.03,38.44 477.03,38.43 477.03,38.35 477.03,38.49 477.03,38.30 477.03,38.27 477.03,38.07 477.03,38.04 477.03,38.00 477.03,37.95 477.03,37.85 477.03,37.94 477.03,37.88 477.03,37.91 477.03,37.87 477.03,37.87 477.03,37.97 477.03,38.05 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='477.03,38.05 477.03,38.14 477.03,38.19 477.03,38.35 477.03,38.42 477.03,38.45 477.03,38.54 477.03,38.73 477.03,38.66 477.03,38.68 477.03,38.96 477.03,38.74 477.03,38.83 477.03,38.88 477.03,39.05 477.03,39.12 477.03,39.03 477.03,39.19 477.03,39.30 477.03,39.32 477.03,39.55 477.03,39.90 477.03,39.94 477.03,39.76 477.03,39.52 477.03,40.00 477.03,40.38 477.03,40.63 477.03,40.42 477.03,40.50 477.03,40.65 477.03,40.77 477.03,40.51 477.03,40.40 477.03,40.38 477.03,40.84 477.03,41.27 477.03,41.29 477.03,41.58 477.03,41.58 477.03,41.58 477.03,41.81 477.03,42.08 477.03,43.05 477.03,42.96 477.03,43.04 477.03,43.91 477.03,44.45 477.03,45.38 477.03,45.85 477.03,47.35 477.03,50.34 477.03,54.22 477.03,61.05 477.03,63.40 477.03,63.54 477.03,80.93 477.03,84.19 445.73,97.73 57.11,248.77 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polygon points='57.11,123.01 445.73,101.24 477.03,83.18 477.03,67.98 477.03,61.91 477.03,59.96 477.03,54.76 477.03,51.15 477.03,48.62 477.03,47.70 477.03,47.79 477.03,47.08 477.03,47.43 477.03,46.88 477.03,45.66 477.03,44.99 477.03,44.95 477.03,43.10 477.03,43.30 477.03,41.61 477.03,40.86 477.03,40.99 477.03,41.48 477.03,40.76 477.03,40.66 477.03,40.05 477.03,40.10 477.03,39.68 477.03,39.41 477.03,39.51 477.03,39.45 477.03,39.69 477.03,40.09 477.03,39.75 477.03,39.67 477.03,39.59 477.03,39.53 477.03,39.51 477.03,39.43 477.03,39.44 477.03,39.51 477.03,39.85 477.03,39.86 477.03,39.82 477.03,39.67 477.03,39.93 477.03,39.54 477.03,39.48 477.03,39.06 477.03,39.01 477.03,38.94 477.03,38.84 477.03,38.62 477.03,38.81 477.03,38.70 477.03,38.76 477.03,38.68 477.03,38.68 477.03,38.88 477.03,39.05 477.03,39.05 477.03,39.24 477.03,39.34 477.03,39.67 477.03,39.80 477.03,39.88 477.03,40.07 477.03,40.45 477.03,40.31 477.03,40.36 477.03,40.94 477.03,40.45 477.03,40.65 477.03,40.73 477.03,41.08 477.03,41.22 477.03,41.04 477.03,41.38 477.03,41.61 477.03,41.67 477.03,42.14 477.03,42.82 477.03,42.89 477.03,42.50 477.03,42.02 477.03,42.98 477.03,43.74 477.03,44.23 477.03,43.80 477.03,43.94 477.03,44.22 477.03,44.42 477.03,43.91 477.03,43.68 477.03,43.61 477.03,44.52 477.03,45.37 477.03,45.45 477.03,45.97 477.03,46.00 477.03,46.04 477.03,46.49 477.03,47.04 477.03,49.04 477.03,48.92 477.03,49.07 477.03,50.62 477.03,51.86 477.03,53.57 477.03,54.70 477.03,56.87 477.03,62.92 477.03,69.35 477.03,80.70 477.03,84.26 477.03,86.86 477.03,116.35 477.03,122.02 445.73,124.45 57.11,272.68 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
-<polyline points='57.11,123.01 445.73,101.24 477.03,83.18 477.03,67.98 477.03,61.91 477.03,59.96 477.03,54.76 477.03,51.15 477.03,48.62 477.03,47.70 477.03,47.79 477.03,47.08 477.03,47.43 477.03,46.88 477.03,45.66 477.03,44.99 477.03,44.95 477.03,43.10 477.03,43.30 477.03,41.61 477.03,40.86 477.03,40.99 477.03,41.48 477.03,40.76 477.03,40.66 477.03,40.05 477.03,40.10 477.03,39.68 477.03,39.41 477.03,39.51 477.03,39.45 477.03,39.69 477.03,40.09 477.03,39.75 477.03,39.67 477.03,39.59 477.03,39.53 477.03,39.51 477.03,39.43 477.03,39.44 477.03,39.51 477.03,39.85 477.03,39.86 477.03,39.82 477.03,39.67 477.03,39.93 477.03,39.54 477.03,39.48 477.03,39.06 477.03,39.01 477.03,38.94 477.03,38.84 477.03,38.62 477.03,38.81 477.03,38.70 477.03,38.76 477.03,38.68 477.03,38.68 477.03,38.88 477.03,39.05 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='477.03,39.05 477.03,39.24 477.03,39.34 477.03,39.67 477.03,39.80 477.03,39.88 477.03,40.07 477.03,40.45 477.03,40.31 477.03,40.36 477.03,40.94 477.03,40.45 477.03,40.65 477.03,40.73 477.03,41.08 477.03,41.22 477.03,41.04 477.03,41.38 477.03,41.61 477.03,41.67 477.03,42.14 477.03,42.82 477.03,42.89 477.03,42.50 477.03,42.02 477.03,42.98 477.03,43.74 477.03,44.23 477.03,43.80 477.03,43.94 477.03,44.22 477.03,44.42 477.03,43.91 477.03,43.68 477.03,43.61 477.03,44.52 477.03,45.37 477.03,45.45 477.03,45.97 477.03,46.00 477.03,46.04 477.03,46.49 477.03,47.04 477.03,49.04 477.03,48.92 477.03,49.07 477.03,50.62 477.03,51.86 477.03,53.57 477.03,54.70 477.03,56.87 477.03,62.92 477.03,69.35 477.03,80.70 477.03,84.26 477.03,86.86 477.03,116.35 477.03,122.02 445.73,124.45 57.11,272.68 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='57.11,123.41 445.73,43.88 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 ' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
-<polyline points='57.11,166.84 445.73,85.13 477.03,69.07 477.03,63.84 477.03,55.53 477.03,53.47 477.03,50.22 477.03,47.61 477.03,45.62 477.03,44.57 477.03,44.11 477.03,43.51 477.03,43.07 477.03,42.89 477.03,42.45 477.03,42.08 477.03,41.74 477.03,41.18 477.03,40.83 477.03,40.54 477.03,40.37 477.03,40.30 477.03,40.15 477.03,39.92 477.03,39.66 477.03,39.51 477.03,39.52 477.03,39.48 477.03,39.43 477.03,39.24 477.03,39.19 477.03,39.17 477.03,39.31 477.03,39.20 477.03,39.03 477.03,38.89 477.03,38.96 477.03,38.97 477.03,38.93 477.03,38.82 477.03,38.82 477.03,38.83 477.03,38.77 477.03,38.74 477.03,38.75 477.03,38.77 477.03,38.65 477.03,38.61 477.03,38.50 477.03,38.53 477.03,38.40 477.03,38.34 477.03,38.31 477.03,38.24 477.03,38.11 477.03,38.11 477.03,38.05 477.03,38.05 477.03,38.05 477.03,38.05 ' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
-<polyline points='57.11,197.89 445.73,114.12 477.03,95.23 477.03,86.86 477.03,72.31 477.03,68.03 477.03,62.10 477.03,57.66 477.03,53.92 477.03,51.93 477.03,51.05 477.03,49.81 477.03,48.92 477.03,48.59 477.03,47.75 477.03,47.03 477.03,46.40 477.03,45.30 477.03,44.61 477.03,44.05 477.03,43.72 477.03,43.56 477.03,43.26 477.03,42.80 477.03,42.26 477.03,41.97 477.03,41.99 477.03,41.90 477.03,41.79 477.03,41.43 477.03,41.34 477.03,41.33 477.03,41.62 477.03,41.40 477.03,41.05 477.03,40.77 477.03,40.90 477.03,40.92 477.03,40.85 477.03,40.64 477.03,40.64 477.03,40.66 477.03,40.53 477.03,40.46 477.03,40.47 477.03,40.51 477.03,40.27 477.03,40.18 477.03,39.97 477.03,40.02 477.03,39.76 477.03,39.65 477.03,39.57 477.03,39.45 477.03,39.18 477.03,39.17 477.03,39.04 477.03,39.05 477.03,39.04 477.03,39.05 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
+<rect x='36.12' y='25.28' width='461.90' height='259.18' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<polygon points='57.11,37.06 405.25,37.06 473.89,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 473.89,37.06 405.25,115.16 57.11,230.97 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
+<polyline points='57.11,37.06 405.25,37.06 473.89,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 473.89,37.06 405.25,115.16 57.11,230.97 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polygon points='57.11,66.07 405.25,49.65 473.89,45.53 477.03,45.07 477.03,45.24 477.03,43.54 477.03,43.56 477.03,43.36 477.03,42.22 477.03,41.16 477.03,41.85 477.03,41.52 477.03,41.36 477.03,41.14 477.03,40.45 477.03,39.82 477.03,39.63 477.03,39.54 477.03,39.21 477.03,39.39 477.03,39.50 477.03,39.26 477.03,39.08 477.03,38.94 477.03,38.79 477.03,38.70 477.03,38.59 477.03,38.60 477.03,38.58 477.03,38.62 477.03,38.64 477.03,38.57 477.03,38.48 477.03,38.36 477.03,38.16 477.03,38.10 477.03,38.03 477.03,38.12 477.03,38.08 477.03,38.09 477.03,38.19 477.03,38.25 477.03,38.23 477.03,38.22 477.03,38.23 477.03,38.22 477.03,38.12 477.03,38.00 477.03,37.97 477.03,37.94 477.03,37.94 477.03,37.91 477.03,37.81 477.03,37.90 477.03,37.84 477.03,37.87 477.03,37.83 477.03,37.83 477.03,37.92 477.03,38.00 477.03,38.00 477.03,38.15 477.03,38.20 477.03,38.34 477.03,38.35 477.03,38.52 477.03,38.55 477.03,38.68 477.03,38.65 477.03,38.84 477.03,38.90 477.03,38.92 477.03,38.94 477.03,39.03 477.03,39.05 477.03,39.21 477.03,39.24 477.03,39.24 477.03,39.18 477.03,39.17 477.03,39.45 477.03,39.82 477.03,39.86 477.03,39.67 477.03,39.79 477.03,40.02 477.03,40.25 477.03,40.28 477.03,40.23 477.03,40.21 477.03,40.52 477.03,40.65 477.03,40.79 477.03,40.96 477.03,40.80 477.03,40.93 477.03,41.15 477.03,41.34 477.03,41.92 477.03,41.57 477.03,41.55 477.03,41.97 477.03,42.15 477.03,42.41 477.03,42.47 477.03,42.94 477.03,43.64 477.03,44.64 477.03,45.42 477.03,46.12 477.03,45.86 477.03,48.19 477.03,53.87 477.03,61.62 477.03,61.41 477.03,62.11 477.03,77.87 473.89,81.50 405.25,167.34 57.11,254.82 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
+<polyline points='57.11,66.07 405.25,49.65 473.89,45.53 477.03,45.07 477.03,45.24 477.03,43.54 477.03,43.56 477.03,43.36 477.03,42.22 477.03,41.16 477.03,41.85 477.03,41.52 477.03,41.36 477.03,41.14 477.03,40.45 477.03,39.82 477.03,39.63 477.03,39.54 477.03,39.21 477.03,39.39 477.03,39.50 477.03,39.26 477.03,39.08 477.03,38.94 477.03,38.79 477.03,38.70 477.03,38.59 477.03,38.60 477.03,38.58 477.03,38.62 477.03,38.64 477.03,38.57 477.03,38.48 477.03,38.36 477.03,38.16 477.03,38.10 477.03,38.03 477.03,38.12 477.03,38.08 477.03,38.09 477.03,38.19 477.03,38.25 477.03,38.23 477.03,38.22 477.03,38.23 477.03,38.22 477.03,38.12 477.03,38.00 477.03,37.97 477.03,37.94 477.03,37.94 477.03,37.91 477.03,37.81 477.03,37.90 477.03,37.84 477.03,37.87 477.03,37.83 477.03,37.83 477.03,37.92 477.03,38.00 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,38.00 477.03,38.15 477.03,38.20 477.03,38.34 477.03,38.35 477.03,38.52 477.03,38.55 477.03,38.68 477.03,38.65 477.03,38.84 477.03,38.90 477.03,38.92 477.03,38.94 477.03,39.03 477.03,39.05 477.03,39.21 477.03,39.24 477.03,39.24 477.03,39.18 477.03,39.17 477.03,39.45 477.03,39.82 477.03,39.86 477.03,39.67 477.03,39.79 477.03,40.02 477.03,40.25 477.03,40.28 477.03,40.23 477.03,40.21 477.03,40.52 477.03,40.65 477.03,40.79 477.03,40.96 477.03,40.80 477.03,40.93 477.03,41.15 477.03,41.34 477.03,41.92 477.03,41.57 477.03,41.55 477.03,41.97 477.03,42.15 477.03,42.41 477.03,42.47 477.03,42.94 477.03,43.64 477.03,44.64 477.03,45.42 477.03,46.12 477.03,45.86 477.03,48.19 477.03,53.87 477.03,61.62 477.03,61.41 477.03,62.11 477.03,77.87 473.89,81.50 405.25,167.34 57.11,254.82 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polygon points='57.11,86.57 405.25,60.39 473.89,52.82 477.03,52.01 477.03,52.43 477.03,49.61 477.03,49.70 477.03,49.45 477.03,47.23 477.03,45.16 477.03,46.45 477.03,45.83 477.03,45.55 477.03,45.03 477.03,43.82 477.03,42.61 477.03,42.19 477.03,41.96 477.03,41.31 477.03,41.69 477.03,41.91 477.03,41.47 477.03,41.12 477.03,40.82 477.03,40.55 477.03,40.38 477.03,40.17 477.03,40.19 477.03,40.17 477.03,40.25 477.03,40.26 477.03,40.13 477.03,39.94 477.03,39.69 477.03,39.28 477.03,39.15 477.03,39.00 477.03,39.18 477.03,39.11 477.03,39.14 477.03,39.35 477.03,39.45 477.03,39.42 477.03,39.39 477.03,39.41 477.03,39.40 477.03,39.18 477.03,38.95 477.03,38.86 477.03,38.81 477.03,38.82 477.03,38.74 477.03,38.54 477.03,38.72 477.03,38.61 477.03,38.67 477.03,38.60 477.03,38.59 477.03,38.79 477.03,38.95 477.03,38.95 477.03,39.26 477.03,39.36 477.03,39.64 477.03,39.67 477.03,40.01 477.03,40.09 477.03,40.36 477.03,40.29 477.03,40.68 477.03,40.80 477.03,40.84 477.03,40.88 477.03,41.08 477.03,41.14 477.03,41.44 477.03,41.52 477.03,41.51 477.03,41.39 477.03,41.36 477.03,41.93 477.03,42.65 477.03,42.73 477.03,42.33 477.03,42.58 477.03,43.01 477.03,43.46 477.03,43.51 477.03,43.44 477.03,43.41 477.03,43.96 477.03,44.22 477.03,44.59 477.03,44.93 477.03,44.55 477.03,44.81 477.03,45.20 477.03,45.57 477.03,46.74 477.03,46.05 477.03,46.07 477.03,46.84 477.03,47.10 477.03,47.83 477.03,47.87 477.03,48.79 477.03,50.10 477.03,52.18 477.03,53.77 477.03,55.14 477.03,54.87 477.03,59.10 477.03,69.20 477.03,81.70 477.03,81.15 477.03,83.20 477.03,110.58 473.89,117.01 405.25,205.36 57.11,272.68 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
+<polyline points='57.11,86.57 405.25,60.39 473.89,52.82 477.03,52.01 477.03,52.43 477.03,49.61 477.03,49.70 477.03,49.45 477.03,47.23 477.03,45.16 477.03,46.45 477.03,45.83 477.03,45.55 477.03,45.03 477.03,43.82 477.03,42.61 477.03,42.19 477.03,41.96 477.03,41.31 477.03,41.69 477.03,41.91 477.03,41.47 477.03,41.12 477.03,40.82 477.03,40.55 477.03,40.38 477.03,40.17 477.03,40.19 477.03,40.17 477.03,40.25 477.03,40.26 477.03,40.13 477.03,39.94 477.03,39.69 477.03,39.28 477.03,39.15 477.03,39.00 477.03,39.18 477.03,39.11 477.03,39.14 477.03,39.35 477.03,39.45 477.03,39.42 477.03,39.39 477.03,39.41 477.03,39.40 477.03,39.18 477.03,38.95 477.03,38.86 477.03,38.81 477.03,38.82 477.03,38.74 477.03,38.54 477.03,38.72 477.03,38.61 477.03,38.67 477.03,38.60 477.03,38.59 477.03,38.79 477.03,38.95 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,38.95 477.03,39.26 477.03,39.36 477.03,39.64 477.03,39.67 477.03,40.01 477.03,40.09 477.03,40.36 477.03,40.29 477.03,40.68 477.03,40.80 477.03,40.84 477.03,40.88 477.03,41.08 477.03,41.14 477.03,41.44 477.03,41.52 477.03,41.51 477.03,41.39 477.03,41.36 477.03,41.93 477.03,42.65 477.03,42.73 477.03,42.33 477.03,42.58 477.03,43.01 477.03,43.46 477.03,43.51 477.03,43.44 477.03,43.41 477.03,43.96 477.03,44.22 477.03,44.59 477.03,44.93 477.03,44.55 477.03,44.81 477.03,45.20 477.03,45.57 477.03,46.74 477.03,46.05 477.03,46.07 477.03,46.84 477.03,47.10 477.03,47.83 477.03,47.87 477.03,48.79 477.03,50.10 477.03,52.18 477.03,53.77 477.03,55.14 477.03,54.87 477.03,59.10 477.03,69.20 477.03,81.70 477.03,81.15 477.03,83.20 477.03,110.58 473.89,117.01 405.25,205.36 57.11,272.68 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,80.15 405.25,44.60 473.89,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 477.03,37.06 ' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
+<polyline points='57.11,125.45 405.25,78.07 473.89,61.80 477.03,56.95 477.03,51.65 477.03,49.58 477.03,47.94 477.03,46.03 477.03,44.40 477.03,43.57 477.03,43.48 477.03,42.91 477.03,42.55 477.03,42.25 477.03,41.78 477.03,41.55 477.03,41.25 477.03,41.04 477.03,40.72 477.03,40.57 477.03,40.41 477.03,40.36 477.03,40.09 477.03,39.92 477.03,39.80 477.03,39.69 477.03,39.71 477.03,39.60 477.03,39.49 477.03,39.41 477.03,39.33 477.03,39.32 477.03,39.24 477.03,39.26 477.03,39.13 477.03,38.99 477.03,38.90 477.03,38.92 477.03,38.91 477.03,38.83 477.03,38.75 477.03,38.74 477.03,38.70 477.03,38.67 477.03,38.62 477.03,38.59 477.03,38.53 477.03,38.47 477.03,38.41 477.03,38.37 477.03,38.37 477.03,38.28 477.03,38.23 477.03,38.22 477.03,38.17 477.03,38.14 477.03,38.04 477.03,38.05 477.03,38.03 477.03,38.00 ' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
+<polyline points='57.11,156.46 405.25,102.54 473.89,81.48 477.03,74.11 477.03,64.76 477.03,60.93 477.03,57.85 477.03,54.49 477.03,51.48 477.03,49.93 477.03,49.76 477.03,48.62 477.03,47.90 477.03,47.35 477.03,46.45 477.03,46.02 477.03,45.45 477.03,45.05 477.03,44.38 477.03,44.09 477.03,43.77 477.03,43.67 477.03,43.12 477.03,42.78 477.03,42.54 477.03,42.32 477.03,42.37 477.03,42.15 477.03,41.93 477.03,41.77 477.03,41.63 477.03,41.60 477.03,41.44 477.03,41.51 477.03,41.24 477.03,40.95 477.03,40.77 477.03,40.81 477.03,40.79 477.03,40.65 477.03,40.49 477.03,40.46 477.03,40.38 477.03,40.32 477.03,40.21 477.03,40.16 477.03,40.03 477.03,39.91 477.03,39.79 477.03,39.70 477.03,39.71 477.03,39.52 477.03,39.42 477.03,39.40 477.03,39.30 477.03,39.23 477.03,39.04 477.03,39.04 477.03,39.01 477.03,38.95 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='30.74' y='222.28' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>12</text>
-<text x='30.74' y='154.11' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
-<text x='30.74' y='85.94' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>18</text>
-<text x='70.18' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.80</text>
-<text x='171.89' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.85</text>
-<text x='273.61' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.90</text>
-<text x='375.32' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.95</text>
+<text x='30.74' y='277.49' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>9</text>
+<text x='30.74' y='212.86' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>12</text>
+<text x='30.74' y='148.22' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
+<text x='30.74' y='83.59' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>18</text>
+<text x='55.48' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.92</text>
+<text x='160.87' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.94</text>
+<text x='266.25' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.96</text>
+<text x='371.64' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.98</text>
 <text x='477.03' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>1.00</text>
 <text x='267.07' y='310.31' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='93.38px' lengthAdjust='spacingAndGlyphs'>Sample coverage</text>
 <text transform='translate(14.57,154.87) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='60.70px' lengthAdjust='spacingAndGlyphs'>Hill number</text>
@@ -455,49 +941,349 @@ orders:</p>
 </g>
 </g>
 </svg></div></p>
+<p>Reading diversity against coverage rather than against sites puts all
+three curves on a completeness axis. The vertical gap between the <span class="math inline">\(q = 0\)</span> and <span class="math inline">\(q =
+2\)</span> curves at a fixed coverage measures the unevenness of the
+community: a wide gap means a few dominant species and a long rare
+tail.</p>
+<p>Standardizing all three orders to a single coverage is what makes the
+comparison across <span class="math inline">\(q\)</span> fair. If each
+order were read at the end of its own accumulation, the orders would sit
+at slightly different completeness levels and the contrast between them
+would mix a real diversity difference with a residual effort difference.
+Fixing coverage first removes that confound, leaving the spacing between
+<span class="math inline">\({}^{0}D\)</span>, <span class="math inline">\({}^{1}D\)</span>, and <span class="math inline">\({}^{2}D\)</span> as a clean signal of evenness.
+The same machinery scales to comparing several communities: standardize
+every community to the same coverage, then read off the diversity
+profile for each, and the profiles are directly comparable because they
+share both the completeness and the set of orders.</p>
 </div>
 <div class="section level2">
-<h2 id="when-to-use-which-method">When to use which method<a class="anchor" aria-label="anchor" href="#when-to-use-which-method"></a>
+<h2 id="spatial-subsampling">Spatial subsampling<a class="anchor" aria-label="anchor" href="#spatial-subsampling"></a>
 </h2>
+<p>Spatial autocorrelation inflates apparent accumulation when nearby
+sites hold similar species. Two tools reduce it.
+<code><a href="../reference/subsample.html">subsample()</a></code> returns site indices to keep under a grid,
+random, or thinning rule; the grid method overlays cells of a chosen
+size and retains one random site per cell, which spreads the retained
+sites out. <code><a href="../reference/spatialRarefaction.html">spatialRarefaction()</a></code> instead runs
+distance-weighted permutations and returns the spatially constrained
+expectation directly.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
+<span><span class="va">keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subsample.html">subsample</a></span><span class="op">(</span><span class="va">coords</span>, method <span class="op">=</span> <span class="st">"grid"</span>, cell_size <span class="op">=</span> <span class="fl">0.2</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">keep</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 23</span></span></code></pre></div>
+<p>A grid at cell size 0.2 over the unit square thins 60 sites down to
+roughly the number of occupied cells. Comparing the accumulation curve
+on the thinned set against the full set shows how much of the original
+rise came from spatially redundant neighbours.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">full</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">thin</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span><span class="va">keep</span>, <span class="op">]</span>, <span class="va">coords</span><span class="op">[</span><span class="va">keep</span>, <span class="op">]</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">df_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">full</span><span class="op">)</span>, set <span class="op">=</span> <span class="st">"Full"</span><span class="op">)</span></span>
+<span><span class="va">df_thin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">thin</span><span class="op">)</span>, set <span class="op">=</span> <span class="st">"Thinned (grid)"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">df_full</span>, <span class="va">df_thin</span><span class="op">)</span>,</span>
+<span>                <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">sites</span>, <span class="va">mean</span>, color <span class="op">=</span> <span class="va">set</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Sites"</span>, y <span class="op">=</span> <span class="st">"Species"</span>, color <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpNDAuNDZ8Mzk5LjEyfDUuNDh8MzI4LjUw'>
+    <rect x='40.46' y='5.48' width='358.67' height='323.02' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNDAuNDZ8Mzk5LjEyfDUuNDh8MzI4LjUw)'>
+<rect x='40.46' y='5.48' width='358.67' height='323.02' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<polyline points='40.46,272.90 399.12,272.90 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,200.69 399.12,200.69 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,128.48 399.12,128.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,56.27 399.12,56.27 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='106.50,328.50 106.50,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='217.03,328.50 217.03,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='327.56,328.50 327.56,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,309.01 399.12,309.01 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,236.80 399.12,236.80 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,164.58 399.12,164.58 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,92.37 399.12,92.37 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='40.46,20.16 399.12,20.16 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='51.23,328.50 51.23,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='161.76,328.50 161.76,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='272.29,328.50 272.29,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='382.82,328.50 382.82,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='56.76,313.82 62.28,73.12 67.81,29.79 73.34,20.16 78.86,20.16 84.39,20.16 89.92,20.16 95.44,20.16 100.97,20.16 106.50,20.16 112.02,20.16 117.55,20.16 123.08,20.16 128.60,20.16 134.13,20.16 139.66,20.16 145.18,20.16 150.71,20.16 156.24,20.16 161.76,20.16 167.29,20.16 172.81,20.16 178.34,20.16 183.87,20.16 189.39,20.16 194.92,20.16 200.45,20.16 205.97,20.16 211.50,20.16 217.03,20.16 222.55,20.16 228.08,20.16 233.61,20.16 239.13,20.16 244.66,20.16 250.19,20.16 255.71,20.16 261.24,20.16 266.77,20.16 272.29,20.16 277.82,20.16 283.34,20.16 288.87,20.16 294.40,20.16 299.92,20.16 305.45,20.16 310.98,20.16 316.50,20.16 322.03,20.16 327.56,20.16 333.08,20.16 338.61,20.16 344.14,20.16 349.66,20.16 355.19,20.16 360.72,20.16 366.24,20.16 371.77,20.16 377.29,20.16 382.82,20.16 ' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
+<polyline points='56.76,284.94 62.28,73.12 67.81,29.79 73.34,20.16 78.86,20.16 84.39,20.16 89.92,20.16 95.44,20.16 100.97,20.16 106.50,20.16 112.02,20.16 117.55,20.16 123.08,20.16 128.60,20.16 134.13,20.16 139.66,20.16 145.18,20.16 150.71,20.16 156.24,20.16 161.76,20.16 167.29,20.16 172.81,20.16 178.34,20.16 ' style='stroke-width: 2.13; stroke: #00BFC4; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='35.52' y='312.16' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='17.11px' lengthAdjust='spacingAndGlyphs'>18.0</text>
+<text x='35.52' y='239.95' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='17.11px' lengthAdjust='spacingAndGlyphs'>18.5</text>
+<text x='35.52' y='167.73' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='17.11px' lengthAdjust='spacingAndGlyphs'>19.0</text>
+<text x='35.52' y='95.52' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='17.11px' lengthAdjust='spacingAndGlyphs'>19.5</text>
+<text x='35.52' y='23.31' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='17.11px' lengthAdjust='spacingAndGlyphs'>20.0</text>
+<polyline points='37.72,309.01 40.46,309.01 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='37.72,236.80 40.46,236.80 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='37.72,164.58 40.46,164.58 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='37.72,92.37 40.46,92.37 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='37.72,20.16 40.46,20.16 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='51.23,331.24 51.23,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='161.76,331.24 161.76,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='272.29,331.24 272.29,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='382.82,331.24 382.82,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<text x='51.23' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='161.76' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='272.29' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='382.82' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='219.79' y='352.20' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='24.47px' lengthAdjust='spacingAndGlyphs'>Sites</text>
+<text transform='translate(13.36,166.99) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='39.16px' lengthAdjust='spacingAndGlyphs'>Species</text>
+<rect rx='4' x='410.08' y='144.23' width='88.44' height='45.52' style='stroke-width: 1.07; stroke: none; fill: #F5F6F8;' />
+<rect x='415.56' y='149.71' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<line x1='417.29' y1='158.35' x2='431.11' y2='158.35' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
+<rect x='415.56' y='166.99' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<line x1='417.29' y1='175.63' x2='431.11' y2='175.63' style='stroke-width: 2.13; stroke: #00BFC4; stroke-linecap: butt;' />
+<text x='438.32' y='161.50' style='font-size: 8.80px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='14.17px' lengthAdjust='spacingAndGlyphs'>Full</text>
+<text x='438.32' y='178.78' style='font-size: 8.80px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='54.72px' lengthAdjust='spacingAndGlyphs'>Thinned (grid)</text>
+</g>
+</g>
+</svg></div></p>
+<p>The thinned curve reaches a similar asymptote with fewer sites, since
+the discarded sites were spatial near-duplicates that added little new
+information. <code><a href="../reference/spatialRarefaction.html">spatialRarefaction()</a></code> gives the same correction
+analytically, returning a data frame with <code>sites</code>,
+<code>mean</code>, <code>sd</code>, and quantile bounds from
+distance-weighted draws.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spatialRarefaction.html">spatialRarefaction</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_perm <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">sr</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sites"</span>, <span class="st">"mean"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    sites mean lower upper</span></span>
+<span><span class="co">#&gt; 59    59   20    20    20</span></span>
+<span><span class="co">#&gt; 60    60   20    20    20</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="comparison-on-the-same-data">Comparison on the same data<a class="anchor" aria-label="anchor" href="#comparison-on-the-same-data"></a>
+</h2>
+<p>The three standardizations can disagree about which sites are more
+diverse, because they hold different quantities constant. The clearest
+demonstration uses the effort tiers from the simulation. The low-effort
+and high-effort tiers share the same 20-species community but differ
+fivefold in individuals per site. Raw richness, richness at matched
+individuals, and richness at matched coverage tell three different
+stories.</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lo</span> <span class="op">&lt;-</span> <span class="va">species</span><span class="op">[</span><span class="va">lambdas</span> <span class="op">==</span> <span class="fl">1</span>, <span class="op">]</span></span>
+<span><span class="va">hi</span> <span class="op">&lt;-</span> <span class="va">species</span><span class="op">[</span><span class="va">lambdas</span> <span class="op">==</span> <span class="fl">5</span>, <span class="op">]</span></span>
+<span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>low <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">lo</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span>, high <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">hi</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">raw</span></span>
+<span><span class="co">#&gt;  low high </span></span>
+<span><span class="co">#&gt;   20   20</span></span></code></pre></div>
+<p>Matched effort uses individual-based rarefaction at a common
+subsample size set by the smaller pool. Each tier is rarefied to the
+same number of individuals, so the comparison no longer rewards the
+deeper-sampled tier.</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">n_match</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">lo</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">hi</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">S_lo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">lo</span>, n_individuals <span class="op">=</span> <span class="va">n_match</span><span class="op">)</span><span class="op">$</span><span class="va">expected</span></span>
+<span><span class="va">S_hi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rarefy.html">rarefy</a></span><span class="op">(</span><span class="va">hi</span>, n_individuals <span class="op">=</span> <span class="va">n_match</span><span class="op">)</span><span class="op">$</span><span class="va">expected</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>low <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_lo</span>, <span class="fl">1</span><span class="op">)</span>, high <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_hi</span>, <span class="fl">1</span><span class="op">)</span>, n <span class="op">=</span> <span class="va">n_match</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  low high    n </span></span>
+<span><span class="co">#&gt;   20   20  369</span></span></code></pre></div>
+<p>Matched coverage uses coverage-based standardization at a common
+completeness. The two tiers are interpolated to the same coverage so the
+comparison rewards equal proportional representation rather than equal
+individuals.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">co_lo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">lo</span>, <span class="va">coords</span><span class="op">[</span><span class="va">lambdas</span> <span class="op">==</span> <span class="fl">1</span>, <span class="op">]</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">co_hi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">hi</span>, <span class="va">coords</span><span class="op">[</span><span class="va">lambdas</span> <span class="op">==</span> <span class="fl">5</span>, <span class="op">]</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">S_lo_c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="../reference/interpolateCoverage.html">interpolateCoverage</a></span><span class="op">(</span><span class="va">co_lo</span>, target <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">S_hi_c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="../reference/interpolateCoverage.html">interpolateCoverage</a></span><span class="op">(</span><span class="va">co_hi</span>, target <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>low <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_lo_c</span>, <span class="fl">1</span><span class="op">)</span>, high <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_hi_c</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  low high </span></span>
+<span><span class="co">#&gt; 17.1 19.9</span></span></code></pre></div>
+<p>Collecting the three views into one table makes the shift in
+conclusion explicit. Raw counts favour the high-effort tier by the
+largest margin; matched effort and matched coverage shrink or reverse
+that margin, because both tiers draw from the same community and the
+difference was an artefact of sampling depth.</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  standardization <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Raw richness"</span>, <span class="st">"Matched individuals"</span>, <span class="st">"Matched coverage (0.90)"</span><span class="op">)</span>,</span>
+<span>  low  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[</span><span class="st">"low"</span><span class="op">]</span>,  <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_lo</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_lo_c</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  high <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[</span><span class="st">"high"</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_hi</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S_hi_c</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;           standardization  low high</span></span>
+<span><span class="co">#&gt; 1            Raw richness 20.0 20.0</span></span>
+<span><span class="co">#&gt; 2     Matched individuals 20.0 20.0</span></span>
+<span><span class="co">#&gt; 3 Matched coverage (0.90) 17.1 19.9</span></span></code></pre></div>
+<p>The lesson is that a richness comparison is only as meaningful as the
+quantity held constant. Reporting raw richness across uneven samples
+measures effort; reporting it at matched effort or matched coverage
+measures the community. When the standardized margins are small, the
+apparent difference in the raw data was sampling, not biology.</p>
+<p>The three rows answer three different questions about the same two
+tiers. The raw row asks how many species were recorded, which is a
+statement about the survey, not the community. The matched-individuals
+row asks how many species each tier would show if both had been sampled
+to the same depth, which removes the fivefold difference in effort and
+brings the two tiers close together. The matched-coverage row asks how
+many species each tier holds at equal completeness, which can favour the
+low-effort tier if its smaller sample happened to be more even. Since
+both tiers were generated from the same 20-species pool, the correct
+answer is that they are equally diverse, and the standardized rows
+recover that far better than the raw row. In field data the truth is
+unknown, so the discipline is to report the standardized comparison and
+to state which quantity was held constant, rather than letting the
+reader assume raw counts are comparable.</p>
+<p>A short note on which standardization to trust when they disagree.
+Matched individuals and matched coverage will not always agree, and the
+difference is informative rather than a contradiction. When they
+diverge, the tiers differ in evenness as well as in effort: equalizing
+individuals leaves the more even community at higher coverage, while
+equalizing coverage gives it fewer individuals. Coverage is usually the
+more defensible target for comparing communities that differ in
+evenness, because equal completeness is closer to the ecological
+question of how much of each community has been seen. Matched
+individuals remains the right target when the comparison is explicitly
+about a fixed sampling budget rather than about completeness.</p>
+</div>
+<div class="section level2">
+<h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
+</h2>
+<p>Standardization choices come down to what varies across the samples
+being compared and whether the data carry the abundance information
+coverage needs.</p>
+<p><strong>Rules of thumb.</strong></p>
+<ul>
+<li>Target coverage of 0.90 to 0.95 for most comparisons. Below 0.85 the
+rare tail is too poorly sampled for the coverage estimate to be stable;
+at 0.99 the curves are near their asymptote and the comparison adds
+little over a richness estimator.</li>
+<li>Keep at least 30 to 50 individuals per site before trusting an
+individual-based rarefaction; below that the curve is dominated by the
+first few draws and the bootstrap interval is wide.</li>
+<li>Limit extrapolation to roughly 2 to 3 times the observed sample
+size, or to coverage no more than a few points past the observed
+maximum. Beyond that the Chao asymptotics extrapolate the rare tail well
+past the data.</li>
+<li>Use at least 20 to 30 seeds in <code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code> and
+<code><a href="../reference/spaccHillCoverage.html">spaccHillCoverage()</a></code> so the across-seed standard deviation
+is a usable uncertainty estimate rather than noise from too few starting
+points.</li>
+<li>Down-weight the rare tail with <span class="math inline">\(q =
+1\)</span> or <span class="math inline">\(q = 2\)</span> when singletons
+are suspected to be identification errors; richness (<span class="math inline">\(q = 0\)</span>) is the order most sensitive to
+that noise.</li>
+</ul>
+<p><strong>Minimum sample size.</strong> Individual-based rarefaction
+needs enough individuals that the curve has begun to flatten; 30 to 50
+per site is a working floor, and comparisons should rarefy down to the
+smallest pool, not up. Coverage-based methods need enough singletons and
+doubletons to estimate <span class="math inline">\(f_1\)</span> and
+<span class="math inline">\(f_2\)</span>; a sample with fewer than about
+10 species or no doubletons gives an unstable coverage estimate.
+Sample-based curves (<code>mao_tau</code>, <code>coleman</code>) need at
+least 10 to 15 sites before the expectation and its variance are
+meaningful.</p>
+<p><strong>Decision table.</strong></p>
 <table class="table">
 <colgroup>
-<col width="26%">
-<col width="33%">
-<col width="40%">
+<col width="30%">
+<col width="55%">
+<col width="13%">
 </colgroup>
 <thead><tr class="header">
-<th>Method</th>
-<th>Best for</th>
-<th>Limitation</th>
+<th>Situation</th>
+<th>Recommended method</th>
+<th>Why</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Individual-based</td>
-<td>Simple comparisons</td>
-<td>Sensitive to abundance distribution</td>
+<td>Sites differ in number of individuals, abundances available</td>
+<td>Coverage-based (<code>spaccCoverage</code>,
+<code>interpolateCoverage</code>)</td>
+<td>Compares at equal completeness</td>
 </tr>
 <tr class="even">
-<td>Coverage-based</td>
-<td>Uneven sampling</td>
-<td>Requires abundance data</td>
+<td>Effort varies but only counts of individuals matter</td>
+<td>Individual-based (<code>rarefy</code>)</td>
+<td>Hurlbert expectation at matched <span class="math inline">\(n\)</span>
+</td>
 </tr>
 <tr class="odd">
-<td>Hill + Coverage</td>
-<td>Multi-order standardization</td>
-<td>Computationally heavier</td>
+<td>Effort varies through plot count, presence/absence only</td>
+<td>Sample-based (<code>mao_tau</code>, <code>coleman</code>)</td>
+<td>Standardizes on number of sites</td>
+</tr>
+<tr class="even">
+<td>Need several diversity orders at once</td>
+<td><code>spaccHillCoverage</code></td>
+<td>Tracks <span class="math inline">\(q = 0, 1, 2\)</span> and coverage
+together</td>
+</tr>
+<tr class="odd">
+<td>Nearby sites are spatially redundant</td>
+<td>
+<code>subsample(method = "grid")</code>,
+<code>spatialRarefaction</code>
+</td>
+<td>Reduces autocorrelation inflation</td>
+</tr>
+<tr class="even">
+<td>Want richness past observed completeness</td>
+<td><code>extrapolateCoverage</code></td>
+<td>Chao asymptotic projection</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Rules of thumb:</strong></p>
-<ul>
-<li>Use individual-based rarefaction when total abundances are the
-primary source of variation and you want a simple, well-understood
-correction.</li>
-<li>Use coverage-based methods when sites differ in sampling
-completeness and you want to compare at equal representativeness.</li>
-<li>Use Hill + Coverage when you need standardized comparisons across
-multiple diversity orders (q = 0, 1, 2) simultaneously.</li>
-</ul>
+<p><strong>When not to use coverage-based methods.</strong> Coverage is
+defined through <span class="math inline">\(f_1\)</span>, <span class="math inline">\(f_2\)</span>, and <span class="math inline">\(N\)</span>, so it requires genuine abundance
+counts. Presence/absence data have no singletons or doubletons in the
+abundance sense, and the Chao-Jost estimator cannot be formed;
+sample-based rarefaction on sites is the correct tool there. Coverage is
+also unreliable when the sample is tiny or has no doubletons, since the
+denominator <span class="math inline">\((N-1) f_1 + 2 f_2\)</span> then
+rests on a single frequency class. And when sampling effort is already
+equal across sites, standardization is unnecessary; raw richness is
+directly comparable and adding a rarefaction step only discards
+information.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -509,6 +1295,14 @@ extrapolation: standardizing samples by completeness rather than size.
 <li>Chao, A., Gotelli, N.J., Hsieh, T.C., Sander, E.L., Ma, K.H.,
 Colwell, R.K. &amp; Ellison, A.M. (2014). Rarefaction and extrapolation
 with Hill numbers. <em>Ecological Monographs</em>, 84, 45-67.</li>
+<li>Coleman, B.D., Mares, M.A., Willig, M.R. &amp; Hsieh, Y.H. (1982).
+Randomness, area, and species richness. <em>Ecology</em>, 63,
+1121-1133.</li>
+<li>Colwell, R.K., Mao, C.X. &amp; Chang, J. (2004). Interpolating,
+extrapolating, and comparing incidence-based species accumulation
+curves. <em>Ecology</em>, 85, 2717-2727.</li>
+<li>Hurlbert, S.H. (1971). The nonconcept of species diversity: a
+critique and alternative parameters. <em>Ecology</em>, 52, 577-586.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

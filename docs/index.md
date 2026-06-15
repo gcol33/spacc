@@ -14,9 +14,11 @@ Pick a starting site, then walk outward to its nearest neighbours,
 counting new species as you go. `spacc` does that from many starting
 points (Rcpp/RcppParallel backend), so the curve carries a confidence
 ribbon showing how richness depends on *where* you begin. The classical
-curve in `vegan::specaccum()` shuffles sites in random order and never
-sees the map. `spacc` reproduces that random-order curve and adds the
-spatial one, so you can read the gap between them.
+curve in
+[`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
+shuffles sites in random order and never sees the map. `spacc`
+reproduces that random-order curve and adds the spatial one, so you can
+read the gap between them.
 
 ``` r
 
@@ -32,8 +34,8 @@ plot(sac)
 
 ## Spatial order, not random order
 
-`vegan::specaccum()` accumulates sites in random or collector order, so
-geography drops out.
+[`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
+accumulates sites in random or collector order, so geography drops out.
 [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) keeps
 it: each curve follows nearest-neighbour expansion from a real seed
 site, and the spread across seeds is the spatial signal. Run both and
@@ -140,8 +142,9 @@ sac_st <- spacc(species, coords, method = "knn",
   /
   [`spatialRarefaction()`](https://gillescolling.com/spacc/reference/spatialRarefaction.md)**:
   analytical (non-simulation) curves.
-- **`as_spacc()`**: bring an existing `vegan::specaccum()` object into
-  the same plotting and comparison machinery.
+- **`as_spacc()`**: bring an existing
+  [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
+  object into the same plotting and comparison machinery.
 
 ## Installation
 

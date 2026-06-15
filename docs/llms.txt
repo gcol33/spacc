@@ -14,9 +14,11 @@ Pick a starting site, then walk outward to its nearest neighbours,
 counting new species as you go. `spacc` does that from many starting
 points (Rcpp/RcppParallel backend), so the curve carries a confidence
 ribbon showing how richness depends on *where* you begin. The classical
-curve in `vegan::specaccum()` shuffles sites in random order and never
-sees the map. `spacc` reproduces that random-order curve and adds the
-spatial one, so you can read the gap between them.
+curve in
+[`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
+shuffles sites in random order and never sees the map. `spacc`
+reproduces that random-order curve and adds the spatial one, so you can
+read the gap between them.
 
 ``` r
 
@@ -32,8 +34,8 @@ plot(sac)
 
 ## Spatial order, not random order
 
-`vegan::specaccum()` accumulates sites in random or collector order, so
-geography drops out.
+[`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
+accumulates sites in random or collector order, so geography drops out.
 [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) keeps
 it: each curve follows nearest-neighbour expansion from a real seed
 site, and the spread across seeds is the spatial signal. Run both and
@@ -140,8 +142,9 @@ sac_st <- spacc(species, coords, method = "knn",
   /
   [`spatialRarefaction()`](https://gillescolling.com/spacc/reference/spatialRarefaction.md)**:
   analytical (non-simulation) curves.
-- **`as_spacc()`**: bring an existing `vegan::specaccum()` object into
-  the same plotting and comparison machinery.
+- **`as_spacc()`**: bring an existing
+  [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
+  object into the same plotting and comparison machinery.
 
 ## Installation
 
@@ -356,6 +359,8 @@ Post-hoc analysis of accumulation curves
 
 - [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
   : Extrapolate Total Species Richness
+- [`extrapolateArea()`](https://gillescolling.com/spacc/reference/extrapolateArea.md)
+  : Extrapolate Richness to a Larger Area (Ugland T-S Curve)
 - [`compare()`](https://gillescolling.com/spacc/reference/compare.md) :
   Compare Two Accumulation Curves
 - [`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md) :
@@ -381,6 +386,12 @@ Internal functions (not for end users)
   : Compare Multiple SAR Models
 - [`predict(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc.md)
   : Predict from Empirical Accumulation Curve
+- [`predict(`*`<spacc_fit>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc_fit.md)
+  : Predict richness at a given sampling effort
+- [`predict(`*`<spacc_area>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc_area.md)
+  : Predict richness at a given area
+- [`confint(`*`<spacc_fit>`*`)`](https://gillescolling.com/spacc/reference/confint.spacc_fit.md)
+  : Confidence interval for an extrapolated asymptote
 - [`plot(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc.md)
   : Plot Spatial SAC
 - [`plot(`*`<spacc_metrics>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc_metrics.md)

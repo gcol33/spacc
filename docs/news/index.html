@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,6 +73,32 @@
       <small>Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.0" id="spacc-090">spacc 0.9.0<a class="anchor" aria-label="anchor" href="#spacc-090"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-9-0"></a></h3>
+<ul><li><p><code><a href="../reference/extrapolateArea.html">extrapolateArea()</a></code> extrapolates richness to a spatial extent larger than the one sampled, using the total-species (T-S) curve of Ugland, Gray &amp; Ellingsen (2003): sites are partitioned into spatial subareas, the expected total richness of random subarea combinations is plotted against their convex-hull area, and an asymptotic model is fitted and extended to a target area with a median-bias-corrected site-bootstrap interval. New <code>spacc_area</code> class with <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>/<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>/<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>/<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>/<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> methods.</p></li>
+<li><p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> gains a calibrated <code>interval = "bootstrap"</code> (now the default) that refits the chosen model across resampled seed curves and returns percentile bounds, replacing the over-confident <code>nls</code> profile interval as the default. <code>predict(fit, interval = "bootstrap")</code> returns a prediction band, and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> draws it. <code>interval = "profile"</code> recovers the old behaviour.</p></li>
+<li><p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> now reports goodness of fit (residual RMSE over the observed range), an extrapolation-range note, and the nonparametric <code><a href="../reference/chao2.html">chao2()</a></code>/<code><a href="../reference/iChao2.html">iChao2()</a></code> estimates alongside the asymptote. It warns when the asymptote exceeds the observed richness by more than <code>warn_ratio</code> (default 2), when it disagrees with <code><a href="../reference/chao2.html">chao2()</a></code> by more than 50%, and when <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> is evaluated beyond ~2.5x the sampled effort.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-0"></a></h3>
+<ul><li><p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> on a <code>spacc_endemism</code> object no longer lists “Endemic species” twice in the legend. The confidence-band fill was drawn as its own guide because the ribbon covered only the endemism series; that fill guide is now suppressed so a single line-colour legend remains.</p></li>
+<li><p>Removed a stray blank line beneath the y-axis title in <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> for <code>spacc_beta</code> objects.</p></li>
+<li><p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> asymptote confidence intervals are no longer over-confident. The previous <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> used an <code>nls</code> profile interval on the (ultra-smooth) mean curve, ignoring across-seed variability; it could exclude the truth in every replicate of a recovery simulation. <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> now returns the calibrated bootstrap interval by default (<code>method = "profile"</code> is still available). The documentation notes that the parametric asymptote can be biased high on clustered or under-sampled data and points to the nonparametric estimators for calibrated total-richness intervals (<a href="https://github.com/gcol33/spacc/issues/1" class="external-link">#1</a>, <a href="https://github.com/gcol33/spacc/issues/3" class="external-link">#3</a>, <a href="https://github.com/gcol33/spacc/issues/5" class="external-link">#5</a>).</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing-0-9-0">Testing<a class="anchor" aria-label="anchor" href="#testing-0-9-0"></a></h3>
+<ul><li>Added parameter-recovery and CI-coverage tests on data simulated with a known truth: richness estimators recover the true pool size (jackknife intervals at ~nominal coverage; chao/iChao near-unbiased), <code><a href="../reference/extrapolate.html">extrapolate()</a></code> recovers truth on near-saturation data, <code><a href="../reference/extrapolateArea.html">extrapolateArea()</a></code> interpolates the observed area, and the Hill, phylogenetic, functional, and coverage accumulation endpoints match their defining formulae (<a href="https://github.com/gcol33/spacc/issues/2" class="external-link">#2</a>).</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.3" id="spacc-083">spacc 0.8.3<a class="anchor" aria-label="anchor" href="#spacc-083"></a></h2>
+<div class="section level3">
+<h3 id="documentation-0-8-3">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-8-3"></a></h3>
+<ul><li>Expanded all seven vignettes from brief overviews into full worked guides (quickstart, diversity, rarefaction/standardization, community assembly, spatial analysis, extrapolation, richness estimation). Each now covers the underlying model, simulation with known ground truth, fitting, uncertainty, prediction/comparison, and practical guidance, and exercises the full exported API (including <code><a href="../reference/evenness.html">evenness()</a></code>, <code><a href="../reference/diversityProfile.html">diversityProfile()</a></code>, <code><a href="../reference/spatialEigenvectors.html">spatialEigenvectors()</a></code>/<code><a href="../reference/spatialPartition.html">spatialPartition()</a></code>, <code><a href="../reference/wavefront.html">wavefront()</a></code>, and <code><a href="../reference/compareModels.html">compareModels()</a></code>).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.8.2" id="spacc-082">spacc 0.8.2<a class="anchor" aria-label="anchor" href="#spacc-082"></a></h2>
 <div class="section level3">

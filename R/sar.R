@@ -774,7 +774,8 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
     ggplot2::geom_line(linewidth = 1) +
     ggplot2::scale_color_manual(values = c("Total richness" = "#2E7D32",
                                             "Endemic species" = "#C62828")) +
-    ggplot2::scale_fill_manual(values = c("Endemic species" = "#C62828")) +
+    ggplot2::scale_fill_manual(values = c("Endemic species" = "#C62828"),
+                               guide = "none") +
     ggplot2::labs(
       x = "Sites accumulated",
       y = "Species count",

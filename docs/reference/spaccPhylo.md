@@ -127,22 +127,24 @@ communities: an example for rain forest trees. American Naturalist, 156,
 
 ## See also
 
-`picante::mpd()`, `picante::mntd()`, `picante::pd()`
+[`picante::mpd()`](https://rdrr.io/pkg/picante/man/mpd.html),
+[`picante::mntd()`](https://rdrr.io/pkg/picante/man/mntd.html),
+[`picante::pd()`](https://rdrr.io/pkg/picante/man/pd.html)
 
 ## Examples
 
 ``` r
 # \donttest{
-library(ape)
+if (requireNamespace("ape", quietly = TRUE)) {
+  # Create random tree
+  tree <- ape::rtree(30)
 
-# Create random tree
-tree <- rtree(30)
+  coords <- data.frame(x = runif(50), y = runif(50))
+  species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+  colnames(species) <- tree$tip.label
 
-coords <- data.frame(x = runif(50), y = runif(50))
-species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
-colnames(species) <- tree$tip.label
-
-phylo <- spaccPhylo(species, coords, tree, metric = c("mpd", "mntd"))
-plot(phylo)
+  phylo <- spaccPhylo(species, coords, tree, metric = c("mpd", "mntd"))
+  plot(phylo)
+}
 # }
 ```

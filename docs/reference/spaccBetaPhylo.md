@@ -100,13 +100,14 @@ iNEXT.beta3D standardization. Ecological Monographs, 93, e1588.
 
 ``` r
 # \donttest{
-library(ape)
-tree <- rtree(20)
-coords <- data.frame(x = runif(50), y = runif(50))
-species <- matrix(rbinom(50 * 20, 1, 0.3), nrow = 50)
-colnames(species) <- tree$tip.label
+if (requireNamespace("ape", quietly = TRUE)) {
+  tree <- ape::rtree(20)
+  coords <- data.frame(x = runif(50), y = runif(50))
+  species <- matrix(rbinom(50 * 20, 1, 0.3), nrow = 50)
+  colnames(species) <- tree$tip.label
 
-beta_phylo <- spaccBetaPhylo(species, coords, tree)
-plot(beta_phylo)
+  beta_phylo <- spaccBetaPhylo(species, coords, tree)
+  plot(beta_phylo)
+}
 # }
 ```

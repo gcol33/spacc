@@ -41,7 +41,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-06-14</h4>
+            <h4 data-toc-skip class="date">2026-06-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/community-assembly.Rmd" class="external-link"><code>vignettes/community-assembly.Rmd</code></a></small>
       <div class="d-none name"><code>community-assembly.Rmd</code></div>
@@ -110,23 +110,201 @@ Colling</h4>
     
     
 <div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>Understanding how communities change across space requires tools that
-quantify turnover at different scales. <strong>spacc</strong> provides
-three complementary approaches:</p>
-<ol style="list-style-type: decimal">
-<li><p><strong>Beta distance-decay</strong>: How does compositional
-similarity decay with distance?</p></li>
-<li><p><strong>Zeta diversity</strong>: How does the number of shared
-species change with the number of sites compared?</p></li>
-<li><p><strong>SES null models</strong>: Are observed patterns different
-from random expectations?</p></li>
-</ol>
+<p>A species list at a single site says little about how a community
+came to be. The signal lives in how composition shifts from one site to
+the next, and at what spatial scale that shift accelerates or stalls.
+Two regions can share an identical mean richness yet differ sharply in
+turnover: one a smooth gradient where neighbours resemble each other,
+the other a mosaic where adjacent plots hold almost disjoint species
+sets. Community assembly leaves its fingerprint in that spatial
+structure rather than in any single count.</p>
+<p>Three questions organise the analysis. The first asks how fast
+compositional similarity fades with geographic distance. The second asks
+how the pool of shared species shrinks as more sites are compared at
+once, and whether that shrinkage is gradual or abrupt. The third asks
+whether the observed pattern departs from what a randomised community
+would produce. <strong>spacc</strong> answers each with a dedicated
+function: <code><a href="../reference/betaDecay.html">betaDecay()</a></code> and <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code> for
+the first, <code><a href="../reference/zetaDiversity.html">zetaDiversity()</a></code> for the second, and
+<code><a href="../reference/ses.html">ses()</a></code> for the third. The functions return typed objects
+with <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>,
+and <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> methods, so output can be inspected,
+plotted, and extracted into a data frame for downstream modelling.</p>
+<p>The three lenses each answer a different question. Distance-decay
+collapses the whole study region onto a single curve of dissimilarity
+against separation, which makes it sensitive to the dominant turnover
+scale but blind to whether that turnover is driven by common or rare
+species. Zeta diversity keeps the multi-site structure that pairwise
+measures discard, so it can separate the contribution of widespread
+generalists from that of narrow specialists, at the cost of needing more
+sites to sample higher orders reliably. Null models add the inferential
+layer the other two lack: they convert a descriptive curve into a test
+against an explicit counterfactual. Reading the same dataset through all
+three guards against the overinterpretation that any one curve
+invites.</p>
+<p>This vignette walks through the three lenses on a single simulated
+dataset with known structure. Simulating the data fixes the ground
+truth: the strength of spatial aggregation is set by one parameter, so
+the analyses can be checked against an answer that is known in advance.
+Real survey data never come with such a guarantee, which is precisely
+why a controlled example is worth the detour. When a method recovers the
+planted signal, its output on a field dataset can be trusted to mean
+what it claims. The closing section gives concrete guidance on
+permutation counts, sample sizes, the choice of zeta order, and the
+situations where each lens misleads rather than informs.</p>
 </div>
 <div class="section level2">
-<h2 id="data-setup">Data setup<a class="anchor" aria-label="anchor" href="#data-setup"></a>
+<h2 id="the-three-lenses">The three lenses<a class="anchor" aria-label="anchor" href="#the-three-lenses"></a>
 </h2>
+<div class="section level3">
+<h3 id="distance-decay">Distance-decay<a class="anchor" aria-label="anchor" href="#distance-decay"></a>
+</h3>
+<p>Distance-decay summarises how compositional similarity falls off with
+separation. Let <span class="math inline">\(S(d)\)</span> denote the
+similarity of two assemblages <span class="math inline">\(d\)</span>
+units apart. The classic form is exponential,</p>
+<p><span class="math display">\[
+S(d) = S_0 \, e^{-d/h},
+\]</span></p>
+<p>where <span class="math inline">\(S_0\)</span> is similarity at zero
+distance and <span class="math inline">\(h\)</span> is the
+<em>half-distance</em> scale, the distance over which similarity drops
+by a factor of <span class="math inline">\(e\)</span>. A small <span class="math inline">\(h\)</span> marks steep turnover; a large <span class="math inline">\(h\)</span> marks a community that stays
+compositionally coherent across the region. Working with dissimilarity
+<span class="math inline">\(\beta = 1 - S\)</span> instead, the
+exponential model <code><a href="../reference/betaDecay.html">betaDecay()</a></code> fits is</p>
+<p><span class="math display">\[
+\beta(d) = 1 - a \, e^{-b d},
+\]</span></p>
+<p>with the half-life reported as <span class="math inline">\(d_{1/2} =
+\ln(2)/b\)</span>, the distance at which the similarity component <span class="math inline">\(a\,e^{-bd}\)</span> reaches half its initial
+value. The package also fits a power model <span class="math inline">\(\beta = a\,d^{b}\)</span> and a linear model <span class="math inline">\(\beta = a + b d\)</span>, then selects among the
+three by AIC. Power decay implies scale-free turnover with no
+characteristic distance; linear decay is the least structured of the
+three and often wins when curvature is weak.</p>
+<p>The choice of dissimilarity index shapes what the decay measures.
+Sorensen dissimilarity, the default, weights shared species twice in the
+denominator and so emphasises the species two assemblages have in
+common; Jaccard treats shared and unshared species symmetrically and
+reads as a stricter turnover measure. For a given pair of sites Sorensen
+never exceeds Jaccard, so a decay curve fitted to Jaccard sits higher
+and saturates sooner. Neither is correct in the abstract: the question
+is whether the analysis cares about the overlap between assemblages
+(Sorensen) or the fraction of the combined species pool they fail to
+share (Jaccard). The half-distance changes with the index, which is one
+more reason to report the index alongside any decay parameter.</p>
+<p>Two mechanisms generate distance-decay, and the curve alone cannot
+tell them apart. The first is environmental: sites that are far apart
+tend to differ in climate, soil, or habitat, so their species differ
+because their conditions differ. The second is dispersal limitation:
+even under identical conditions, species fail to reach distant sites, so
+composition drifts with distance through spatial processes alone. Both
+produce a falling <span class="math inline">\(S(d)\)</span>, and
+separating them requires either environmental covariates or the kind of
+randomisation the null models below provide. The decay curve quantifies
+the pattern; it does not name the cause.</p>
+</div>
+<div class="section level3">
+<h3 id="zeta-diversity">Zeta diversity<a class="anchor" aria-label="anchor" href="#zeta-diversity"></a>
+</h3>
+<p>Zeta diversity counts shared species across more than two sites at
+once. For an order <span class="math inline">\(i\)</span>, <span class="math inline">\(\zeta_i\)</span> is the mean number of species
+common to all <span class="math inline">\(i\)</span> sites in a sampled
+set (Hui &amp; McGeoch 2014). By construction <span class="math inline">\(\zeta_1\)</span> is mean per-site richness, <span class="math inline">\(\zeta_2\)</span> is the mean count of species
+shared by a pair, and <span class="math inline">\(\zeta_i\)</span>
+declines monotonically as <span class="math inline">\(i\)</span> grows.
+The shape of that decline carries the signal. The diagnostic is the
+ratio of successive orders,</p>
+<p><span class="math display">\[
+R_i = \frac{\zeta_i}{\zeta_{i-1}}.
+\]</span></p>
+<p>A roughly constant ratio means <span class="math inline">\(\zeta_i\)</span> follows a geometric (exponential)
+sequence, <span class="math inline">\(\zeta_i \propto c^{\,i}\)</span>,
+which arises when species occur independently with fixed probabilities.
+That is the signature of stochastic, dispersal-driven turnover. A ratio
+that climbs toward 1 with order means the decline is power-law, <span class="math inline">\(\zeta_i \propto i^{-\gamma}\)</span>, which a few
+widespread generalists produce when they persist across many sites while
+specialists drop out early. Power-law decline is read as evidence of
+niche-based, deterministic assembly. The contrast between the two
+regimes is the reason the ratio plot deserves as much attention as the
+decline curve.</p>
+<p>The reason the ratio is more informative than the raw curve is that
+the absolute zeta values confound richness with turnover. A species-rich
+region and a species-poor region can share the same assembly mechanism
+yet show <span class="math inline">\(\zeta_i\)</span> curves separated
+by a vertical shift, because <span class="math inline">\(\zeta_1\)</span> alone differs. Dividing
+successive orders cancels that shift and isolates the rate of decline,
+which is the quantity assembly theory speaks to. A geometric sequence
+has the property that the ratio of consecutive terms is constant by
+definition; departures from a flat ratio are therefore departures from
+the independent-occurrence model, and the direction of the departure
+points to the mechanism.</p>
+<p>The two regimes also differ in how they treat rarity. Under
+exponential decline, rare species drop out of the shared set at the same
+proportional rate as common ones, so no part of the species pool is
+privileged. Under power-law decline, a small set of widespread species
+dominates the high-order zeta values while the long tail of rare species
+contributes only to <span class="math inline">\(\zeta_1\)</span> and
+<span class="math inline">\(\zeta_2\)</span>. The ecological reading
+follows: power-law turnover implies a structured pool with clear winners
+across the region, the kind of asymmetry that environmental filtering
+and competitive sorting produce. Sampling <code>knn</code>
+neighbourhoods rather than random sets sharpens the contrast, because
+nearest neighbours share the local environment and any niche structure
+surfaces at lower orders than under random sampling.</p>
+</div>
+<div class="section level3">
+<h3 id="standardised-effect-sizes">Standardised effect sizes<a class="anchor" aria-label="anchor" href="#standardised-effect-sizes"></a>
+</h3>
+<p>Raw turnover values cannot say whether a pattern is non-random on
+their own, because aggregation, richness gradients, and sampling all
+leave marks that mimic assembly. A null model strips out the targeted
+structure by randomising the species matrix while holding chosen
+features fixed, then measures how far the observed value sits from the
+randomised cloud. The standardised effect size is</p>
+<p><span class="math display">\[
+\mathrm{SES} = \frac{\text{obs} -
+\overline{\text{null}}}{\mathrm{sd}_{\text{null}}},
+\]</span></p>
+<p>the number of null standard deviations between the observed statistic
+and the null mean. Under a two-tailed convention, <span class="math inline">\(|\mathrm{SES}| &gt; 1.96\)</span> flags a
+departure at roughly the 5% level when the null distribution is
+approximately normal. Positive SES on a richness accumulation curve
+means more species accrue than the null predicts (spatial
+overdispersion); negative SES means fewer accrue (clustering, or
+redundant encounters of aggregated species). <code><a href="../reference/ses.html">ses()</a></code> also
+returns a permutation p-value from the rank of the observed value among
+the null draws, which does not lean on the normal approximation.</p>
+<p>The choice of null model is the substance of the test, not a
+technical detail. A null randomises some features of the species matrix
+while pinning others, and the pinned features define the alternative the
+test cannot detect. Holding species frequencies fixed but shuffling
+their placement asks whether composition is spatially structured given
+those frequencies. Fixing both row and column totals asks the stricter
+question of whether species co-occur more or less than expected once
+richness and frequency are both accounted for. Spatial nulls go further
+and preserve autocorrelation, so they test for structure beyond what
+proximity alone explains. Two nulls applied to the same data can
+disagree, and the disagreement is informative: it localises which
+feature of the matrix carries the signal. An SES reported without its
+null model is therefore an incomplete result, no more interpretable than
+a p-value without its test statistic.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="simulating-a-structured-community">Simulating a structured community<a class="anchor" aria-label="anchor" href="#simulating-a-structured-community"></a>
+</h2>
+<p>The simulation places 60 sites at random in a 100-by-100 arena and
+gives each of 25 species a centre. Occurrence probability decays with
+distance from that centre, so each species occupies a patch rather than
+scattering uniformly. The decay scale of 30 units is the range
+parameter: it sets how broad each species’ patch is relative to the
+arena. At 30 units a species is common near its centre and rare beyond
+about twice that distance, which builds genuine spatial turnover into
+the data without making patches so tight that sites stop sharing any
+species.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
@@ -135,11 +313,14 @@ from random expectations?</p></li>
 <span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span>,</span>
 <span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_sites</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Spatially structured community:</span></span>
-<span><span class="co"># species occurrence probability decays with distance from species' "center"</span></span>
-<span><span class="va">n_species</span> <span class="op">&lt;-</span> <span class="fl">25</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Each column of the species matrix is drawn from a Poisson whose mean
+falls off exponentially with distance from the species centre. The
+factor of 3 scales the peak abundance near a centre, keeping per-site
+richness in a realistic range while the range parameter governs the
+spatial footprint.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">n_species</span> <span class="op">&lt;-</span> <span class="fl">25</span></span>
 <span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, nrow <span class="op">=</span> <span class="va">n_sites</span>, ncol <span class="op">=</span> <span class="va">n_species</span><span class="op">)</span></span>
 <span><span class="va">centers_x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_species</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="va">centers_y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_species</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span></span>
@@ -149,23 +330,45 @@ from random expectations?</p></li>
 <span>  <span class="va">prob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">dists</span> <span class="op">/</span> <span class="fl">30</span><span class="op">)</span></span>
 <span>  <span class="va">species</span><span class="op">[</span>, <span class="va">sp</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">n_sites</span>, lambda <span class="op">=</span> <span class="va">prob</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_species</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Build accumulation curve (used later for SES null models)</span></span>
-<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">10</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_species</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The accumulation curve below is reused by <code><a href="../reference/ses.html">ses()</a></code>, which
+needs an existing <code>spacc</code> object to know which analysis to
+re-run on each randomised matrix. Ten seeds give a stable mean curve
+while keeping the later permutation loops fast.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">10</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>The ground truth is now fixed. Patches span roughly 30 to 60 units,
+so turnover should be moderate, the zeta decline should track the
+geometric signature of independent-ish occurrences, and richness
+accumulation should fall below a co-occurrence null because aggregated
+species are encountered redundantly. The three lenses are checked
+against those expectations in turn.</p>
+<p>The range parameter deserves a closer look, because it is the single
+knob that controls how much spatial signal the data carry. A very small
+range, say 5 units, would shrink each species to a tight cluster of
+sites; neighbouring plots would then share almost nothing,
+distance-decay would be steep, and zeta would collapse to zero by order
+3. A very large range, say 200 units, would spread every species across
+the whole arena; sites would share most of their species regardless of
+separation, distance-decay would be nearly flat, and zeta would decline
+slowly. At 30 units the simulation sits between these extremes, which is
+the regime where all three lenses have something to measure. The same
+reasoning applies to field data: a lens is only as informative as the
+turnover present in the sampling design, and a design that samples too
+coarsely or too finely relative to the real patch scale will flatten the
+signal the lens is built to detect.</p>
 </div>
 <div class="section level2">
-<h2 id="beta-distance-decay">Beta distance-decay<a class="anchor" aria-label="anchor" href="#beta-distance-decay"></a>
+<h2 id="distance-decay-1">Distance-decay<a class="anchor" aria-label="anchor" href="#distance-decay-1"></a>
 </h2>
-<p>The <code><a href="../reference/betaDecay.html">betaDecay()</a></code> function fits models to the relationship
-between compositional dissimilarity and geographic distance:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">decay</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/betaDecay.html">betaDecay</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Computing distance matrix</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Computing 1,770 pairwise dissimilarities (sorensen)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Fitting decay models</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Done</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">decay</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/betaDecay.html">betaDecay()</a></code> computes Sorensen dissimilarity for every
+site pair, regresses it on geographic distance, and fits the
+exponential, power, and linear models before choosing among them by AIC.
+The plot overlays the raw pairwise cloud, binned means in orange, and
+the selected model in red.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">decay</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/betaDecay.html">betaDecay</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">decay</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -203,7 +406,7 @@ between compositional dissimilarity and geographic distance:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNDQuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
@@ -211,6 +414,7 @@ between compositional dissimilarity and geographic distance:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpNDQuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
+<rect x='44.12' y='42.38' width='453.90' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 <circle cx='317.24' cy='179.32' r='0.92' style='stroke-width: 0.77; stroke: #7F7F7F; stroke-opacity: 0.10; fill: #7F7F7F; fill-opacity: 0.10;' />
 <circle cx='162.28' cy='246.67' r='0.92' style='stroke-width: 0.77; stroke: #7F7F7F; stroke-opacity: 0.10; fill: #7F7F7F; fill-opacity: 0.10;' />
 <circle cx='301.25' cy='150.54' r='0.92' style='stroke-width: 0.77; stroke: #7F7F7F; stroke-opacity: 0.10; fill: #7F7F7F; fill-opacity: 0.10;' />
@@ -2051,7 +2255,12 @@ between compositional dissimilarity and geographic distance:</p>
 </g>
 </g>
 </svg></div></p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<p>The printed summary lists every fitted model with its coefficients
+and AIC, names the AIC winner, and reports the exponential half-life. On
+this dataset the linear model edges out the others by AIC, which signals
+that curvature in the decay is weak over the observed distance
+range.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">decay</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $n_sites</span></span>
 <span><span class="co">#&gt; [1] 60</span></span>
@@ -2082,20 +2291,36 @@ between compositional dissimilarity and geographic distance:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $index</span></span>
 <span><span class="co">#&gt; [1] "sorensen"</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="zeta-diversity">Zeta diversity<a class="anchor" aria-label="anchor" href="#zeta-diversity"></a>
-</h2>
-<p>Zeta diversity measures the number of species shared among exactly
-<span class="math inline">\(\zeta\)</span> sites. The rate of decline
-from <span class="math inline">\(\zeta_1\)</span> to higher orders
-indicates whether turnover is driven by common or rare species:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">zd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/zetaDiversity.html">zetaDiversity</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, orders <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, n_samples <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Computing distance matrix</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Computing zeta diversity (orders 1-10, knn)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Done</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">zd</span><span class="op">)</span></span></code></pre></div>
+<p>The coefficients are easiest to read through the <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>
+method, which returns the slope and intercept of whichever model AIC
+selected. Here the linear slope is about <span class="math inline">\(0.0037\)</span> dissimilarity units per distance
+unit, so two sites at opposite corners of the arena differ in roughly a
+third more of their species than two neighbours.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">decay</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           a           b </span></span>
+<span><span class="co">#&gt; 0.365650265 0.003674776</span></span>
+<span><span class="va">decay</span><span class="op">$</span><span class="va">half_life</span></span>
+<span><span class="co">#&gt; [1] 85.24045</span></span></code></pre></div>
+<p>The half-life of about 85 units comes from the exponential fit even
+when the linear model wins overall. It says that the similarity
+component would need roughly 85 distance units to halve, which is large
+relative to the 30-unit patch scale because Sorensen dissimilarity
+saturates slowly when patches overlap. The half-distance and the AIC
+ranking answer different questions: the first gives a scale, the second
+gives a shape. Reporting both, rather than forcing one model, is the
+honest summary when curvature is shallow.</p>
+<p>A second, complementary view comes from <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code>,
+which is a different operation despite the shared name. Where
+<code><a href="../reference/betaDecay.html">betaDecay()</a></code> works on the dissimilarity between site pairs,
+<code><a href="../reference/distanceDecay.html">distanceDecay()</a></code> drops focal points into the arena and
+counts how cumulative richness grows as the radius around each focal
+point expands. The return object is <code>spacc_decay</code>, not
+<code>spacc_beta_decay</code>, and the y-axis is species count rather
+than dissimilarity.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/distanceDecay.html">distanceDecay</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -2133,7 +2358,113 @@ indicates whether turnover is driven by common or rare species:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
+    <rect x='36.12' y='42.38' width='461.90' height='283.28' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
+<rect x='36.12' y='42.38' width='461.90' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<polygon points='57.11,122.06 65.68,108.69 74.25,68.61 82.82,55.25 91.39,55.25 99.96,55.25 108.53,55.25 117.10,55.25 125.67,55.25 134.24,55.25 142.81,55.25 151.38,55.25 159.95,55.25 168.52,55.25 177.09,55.25 185.66,55.25 194.23,55.25 202.80,55.25 211.37,55.25 219.94,55.25 228.51,55.25 237.08,55.25 245.65,55.25 254.22,55.25 262.79,55.25 271.36,55.25 279.93,55.25 288.49,55.25 297.06,55.25 305.63,55.25 314.20,55.25 322.77,55.25 331.34,55.25 339.91,55.25 348.48,55.25 357.05,55.25 365.62,55.25 374.19,55.25 382.76,55.25 391.33,55.25 399.90,55.25 408.47,55.25 417.04,55.25 425.61,55.25 434.18,55.25 442.75,55.25 451.32,55.25 459.89,55.25 468.46,55.25 477.03,55.25 477.03,55.25 468.46,55.25 459.89,55.25 451.32,55.25 442.75,55.25 434.18,55.25 425.61,55.25 417.04,55.25 408.47,55.25 399.90,55.25 391.33,55.25 382.76,55.25 374.19,55.25 365.62,55.25 357.05,55.25 348.48,55.25 339.91,55.25 331.34,55.25 322.77,55.25 314.20,55.25 305.63,55.25 297.06,55.25 288.49,55.25 279.93,55.25 271.36,55.25 262.79,55.25 254.22,55.25 245.65,55.25 237.08,55.25 228.51,55.25 219.94,55.25 211.37,55.25 202.80,62.60 194.23,66.28 185.66,77.30 177.09,86.98 168.52,104.02 159.95,127.07 151.38,165.81 142.81,165.81 134.24,186.52 125.67,186.52 117.10,186.52 108.53,219.25 99.96,232.61 91.39,249.65 82.82,276.37 74.25,286.06 65.68,309.10 57.11,312.78 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.30;' />
+<polyline points='57.11,122.06 65.68,108.69 74.25,68.61 82.82,55.25 91.39,55.25 99.96,55.25 108.53,55.25 117.10,55.25 125.67,55.25 134.24,55.25 142.81,55.25 151.38,55.25 159.95,55.25 168.52,55.25 177.09,55.25 185.66,55.25 194.23,55.25 202.80,55.25 211.37,55.25 219.94,55.25 228.51,55.25 237.08,55.25 245.65,55.25 254.22,55.25 262.79,55.25 271.36,55.25 279.93,55.25 288.49,55.25 297.06,55.25 305.63,55.25 314.20,55.25 322.77,55.25 331.34,55.25 339.91,55.25 348.48,55.25 357.05,55.25 365.62,55.25 374.19,55.25 382.76,55.25 391.33,55.25 399.90,55.25 408.47,55.25 417.04,55.25 425.61,55.25 434.18,55.25 442.75,55.25 451.32,55.25 459.89,55.25 468.46,55.25 477.03,55.25 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.03,55.25 468.46,55.25 459.89,55.25 451.32,55.25 442.75,55.25 434.18,55.25 425.61,55.25 417.04,55.25 408.47,55.25 399.90,55.25 391.33,55.25 382.76,55.25 374.19,55.25 365.62,55.25 357.05,55.25 348.48,55.25 339.91,55.25 331.34,55.25 322.77,55.25 314.20,55.25 305.63,55.25 297.06,55.25 288.49,55.25 279.93,55.25 271.36,55.25 262.79,55.25 254.22,55.25 245.65,55.25 237.08,55.25 228.51,55.25 219.94,55.25 211.37,55.25 202.80,62.60 194.23,66.28 185.66,77.30 177.09,86.98 168.52,104.02 159.95,127.07 151.38,165.81 142.81,165.81 134.24,186.52 125.67,186.52 117.10,186.52 108.53,219.25 99.96,232.61 91.39,249.65 82.82,276.37 74.25,286.06 65.68,309.10 57.11,312.78 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='57.11,225.82 65.68,199.99 74.25,169.71 82.82,150.56 91.39,126.06 99.96,113.15 108.53,101.57 117.10,89.54 125.67,85.98 134.24,80.19 142.81,75.74 151.38,72.18 159.95,67.28 168.52,61.04 177.09,59.71 185.66,57.93 194.23,56.59 202.80,56.14 211.37,55.25 219.94,55.25 228.51,55.25 237.08,55.25 245.65,55.25 254.22,55.25 262.79,55.25 271.36,55.25 279.93,55.25 288.49,55.25 297.06,55.25 305.63,55.25 314.20,55.25 322.77,55.25 331.34,55.25 339.91,55.25 348.48,55.25 357.05,55.25 365.62,55.25 374.19,55.25 382.76,55.25 391.33,55.25 399.90,55.25 408.47,55.25 417.04,55.25 425.61,55.25 434.18,55.25 442.75,55.25 451.32,55.25 459.89,55.25 468.46,55.25 477.03,55.25 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='30.74' y='325.90' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>5</text>
+<text x='30.74' y='259.09' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='30.74' y='192.29' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
+<text x='30.74' y='125.49' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='30.74' y='58.69' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>25</text>
+<text x='48.55' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='135.87' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>25</text>
+<text x='223.19' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>50</text>
+<text x='310.51' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>75</text>
+<text x='397.83' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='15.98px' lengthAdjust='spacingAndGlyphs'>100</text>
+<text x='485.15' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='15.98px' lengthAdjust='spacingAndGlyphs'>125</text>
+<text x='267.07' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='132.03px' lengthAdjust='spacingAndGlyphs'>Distance from focal point</text>
+<text transform='translate(14.57,184.01) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='104.05px' lengthAdjust='spacingAndGlyphs'>Cumulative species</text>
+<text x='36.12' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='77.36px' lengthAdjust='spacingAndGlyphs'>30 focal points</text>
+<text x='36.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='184.80px' lengthAdjust='spacingAndGlyphs'>Distance-Decay Relationship</text>
+</g>
+</g>
+</svg></div></p>
+<p>Cumulative richness climbs from about 12 species within the smallest
+radius to the full pool of 25 once the radius spans the arena. The
+steepness near the origin reflects how quickly new species appear as the
+neighbourhood grows, which is the species-area face of the same turnover
+that <code><a href="../reference/betaDecay.html">betaDecay()</a></code> reads through pairwise dissimilarity. The
+two functions agree when turnover is real: a steep accumulation near
+focal points corresponds to high dissimilarity between near
+neighbours.</p>
+<p>The complementarity is worth stating plainly.
+<code><a href="../reference/betaDecay.html">betaDecay()</a></code> answers a comparative question, how different
+are two assemblages as a function of their separation, and its output is
+a dissimilarity scale. <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code> answers a cumulative
+question, how many species does a growing neighbourhood contain, and its
+output is a richness curve with a confidence band from the focal-point
+seeds. A region with strong turnover shows both a steep
+<code><a href="../reference/betaDecay.html">betaDecay()</a></code> slope and a steep <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code>
+rise; a region with weak turnover shows a shallow slope and a curve that
+reaches the species pool only at large radii. Reporting both gives a
+reader the rate of compositional change and the rate of richness accrual
+from the same data, which are distinct facets of the same spatial
+process.</p>
+</div>
+<div class="section level2">
+<h2 id="zeta-diversity-1">Zeta diversity<a class="anchor" aria-label="anchor" href="#zeta-diversity-1"></a>
+</h2>
+<p><code><a href="../reference/zetaDiversity.html">zetaDiversity()</a></code> samples sets of <span class="math inline">\(k\)</span> sites and counts species shared across
+all <span class="math inline">\(k\)</span>, sweeping <span class="math inline">\(k\)</span> from 1 to 10. The default
+<code>knn</code> method draws each set as a focal site plus its nearest
+neighbours, which targets spatial turnover directly; the
+<code>random</code> method would instead give a non-spatial baseline.
+Fifty samples per order keep the standard deviations tight enough to
+read the trend.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">zd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/zetaDiversity.html">zetaDiversity</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, orders <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, n_samples <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>                    progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">zd</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpMzguNjV8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
@@ -2141,26 +2472,27 @@ indicates whether turnover is driven by common or rare species:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzguNjV8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
-<polygon points='59.53,55.25 105.93,129.28 152.33,170.70 198.73,228.68 245.13,244.05 291.53,261.32 337.94,273.48 384.34,282.92 430.74,288.77 477.14,292.96 477.14,312.78 430.74,311.75 384.34,312.39 337.94,312.04 291.53,306.58 245.13,297.10 198.73,292.91 152.33,277.82 105.93,261.18 59.53,181.25 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
-<polyline points='59.53,55.25 105.93,129.28 152.33,170.70 198.73,228.68 245.13,244.05 291.53,261.32 337.94,273.48 384.34,282.92 430.74,288.77 477.14,292.96 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='477.14,312.78 430.74,311.75 384.34,312.39 337.94,312.04 291.53,306.58 245.13,297.10 198.73,292.91 152.33,277.82 105.93,261.18 59.53,181.25 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='59.53,118.25 105.93,195.23 152.33,224.26 198.73,260.79 245.13,270.58 291.53,283.95 337.94,292.76 384.34,297.65 430.74,300.26 477.14,302.87 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
-<circle cx='59.53' cy='118.25' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='105.93' cy='195.23' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='152.33' cy='224.26' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='198.73' cy='260.79' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='245.13' cy='270.58' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='291.53' cy='283.95' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='337.94' cy='292.76' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='384.34' cy='297.65' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='430.74' cy='300.26' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='477.14' cy='302.87' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<rect x='38.65' y='42.38' width='459.38' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<polygon points='59.53,55.25 105.93,147.38 152.33,185.95 198.73,204.31 245.13,250.63 291.53,267.18 337.94,271.96 384.34,283.54 430.74,289.45 477.14,288.16 477.14,310.16 430.74,312.78 384.34,311.53 337.94,312.05 291.53,308.39 245.13,303.47 198.73,278.92 152.33,275.16 105.93,258.45 59.53,180.85 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
+<polyline points='59.53,55.25 105.93,147.38 152.33,185.95 198.73,204.31 245.13,250.63 291.53,267.18 337.94,271.96 384.34,283.54 430.74,289.45 477.14,288.16 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.14,310.16 430.74,312.78 384.34,311.53 337.94,312.05 291.53,308.39 245.13,303.47 198.73,278.92 152.33,275.16 105.93,258.45 59.53,180.85 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
+<polyline points='59.53,118.05 105.93,202.92 152.33,230.56 198.73,241.61 245.13,277.05 291.53,287.78 337.94,292.01 384.34,297.54 430.74,301.11 477.14,299.16 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
+<circle cx='59.53' cy='118.05' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='105.93' cy='202.92' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='152.33' cy='230.56' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='198.73' cy='241.61' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='245.13' cy='277.05' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='291.53' cy='287.78' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='337.94' cy='292.01' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='384.34' cy='297.54' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='430.74' cy='301.11' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='477.14' cy='299.16' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='33.27' y='310.87' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='33.27' y='229.33' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>5</text>
-<text x='33.27' y='147.78' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='33.27' y='66.24' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
+<text x='33.27' y='310.07' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='33.27' y='228.79' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>5</text>
+<text x='33.27' y='147.50' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='33.27' y='66.21' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>15</text>
 <text x='129.13' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>2.5</text>
 <text x='245.13' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>5.0</text>
 <text x='361.14' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>7.5</text>
@@ -2173,10 +2505,18 @@ indicates whether turnover is driven by common or rare species:</p>
 </g>
 </g>
 </svg></div></p>
-<p>The ratio plot reveals whether turnover follows an exponential
-(stochastic) or power-law (niche-driven) pattern:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">zd</span>, type <span class="op">=</span> <span class="st">"ratio"</span><span class="op">)</span></span></code></pre></div>
+<p>The decline curve starts near <span class="math inline">\(\zeta_1
+\approx 12\)</span> shared-by-one species (mean per-site richness) and
+falls steeply: by order 5 fewer than two species are shared across all
+five neighbours, and the count approaches zero by order 10. The shaded
+band is one standard deviation across the sampled sets and widens at low
+orders where the per-set counts vary most.</p>
+<p>The ratio plot is the diagnostic that separates the two assembly
+regimes. A flat ratio points to exponential, stochastic decline; a ratio
+rising toward 1 points to power-law, niche-driven decline carried by a
+few widespread species.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">zd</span>, type <span class="op">=</span> <span class="st">"ratio"</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -2214,38 +2554,37 @@ indicates whether turnover is driven by common or rare species:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
-  <clipPath id='cpNDguNDN8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
-    <rect x='48.43' y='42.38' width='449.59' height='283.28' />
+  <clipPath id='cpNDMuMTF8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
+    <rect x='43.11' y='42.38' width='454.92' height='283.28' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpNDguNDN8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
-<polyline points='68.87,276.50 119.96,110.18 171.05,312.78 222.14,55.25 273.23,227.04 324.32,240.70 375.41,193.93 426.50,119.10 477.59,227.94 ' style='stroke-width: 2.13; stroke: #2196F3; stroke-linecap: butt;' />
-<circle cx='68.87' cy='276.50' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='119.96' cy='110.18' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='171.05' cy='312.78' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='222.14' cy='55.25' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='273.23' cy='227.04' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='324.32' cy='240.70' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='375.41' cy='193.93' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='426.50' cy='119.10' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
-<circle cx='477.59' cy='227.94' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<g clip-path='url(#cpNDMuMTF8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
+<rect x='43.11' y='42.38' width='454.92' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<polyline points='63.78,285.53 115.48,232.89 167.17,198.14 218.87,312.78 270.56,260.48 322.26,220.76 373.95,264.82 425.65,269.14 477.34,55.25 ' style='stroke-width: 2.13; stroke: #2196F3; stroke-linecap: butt;' />
+<circle cx='63.78' cy='285.53' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='115.48' cy='232.89' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='167.17' cy='198.14' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='218.87' cy='312.78' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='270.56' cy='260.48' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='322.26' cy='220.76' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='373.95' cy='264.82' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='425.65' cy='269.14' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
+<circle cx='477.34' cy='55.25' r='2.52' style='stroke-width: 0.77; stroke: #2196F3; fill: #2196F3;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='43.05' y='328.32' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.55</text>
-<text x='43.05' y='272.19' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.60</text>
-<text x='43.05' y='216.07' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.65</text>
-<text x='43.05' y='159.95' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.70</text>
-<text x='43.05' y='103.82' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.75</text>
-<text x='43.05' y='47.70' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='18.66px' lengthAdjust='spacingAndGlyphs'>0.80</text>
-<text x='68.87' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>2</text>
-<text x='171.05' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>4</text>
-<text x='273.23' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>6</text>
-<text x='375.41' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>8</text>
-<text x='477.59' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='273.23' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='48.00px' lengthAdjust='spacingAndGlyphs'>Order (k)</text>
+<text x='37.73' y='274.63' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>0.6</text>
+<text x='37.73' y='217.27' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>0.8</text>
+<text x='37.73' y='159.91' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>1.0</text>
+<text x='37.73' y='102.55' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>1.2</text>
+<text x='63.78' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>2</text>
+<text x='167.17' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>4</text>
+<text x='270.56' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>6</text>
+<text x='373.95' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>8</text>
+<text x='477.34' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='270.56' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='48.00px' lengthAdjust='spacingAndGlyphs'>Order (k)</text>
 <text transform='translate(16.34,201.40) rotate(-90)' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.30px' lengthAdjust='spacingAndGlyphs'>ζ</text>
 <text transform='translate(18.87,196.11) rotate(-90)' style='font-size: 8.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.20px' lengthAdjust='spacingAndGlyphs'>k</text>
 <polyline points='18.11,190.35 5.98,187.24 ' style='stroke-width: 0.75;' />
@@ -2253,33 +2592,67 @@ indicates whether turnover is driven by common or rare species:</p>
 <text transform='translate(18.89,180.39) rotate(-90)' style='font-size: 8.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.20px' lengthAdjust='spacingAndGlyphs'>k</text>
 <text transform='translate(18.89,176.19) rotate(-90)' style='font-size: 8.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.91px' lengthAdjust='spacingAndGlyphs'>−</text>
 <text transform='translate(18.89,171.30) rotate(-90)' style='font-size: 8.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.67px' lengthAdjust='spacingAndGlyphs'>1</text>
-<text x='48.43' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='294.16px' lengthAdjust='spacingAndGlyphs'>Constant = exponential decline, increasing = power-law</text>
-<text x='48.43' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='66.39px' lengthAdjust='spacingAndGlyphs'>Zeta Ratio</text>
+<text x='43.11' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='294.16px' lengthAdjust='spacingAndGlyphs'>Constant = exponential decline, increasing = power-law</text>
+<text x='43.11' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='66.39px' lengthAdjust='spacingAndGlyphs'>Zeta Ratio</text>
 </g>
 </g>
 </svg></div></p>
+<p>On this dataset the ratios stay in a band around 0.5 to 0.8 without a
+clear upward march, and the printed object confirms the exponential
+model fits better than the power-law by AIC (<span class="math inline">\(R^2 \approx 0.97\)</span> versus <span class="math inline">\(0.91\)</span>). That matches the simulation:
+species were placed independently with patchy but unstructured
+occurrences, so the turnover is closer to stochastic than
+niche-partitioned. The numbers are extracted with
+<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>, which returns one row per order with the
+zeta value, its standard deviation, and the ratio.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">zeta_tab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">zd</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">zeta_tab</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   order  zeta       sd     ratio</span></span>
+<span><span class="co">#&gt; 1     1 11.60 3.862905        NA</span></span>
+<span><span class="co">#&gt; 2     2  6.38 3.415989 0.5500000</span></span>
+<span><span class="co">#&gt; 3     3  4.68 2.743750 0.7335423</span></span>
+<span><span class="co">#&gt; 4     4  4.00 2.294625 0.8547009</span></span>
+<span><span class="co">#&gt; 5     5  1.82 1.624933 0.4550000</span></span>
+<span><span class="co">#&gt; 6     6  1.16 1.267490 0.6373626</span></span></code></pre></div>
+<p>The interpretation hinges on the ratio column rather than the raw
+zeta values. A community engineered with a few dominant generalists and
+many narrow specialists would push those ratios upward with order,
+because the generalists keep being shared while the specialists vanish;
+the absence of that climb here is the evidence for stochastic turnover,
+not the steepness of the decline alone.</p>
 </div>
 <div class="section level2">
 <h2 id="ses-null-models">SES null models<a class="anchor" aria-label="anchor" href="#ses-null-models"></a>
 </h2>
-<p>Standardized effect sizes compare observed diversity patterns against
-null expectations. A positive SES indicates higher diversity than
-expected (overdispersion); negative SES indicates clustering.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/ses.html">ses()</a></code> takes the existing <code>spacc</code> object,
+randomises the species matrix under a chosen null model, re-runs the
+accumulation, and repeats. The <code>curveball</code> algorithm holds
+both row totals (site richness) and column totals (species frequency)
+fixed while shuffling the co-occurrence structure, so it tests whether
+the spatial arrangement of species, not their marginal abundances,
+drives the observed pattern. Nineteen permutations is a deliberately
+small count for a fast illustration; the guidance section explains why
+real tests need many more.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ses.html">ses</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">species</span>, <span class="va">coords</span>,</span>
 <span>              null_model <span class="op">=</span> <span class="st">"curveball"</span>, n_perm <span class="op">=</span> <span class="fl">19</span>,</span>
-<span>              progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>              progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Standardized Effect Size (SES)</span></span>
 <span><span class="co">#&gt; ------------------------------------ </span></span>
 <span><span class="co">#&gt; Input class: spacc</span></span>
 <span><span class="co">#&gt; Metric: richness</span></span>
 <span><span class="co">#&gt; Null model: curveball (19 permutations)</span></span>
-<span><span class="co">#&gt; SES range: [-5.62, 0.47]</span></span>
-<span><span class="co">#&gt; Mean SES: -0.51</span></span>
+<span><span class="co">#&gt; SES range: [-7.59, 1.13]</span></span>
+<span><span class="co">#&gt; Mean SES: -0.48</span></span>
 <span><span class="co">#&gt; Significant (p &lt; 0.05): 0 / 60 values (0%)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"curve"</span><span class="op">)</span></span></code></pre></div>
+<p>The SES curve traces the standardised effect size along the
+accumulation steps. The dashed lines mark the <span class="math inline">\(\pm 1.96\)</span> thresholds and the solid line
+marks zero; points where the permutation p-value falls below 0.05 are
+highlighted in red.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"curve"</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -2317,38 +2690,49 @@ expected (overdispersion); negative SES indicates clustering.</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='-0.000000000000064' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
-  <clipPath id='cpMzMuOTh8NDk4LjAyfDI1LjI4fDMyNS42NQ=='>
-    <rect x='33.98' y='25.28' width='464.04' height='300.37' />
+  <clipPath id='cpNDEuOTh8NDk4LjAyfDI1LjI4fDMyNS42NQ=='>
+    <rect x='41.98' y='25.28' width='456.04' height='300.37' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpMzMuOTh8NDk4LjAyfDI1LjI4fDMyNS42NQ==)'>
-<line x1='33.98' y1='180.14' x2='498.02' y2='180.14' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
-<line x1='33.98' y1='109.54' x2='498.02' y2='109.54' style='stroke-width: 1.16; stroke: #7F7F7F; stroke-linecap: butt;' />
-<line x1='33.98' y1='38.94' x2='498.02' y2='38.94' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
-<polyline points='55.07,92.44 62.22,94.44 69.37,111.33 76.52,117.71 83.67,123.86 90.82,123.18 97.97,143.47 105.12,170.75 112.27,274.55 119.42,265.29 126.57,255.19 133.72,300.81 140.87,312.00 148.02,258.29 155.17,109.54 162.32,109.54 169.47,109.54 176.62,109.54 183.77,109.54 190.92,109.54 198.07,109.54 205.22,109.54 212.37,109.54 219.52,109.54 226.67,109.54 233.82,109.54 240.98,109.54 248.13,109.54 255.28,109.54 262.43,109.54 269.58,109.54 276.73,109.54 283.88,109.54 291.03,109.54 298.18,109.54 305.33,109.54 312.48,109.54 319.63,109.54 326.78,109.54 333.93,109.54 341.08,109.54 348.23,109.54 355.38,109.54 362.53,109.54 369.68,109.54 376.83,109.54 383.98,109.54 391.13,109.54 398.28,109.54 405.43,109.54 412.58,109.54 419.73,109.54 426.88,109.54 434.03,109.54 441.18,109.54 448.33,109.54 455.48,109.54 462.63,109.54 469.78,109.54 476.93,109.54 ' style='stroke-width: 1.71; stroke: #2E7D32; stroke-linecap: butt;' />
+<g clip-path='url(#cpNDEuOTh8NDk4LjAyfDI1LjI4fDMyNS42NQ==)'>
+<rect x='41.98' y='25.28' width='456.04' height='300.37' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<line x1='41.98' y1='151.06' x2='498.02' y2='151.06' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
+<line x1='41.98' y1='95.00' x2='498.02' y2='95.00' style='stroke-width: 1.16; stroke: #7F7F7F; stroke-linecap: butt;' />
+<line x1='41.98' y1='38.94' x2='498.02' y2='38.94' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
+<polyline points='62.71,65.14 69.73,62.73 76.76,88.59 83.79,95.80 90.82,102.52 97.84,117.24 104.87,138.77 111.90,164.92 118.92,206.96 125.95,241.67 132.98,165.93 140.00,244.06 147.03,312.00 154.06,176.17 161.08,85.45 168.11,88.44 175.14,88.44 182.16,95.00 189.19,95.00 196.22,95.00 203.25,95.00 210.27,95.00 217.30,95.00 224.33,95.00 231.35,95.00 238.38,95.00 245.41,95.00 252.43,95.00 259.46,95.00 266.49,95.00 273.51,95.00 280.54,95.00 287.57,95.00 294.59,95.00 301.62,95.00 308.65,95.00 315.68,95.00 322.70,95.00 329.73,95.00 336.76,95.00 343.78,95.00 350.81,95.00 357.84,95.00 364.86,95.00 371.89,95.00 378.92,95.00 385.94,95.00 392.97,95.00 400.00,95.00 407.02,95.00 414.05,95.00 421.08,95.00 428.11,95.00 435.13,95.00 442.16,95.00 449.19,95.00 456.21,95.00 463.24,95.00 470.27,95.00 477.29,95.00 ' style='stroke-width: 1.71; stroke: #2E7D32; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='28.60' y='257.06' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='8.52px' lengthAdjust='spacingAndGlyphs'>-4</text>
-<text x='28.60' y='185.01' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='8.52px' lengthAdjust='spacingAndGlyphs'>-2</text>
-<text x='28.60' y='112.97' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='28.60' y='40.93' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>2</text>
-<text x='47.92' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='190.92' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='333.93' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='476.93' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>60</text>
-<text x='266.00' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='42.69px' lengthAdjust='spacingAndGlyphs'>Position</text>
+<text x='36.60' y='312.96' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='16.52px' lengthAdjust='spacingAndGlyphs'>-7.5</text>
+<text x='36.60' y='241.45' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='16.52px' lengthAdjust='spacingAndGlyphs'>-5.0</text>
+<text x='36.60' y='169.94' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='16.52px' lengthAdjust='spacingAndGlyphs'>-2.5</text>
+<text x='36.60' y='98.43' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>0.0</text>
+<text x='55.68' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='196.22' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='336.76' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='477.29' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='270.00' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='42.69px' lengthAdjust='spacingAndGlyphs'>Position</text>
 <text transform='translate(14.57,175.47) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='131.14px' lengthAdjust='spacingAndGlyphs'>Standardized Effect Size</text>
-<text x='33.98' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='231.19px' lengthAdjust='spacingAndGlyphs'>SES: richness (curveball null model)</text>
+<text x='41.98' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='231.19px' lengthAdjust='spacingAndGlyphs'>SES: richness (curveball null model)</text>
 </g>
 </g>
 </svg></div></p>
-<p>The histogram shows the distribution of SES values across
-accumulation steps:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"histogram"</span><span class="op">)</span></span></code></pre></div>
+<p>The curve drops increasingly negative as more sites enter the
+accumulation, from near zero at the first step to strongly negative
+deeper into the curve. Negative SES means observed richness accumulates
+more slowly than the curveball null predicts. The mechanism is spatial
+aggregation: when a species occupies a compact patch, the nearby sites
+that the accumulation visits early carry redundant copies of it, so
+fewer genuinely new species appear than a co-occurrence-shuffled
+community would deliver. The effect compounds with each step, which is
+why the deficit deepens rather than holding flat.</p>
+<p>The histogram summarises the SES values across all accumulation steps
+in one view, with the <span class="math inline">\(\pm 1.96\)</span>
+reference lines marking the conventional significance band.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"histogram"</span><span class="op">)</span> <span class="op">+</span> <span class="va">transparent</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -2386,7 +2770,7 @@ accumulation steps:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpMzYuMTJ8NDk4LjAyfDI1LjI4fDMyNS42NQ=='>
@@ -2394,93 +2778,233 @@ accumulation steps:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzYuMTJ8NDk4LjAyfDI1LjI4fDMyNS42NQ==)'>
-<rect x='57.11' y='306.06' width='14.00' height='5.94' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='71.11' y='306.06' width='14.00' height='5.94' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='36.12' y='25.28' width='461.90' height='300.37' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<rect x='57.11' y='305.79' width='14.00' height='6.21' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='71.11' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='85.11' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='99.11' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='113.10' y='306.06' width='14.00' height='5.94' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='127.10' y='306.06' width='14.00' height='5.94' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='141.10' y='300.13' width='14.00' height='11.87' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='155.09' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='113.10' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='127.10' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='141.10' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='155.09' y='299.59' width='14.00' height='12.41' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='169.09' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='183.09' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='197.09' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='211.08' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='211.08' y='305.79' width='14.00' height='6.21' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='225.08' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='239.08' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='253.07' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='267.07' y='306.06' width='14.00' height='5.94' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='281.07' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='253.07' y='305.79' width='14.00' height='6.21' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='267.07' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='281.07' y='299.59' width='14.00' height='12.41' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='295.06' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='309.06' y='306.06' width='14.00' height='5.94' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='309.06' y='305.79' width='14.00' height='6.21' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='323.06' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='337.06' y='300.13' width='14.00' height='11.87' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='351.05' y='300.13' width='14.00' height='11.87' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='365.05' y='38.94' width='14.00' height='273.06' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='379.05' y='300.13' width='14.00' height='11.87' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='393.04' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='337.06' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='351.05' y='305.79' width='14.00' height='6.21' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='365.05' y='305.79' width='14.00' height='6.21' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='379.05' y='38.94' width='14.00' height='273.06' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='393.04' y='287.18' width='14.00' height='24.82' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='407.04' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<rect x='421.04' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
+<rect x='421.04' y='299.59' width='14.00' height='12.41' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='435.04' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='449.03' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
 <rect x='463.03' y='312.00' width='14.00' height='0.00' style='stroke-width: 1.16; stroke: #FFFFFF; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50; fill-opacity: 0.80;' />
-<line x1='260.13' y1='325.65' x2='260.13' y2='25.28' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
+<line x1='303.35' y1='325.65' x2='303.35' y2='25.28' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
 <line x1='470.03' y1='325.65' x2='470.03' y2='25.28' style='stroke-width: 1.16; stroke: #C62828; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
-<line x1='365.08' y1='325.65' x2='365.08' y2='25.28' style='stroke-width: 1.16; stroke: #7F7F7F; stroke-linecap: butt;' />
+<line x1='386.69' y1='325.65' x2='386.69' y2='25.28' style='stroke-width: 1.16; stroke: #7F7F7F; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
 <text x='30.74' y='315.43' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='30.74' y='256.07' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='30.74' y='196.71' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='30.74' y='137.35' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
-<text x='30.74' y='77.99' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='43.80' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='8.52px' lengthAdjust='spacingAndGlyphs'>-6</text>
-<text x='150.89' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='8.52px' lengthAdjust='spacingAndGlyphs'>-4</text>
-<text x='257.98' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='8.52px' lengthAdjust='spacingAndGlyphs'>-2</text>
-<text x='365.08' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='472.17' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>2</text>
+<text x='30.74' y='253.37' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='30.74' y='191.31' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='30.74' y='129.25' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='30.74' y='67.19' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='67.78' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='16.52px' lengthAdjust='spacingAndGlyphs'>-7.5</text>
+<text x='174.09' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='16.52px' lengthAdjust='spacingAndGlyphs'>-5.0</text>
+<text x='280.39' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='16.52px' lengthAdjust='spacingAndGlyphs'>-2.5</text>
+<text x='386.69' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>0.0</text>
+<text x='492.99' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>2.5</text>
 <text x='267.07' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='131.14px' lengthAdjust='spacingAndGlyphs'>Standardized Effect Size</text>
 <text transform='translate(14.57,175.47) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='32.02px' lengthAdjust='spacingAndGlyphs'>Count</text>
 <text x='36.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='166.39px' lengthAdjust='spacingAndGlyphs'>SES Distribution: richness</text>
 </g>
 </g>
 </svg></div></p>
+<p>The bulk of the distribution sits at or below zero, and a substantial
+tail reaches past <span class="math inline">\(-1.96\)</span>, the visual
+counterpart of the clustering signal. The permutation p-values should be
+read alongside the SES magnitudes: with only 19 permutations the finest
+achievable two-tailed p-value is <span class="math inline">\(2/20 =
+0.1\)</span>, so no step can reach <span class="math inline">\(p &lt;
+0.05\)</span> no matter how extreme the SES. That ceiling is an artefact
+of the permutation count, not evidence of a weak pattern, and it is
+exactly the failure mode the guidance section warns against.</p>
 </div>
 <div class="section level2">
-<h2 id="combining-the-three-approaches">Combining the three approaches<a class="anchor" aria-label="anchor" href="#combining-the-three-approaches"></a>
+<h2 id="comparing-null-models">Comparing null models<a class="anchor" aria-label="anchor" href="#comparing-null-models"></a>
 </h2>
-<p>These tools answer complementary questions:</p>
+<p>The conclusion from a null-model test can hinge on what the null
+holds fixed. Running <code><a href="../reference/ses.html">ses()</a></code> under a second algorithm makes
+that dependence explicit. The <code>frequency</code> null shuffles each
+species column independently, preserving species frequencies but
+breaking site richness and all co-occurrence structure; it asks whether
+composition matters given the observed frequencies. The
+<code>curveball</code> null preserves both marginals and is the stricter
+test of co-occurrence.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_freq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ses.html">ses</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">species</span>, <span class="va">coords</span>,</span>
+<span>                null_model <span class="op">=</span> <span class="st">"frequency"</span>, n_perm <span class="op">=</span> <span class="fl">19</span>,</span>
+<span>                progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>curveball <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">ses</span><span class="op">)</span>, frequency <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">res_freq</span><span class="op">$</span><span class="va">ses</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  curveball  frequency </span></span>
+<span><span class="co">#&gt; -0.4835156 -0.6467084</span></span></code></pre></div>
+<p>The <code>frequency</code> null yields a more strongly negative mean
+SES than <code>curveball</code>. The reason is that
+<code>frequency</code> randomises away more structure, including the
+site richness totals, so its null cloud sits further from the spatially
+aggregated observation. The stricter <code>curveball</code> null retains
+the marginals and therefore gives a more conservative, smaller-magnitude
+effect. A pattern that survives the <code>curveball</code> test is the
+more defensible claim, because fewer alternative explanations remain
+available to the null. The contrast is a reminder that an SES value is
+meaningful only in reference to a named null model.</p>
+<p>These three lenses answer complementary questions, summarised below.
+Distance-decay gives a scale and a shape for pairwise turnover; zeta
+diversity distinguishes stochastic from niche-driven multi-site
+turnover; SES tests whether either pattern exceeds a randomised
+baseline.</p>
 <table class="table">
 <colgroup>
-<col width="31%">
-<col width="31%">
-<col width="37%">
+<col width="19%">
+<col width="19%">
+<col width="23%">
+<col width="38%">
 </colgroup>
 <thead><tr class="header">
 <th>Approach</th>
 <th>Question</th>
 <th>Key output</th>
+<th>Reads turnover via</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>Distance-decay</td>
-<td>How fast does similarity decline?</td>
-<td>Decay rate, half-distance</td>
+<td>How fast does similarity decline with distance?</td>
+<td>Decay rate, half-distance, AIC-best model</td>
+<td>Pairwise dissimilarity vs distance</td>
 </tr>
 <tr class="even">
 <td>Zeta diversity</td>
-<td>Common vs. rare species turnover?</td>
-<td>Decline ratio, power/exp fit</td>
+<td>Stochastic or niche-driven multi-site turnover?</td>
+<td>Zeta decline, ratio, exp/power fit</td>
+<td>Species shared across <span class="math inline">\(k\)</span>
+sites</td>
 </tr>
 <tr class="odd">
 <td>SES null models</td>
 <td>Is the pattern non-random?</td>
-<td>SES values, p-values</td>
+<td>SES, p-value, null model</td>
+<td>Observed vs randomised accumulation</td>
 </tr>
 </tbody>
 </table>
-<p>Together they provide a comprehensive view of community assembly
-mechanisms operating in the study region.</p>
+<p>Used together they cross-check one another. Steep distance-decay,
+exponential zeta decline, and negative richness SES tell one coherent
+story on this dataset: moderate, stochastic turnover driven by spatial
+aggregation rather than niche partitioning.</p>
+</div>
+<div class="section level2">
+<h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
+</h2>
+<p>Each lens has a sample-size floor below which its output is noise
+dressed as signal, and each has a regime where it is the wrong tool
+entirely. The rules below use specific numbers tied to the functions in
+this vignette.</p>
+<p><strong>Permutation count for SES.</strong> The smallest two-tailed
+p-value a permutation test can return is <span class="math inline">\(2/(n_{\text{perm}} + 1)\)</span>. To resolve <span class="math inline">\(p &lt; 0.05\)</span> at all, use at least 199
+permutations; with 19 the floor is <span class="math inline">\(p =
+0.1\)</span> and nothing can clear the 0.05 bar, exactly as seen above.
+For 99 permutations the floor is <span class="math inline">\(0.02\)</span>, which resolves 0.05 but leaves
+p-values coarse. Use 999 for any result that will be reported, and treat
+anything under 199 as a plumbing check rather than a test.</p>
+<p><strong>Sample count for zeta.</strong> The <code>n_samples</code>
+argument sets how many <span class="math inline">\(k\)</span>-site sets
+are drawn per order. With 50 samples the standard deviations at low
+orders are wide; 500 to 1000 samples tighten the decline curve enough
+that the exponential-versus- power AIC comparison is stable. Below
+roughly 100 samples the ratio plot jitters and can fake an upward trend
+that vanishes with more sampling, so do not read assembly mode off a
+thinly sampled ratio.</p>
+<p><strong>Maximum zeta order.</strong> Set the top order no higher than
+the point where <span class="math inline">\(\zeta_i\)</span> is still
+comfortably above zero; once shared counts hit zero the ratio is
+undefined and the fit gains nothing. A practical ceiling is the order at
+which <span class="math inline">\(\zeta_i\)</span> drops below about 1,
+which on this dataset is near order 6 to 8. Pushing to order 15 on 60
+sites mostly adds zeros and noise.</p>
+<p><strong>Minimum sites and site-pairs.</strong> Distance-decay needs
+enough pairs to bin: with <span class="math inline">\(n\)</span> sites
+there are <span class="math inline">\(n(n-1)/2\)</span> pairs, so 30
+sites give 435 pairs, a reasonable floor, and below about 20 sites (190
+pairs) the binned means become unstable. Zeta of order <span class="math inline">\(k\)</span> needs many more than <span class="math inline">\(k\)</span> sites to sample distinct sets; aim for
+at least <span class="math inline">\(5k\)</span> sites at the top order.
+SES on an accumulation curve needs enough sites that the curve has
+shape, which is again roughly 20 or more.</p>
+<p>The decision table below maps a question to the lens that answers it
+and flags the common failure.</p>
+<table class="table">
+<colgroup>
+<col width="53%">
+<col width="11%">
+<col width="34%">
+</colgroup>
+<thead><tr class="header">
+<th>If the goal is to …</th>
+<th>Use</th>
+<th>Watch out for</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Find a turnover distance scale</td>
+<td>
+<code><a href="../reference/betaDecay.html">betaDecay()</a></code> half-distance</td>
+<td>Shallow curvature: linear may win AIC, report half-life anyway</td>
+</tr>
+<tr class="even">
+<td>Distinguish stochastic vs niche turnover</td>
+<td>
+<code><a href="../reference/zetaDiversity.html">zetaDiversity()</a></code> ratio</td>
+<td>Too few <code>n_samples</code> fakes an upward ratio</td>
+</tr>
+<tr class="odd">
+<td>Test richness against co-occurrence</td>
+<td><code>ses(null_model = "curveball")</code></td>
+<td>Too few <code>n_perm</code> caps the p-value</td>
+</tr>
+<tr class="even">
+<td>Test composition given frequencies</td>
+<td><code>ses(null_model = "frequency")</code></td>
+<td>Breaks richness totals, less conservative</td>
+</tr>
+<tr class="odd">
+<td>See richness grow with neighbourhood</td>
+<td><code><a href="../reference/distanceDecay.html">distanceDecay()</a></code></td>
+<td>Not a dissimilarity measure despite the name</td>
+</tr>
+</tbody>
+</table>
+<p>When not to use each lens. Distance-decay is uninformative when sites
+span a narrow distance range, because the model is then extrapolating a
+slope from a short arm of the curve; if the maximum pairwise distance is
+only a few times the minimum, skip it. Zeta diversity is the wrong tool
+when richness is so low that <span class="math inline">\(\zeta_2\)</span> is already near zero, since every
+higher order is then a string of zeros with no shape to fit. SES null
+models should not be the headline when the marginal totals themselves
+are the pattern of interest: a null that holds richness fixed cannot
+detect a richness gradient, so a <code>curveball</code> SES near zero
+does not rule out structure that lives in the marginals a frequency or
+richness null would expose. Match the null to the hypothesis, and never
+read a single SES value without naming the model that produced it.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -2492,10 +3016,18 @@ components of beta diversity. <em>Global Ecology and Biogeography</em>,
 <li>Hui, C. &amp; McGeoch, M.A. (2014). Zeta diversity as a concept and
 metric that unifies incidence-based biodiversity patterns. <em>American
 Naturalist</em>, 184, 684-694.</li>
+<li>Nekola, J.C. &amp; White, P.S. (1999). The distance decay of
+similarity in biogeography and ecology. <em>Journal of
+Biogeography</em>, 26, 867-878.</li>
+<li>Soininen, J., McDonald, R. &amp; Hillebrand, H. (2007). The distance
+decay of similarity in ecological communities. <em>Ecography</em>, 30,
+3-12.</li>
+<li>Gotelli, N.J. (2000). Null model analysis of species co-occurrence
+patterns. <em>Ecology</em>, 81, 2606-2621.</li>
 <li>Strona, G., Nappo, D., Boccacci, F., Fattorini, S. &amp;
 San-Miguel-Ayanz, J. (2014). A fast and unbiased procedure to randomize
 ecological binary matrices with fixed row and column totals. <em>Nature
-Communications</em>, 5, 4114.</li>
+Communications</em>, 5, 4114. ```</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

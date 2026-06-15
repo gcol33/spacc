@@ -43,7 +43,7 @@
 
     <a class="navbar-brand me-2" href="index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,7 @@
 <p><em>species accumulating in the neighbourhood</em></p>
 <p><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg" alt="codecov"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p><strong>Spatial species accumulation curves built by nearest-neighbour expansion in C++.</strong></p>
-<p>Pick a starting site, then walk outward to its nearest neighbours, counting new species as you go. <code>spacc</code> does that from many starting points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> you begin. The classical curve in <code>vegan::specaccum()</code> shuffles sites in random order and never sees the map. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
+<p>Pick a starting site, then walk outward to its nearest neighbours, counting new species as you go. <code>spacc</code> does that from many starting points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> you begin. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order and never sees the map. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span></span>
@@ -112,7 +112,7 @@
 <div class="section level2">
 <h2 id="spatial-order-not-random-order">Spatial order, not random order<a class="anchor" aria-label="anchor" href="#spatial-order-not-random-order"></a>
 </h2>
-<p><code>vegan::specaccum()</code> accumulates sites in random or collector order, so geography drops out. <code><a href="reference/spacc.html">spacc()</a></code> keeps it: each curve follows nearest-neighbour expansion from a real seed site, and the spread across seeds is the spatial signal. Run both and compare them directly.</p>
+<p><code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> accumulates sites in random or collector order, so geography drops out. <code><a href="reference/spacc.html">spacc()</a></code> keeps it: each curve follows nearest-neighbour expansion from a real seed site, and the spread across seeds is the spatial signal. Run both and compare them directly.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac</span>        <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>,    n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="va">sac_random</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"random"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
@@ -214,7 +214,7 @@
 <li>
 <strong><code><a href="reference/coleman.html">coleman()</a></code> / <code><a href="reference/mao_tau.html">mao_tau()</a></code> / <code><a href="reference/spatialRarefaction.html">spatialRarefaction()</a></code></strong>: analytical (non-simulation) curves.</li>
 <li>
-<strong><code>as_spacc()</code></strong>: bring an existing <code>vegan::specaccum()</code> object into the same plotting and comparison machinery.</li>
+<strong><code>as_spacc()</code></strong>: bring an existing <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> object into the same plotting and comparison machinery.</li>
 </ul>
 </div>
 <div class="section level2">

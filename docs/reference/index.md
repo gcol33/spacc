@@ -158,6 +158,8 @@ Post-hoc analysis of accumulation curves
 
 - [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
   : Extrapolate Total Species Richness
+- [`extrapolateArea()`](https://gillescolling.com/spacc/reference/extrapolateArea.md)
+  : Extrapolate Richness to a Larger Area (Ugland T-S Curve)
 - [`compare()`](https://gillescolling.com/spacc/reference/compare.md) :
   Compare Two Accumulation Curves
 - [`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md) :
@@ -183,6 +185,12 @@ Internal functions (not for end users)
   : Compare Multiple SAR Models
 - [`predict(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc.md)
   : Predict from Empirical Accumulation Curve
+- [`predict(`*`<spacc_fit>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc_fit.md)
+  : Predict richness at a given sampling effort
+- [`predict(`*`<spacc_area>`*`)`](https://gillescolling.com/spacc/reference/predict.spacc_area.md)
+  : Predict richness at a given area
+- [`confint(`*`<spacc_fit>`*`)`](https://gillescolling.com/spacc/reference/confint.spacc_fit.md)
+  : Confidence interval for an extrapolated asymptote
 - [`plot(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc.md)
   : Plot Spatial SAC
 - [`plot(`*`<spacc_metrics>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc_metrics.md)

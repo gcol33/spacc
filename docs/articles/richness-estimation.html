@@ -41,7 +41,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-06-14</h4>
+            <h4 data-toc-skip class="date">2026-06-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/richness-estimation.Rmd" class="external-link"><code>vignettes/richness-estimation.Rmd</code></a></small>
       <div class="d-none name"><code>richness-estimation.Rmd</code></div>
@@ -112,164 +112,434 @@ Colling</h4>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>How many species actually exist in a region? Observed richness always
-underestimates true richness because rare species go undetected.
-<strong>spacc</strong> provides a family of non-parametric richness
-estimators that use the frequency of rare species to infer the number of
-unseen ones.</p>
-<p>This vignette covers:</p>
-<ol style="list-style-type: decimal">
-<li><p>Classical estimators (Chao1/2, ACE, jackknife,
-bootstrap)</p></li>
-<li><p>Improved estimators (iChao1, iChao2)</p></li>
-<li><p>Sample completeness profiles</p></li>
-</ol>
+<p>Observed richness is a floor, never the truth. A survey records the
+species it happens to detect, and the ones with few individuals or few
+occurrences are the ones most likely to slip through. The deficit
+shrinks as effort grows, yet it never reaches zero in finite samples.
+<strong>spacc</strong> ships a family of non-parametric estimators that
+read the deficit off the rare end of the frequency distribution and add
+an estimate of the unseen species to the observed count.</p>
+<p>The estimators are non-parametric in the sense that they assume no
+particular shape for the underlying abundance distribution. Rather than
+fitting a log-series or log-normal and reading off its tail, they
+exploit a single structural fact: the species seen once or twice carry
+almost all the information about the species seen zero times. A
+community in which many species are singletons is a community that is
+still discovering new species with every added sample, so its true
+richness lies well above what has been recorded. A community with no
+singletons has, in effect, been sampled to saturation, and the observed
+count is close to the truth.</p>
+<p>This vignette treats richness estimation as an algorithmic problem.
+It sets out the estimator family and the rare-species logic behind it,
+writes the formulas exactly as <strong>spacc</strong> implements them,
+traces how each estimate approaches a known true richness as sampling
+effort increases, covers the few tunable parameters, compares the
+package estimators against <code>iNEXT</code> on identical data, and
+closes with completeness profiles and a block of practical guidance.
+Throughout, the data are simulated from a community with a fixed true
+number of species, so every estimate can be checked against the number
+it is trying to recover.</p>
+</div>
+<div class="section level2">
+<h2 id="algorithm-overview">Algorithm overview<a class="anchor" aria-label="anchor" href="#algorithm-overview"></a>
+</h2>
+<p>The non-parametric family splits along the kind of data it consumes.
+Abundance-based estimators work on individual counts pooled across the
+survey: the input is the total number of individuals of each species.
+Chao1 and ACE live here. Incidence-based estimators work on occurrence
+counts: the input is the number of sampling units (sites, plots, traps)
+at which each species was recorded, ignoring how many individuals were
+found. Chao2, the first- and second-order jackknives, and the bootstrap
+live here. The improved estimators iChao1 and iChao2 extend their Chao
+counterparts, one on each side of the abundance/incidence divide.</p>
+<p>The rare-species logic is the same on both sides. Let <span class="math inline">\(S_{obs}\)</span> be the observed species count. In
+abundance data, let <span class="math inline">\(f_k\)</span> be the
+number of species represented by exactly <span class="math inline">\(k\)</span> individuals in the pooled sample, so
+<span class="math inline">\(f_1\)</span> counts singletons, <span class="math inline">\(f_2\)</span> doubletons, <span class="math inline">\(f_3\)</span> tripletons, and <span class="math inline">\(f_4\)</span> quadrupletons. In incidence data, let
+<span class="math inline">\(Q_k\)</span> be the number of species
+detected in exactly <span class="math inline">\(k\)</span> sampling
+units, so <span class="math inline">\(Q_1\)</span> counts uniques (found
+at one site), <span class="math inline">\(Q_2\)</span> duplicates (found
+at two sites), and so on. The number of sampling units is <span class="math inline">\(m\)</span>. Singletons and uniques are the key
+quantity. Their abundance answers a Good-Turing question: how much
+probability mass sits on species not yet seen. Many singletons mean a
+large unseen pool; zero singletons mean the unseen pool is, to first
+order, empty.</p>
+<p>Chao1 and Chao2 turn that intuition into a minimum-variance lower
+bound on richness, built from <span class="math inline">\(f_1,
+f_2\)</span> (or <span class="math inline">\(Q_1, Q_2\)</span>) alone.
+ACE takes a coverage route: it splits species into a rare group and an
+abundant group at an abundance threshold, estimates the sample coverage
+of the rare group from its singleton fraction, and inflates the rare
+count by the inverse of that coverage, with a further correction for how
+unevenly the rare species are distributed. The jackknife estimators come
+from resampling theory rather than coverage theory. They ask how the
+observed count would change if sampling units were deleted one at a
+time, and extrapolate the resulting bias. The first-order jackknife uses
+only <span class="math inline">\(Q_1\)</span>; the second-order form
+adds a <span class="math inline">\(Q_2\)</span> term. The bootstrap
+estimator takes yet another route, summing each species’ probability of
+being missed entirely across all <span class="math inline">\(m\)</span>
+units. A species present at half the units contributes a tiny
+correction, while one present at a single unit contributes most of its
+weight, so the bootstrap, like the Chao bounds, draws almost all of its
+correction from the rare end of the occurrence distribution.</p>
+<p>The improved estimators address a known weakness of the original Chao
+bounds. Chao1 and Chao2 use information only up to doubletons, which
+makes them conservative when a sample is small enough that tripletons
+and quadrupletons still carry signal. iChao1 and iChao2 add a correction
+built from <span class="math inline">\(f_3, f_4\)</span> (respectively
+<span class="math inline">\(Q_3, Q_4\)</span>) that raises the estimate
+when the rare tail is heavy, and that vanishes when <span class="math inline">\(f_4 = 0\)</span> (respectively <span class="math inline">\(Q_4 = 0\)</span>), at which point the improved
+estimator returns exactly its Chao parent. The improved estimators are
+therefore always at least as large as their standard counterparts, and
+the gap between them is itself a diagnostic for how far from saturation
+a sample sits.</p>
+<p>All estimators in <strong>spacc</strong> return a
+<code>spacc_estimate</code> object carrying the point estimate, a
+standard error, a 95% confidence interval, the observed richness, and
+the rare-frequency counts that drove the calculation. The Chao-family
+intervals are log-transformed so the lower bound never drops below <span class="math inline">\(S_{obs}\)</span>, which is the correct behaviour
+for a quantity that can only be underestimated.</p>
 </div>
 <div class="section level2">
 <h2 id="data-setup">Data setup<a class="anchor" aria-label="anchor" href="#data-setup"></a>
 </h2>
+<p>The simulated community has a true richness of 120 species. Relative
+abundances are log-normal, so a few species dominate and a long tail is
+rare. Eighty sampling units each draw 25 individuals at random, which
+leaves several true species undetected and many detected only once or
+twice. The observed richness sits below 120, and the gap is what the
+estimators must recover.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 50 sites, 30 species, moderate rarity</span></span>
-<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">50</span> <span class="op">*</span> <span class="fl">30</span>, lambda <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">S_true</span> <span class="op">&lt;-</span> <span class="fl">120</span></span>
+<span><span class="va">rel</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">S_true</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rel</span> <span class="op">&lt;-</span> <span class="va">rel</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">rel</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">n_sites</span> <span class="op">&lt;-</span> <span class="fl">80</span></span>
+<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_sites</span><span class="op">)</span>,</span>
+<span>                    <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html" class="external-link">rmultinom</a></span><span class="op">(</span><span class="fl">1</span>, size <span class="op">=</span> <span class="fl">25</span>, prob <span class="op">=</span> <span class="va">rel</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="va">species</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>  <span class="co"># detected species</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">S_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">ab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>S_true <span class="op">=</span> <span class="va">S_true</span>, S_obs <span class="op">=</span> <span class="va">S_obs</span>,</span>
+<span>           f1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ab</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span>, f2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ab</span> <span class="op">==</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>           f3 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ab</span> <span class="op">==</span> <span class="fl">3</span><span class="op">)</span>, f4 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ab</span> <span class="op">==</span> <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   S_true S_obs f1 f2 f3 f4</span></span>
+<span><span class="co">#&gt; 1    120   113 11 15 11  8</span></span></code></pre></div>
+<p>The rare-frequency counts confirm the sample is informative but not
+saturated: several singletons and doubletons feed the Chao bounds, and
+non-zero tripletons and quadrupletons mean the improved estimators have
+something to correct.</p>
 </div>
 <div class="section level2">
 <h2 id="non-parametric-richness-estimators">Non-parametric richness estimators<a class="anchor" aria-label="anchor" href="#non-parametric-richness-estimators"></a>
 </h2>
-<p>All estimators return a <code>spacc_estimate</code> object with point
-estimate, standard error, and 95% confidence interval.</p>
+<p>Each estimator is a one-line call on the site-by-species matrix.
+Abundance-based estimators pool the columns into total counts;
+incidence-based estimators binarize first. The print method reports the
+observed count, the estimate, the standard error, and the interval.</p>
 <div class="section level3">
 <h3 id="abundance-based-chao1-and-ace">Abundance-based: Chao1 and ACE<a class="anchor" aria-label="anchor" href="#abundance-based-chao1-and-ace"></a>
 </h3>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Richness Estimator: chao1</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       117.0</span></span>
+<span><span class="co">#&gt; Standard error:           3.0</span></span>
+<span><span class="co">#&gt; 95% CI:                   [114.1, 127.8]</span></span>
 <span><span class="fu">spacc</span><span class="fu">::</span><span class="fu"><a href="../reference/ace.html">ace</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Richness Estimator: ace</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span></code></pre></div>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       119.1</span></span>
+<span><span class="co">#&gt; Standard error:           37.2</span></span>
+<span><span class="co">#&gt; 95% CI:                   [113.1, 369.8]</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="incidence-based-chao2-and-jackknife">Incidence-based: Chao2 and jackknife<a class="anchor" aria-label="anchor" href="#incidence-based-chao2-and-jackknife"></a>
 </h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Richness Estimator: chao2</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       117.0</span></span>
+<span><span class="co">#&gt; Standard error:           3.3</span></span>
+<span><span class="co">#&gt; 95% CI:                   [114.0, 129.4]</span></span>
 <span><span class="fu"><a href="../reference/jackknife.html">jackknife</a></span><span class="op">(</span><span class="va">species</span>, order <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Richness Estimator: jackknife1</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       123.9</span></span>
+<span><span class="co">#&gt; Standard error:           260.4</span></span>
+<span><span class="co">#&gt; 95% CI:                   [113.0, 634.2]</span></span>
 <span><span class="fu"><a href="../reference/jackknife.html">jackknife</a></span><span class="op">(</span><span class="va">species</span>, order <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Richness Estimator: jackknife2</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span></code></pre></div>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       120.1</span></span>
+<span><span class="co">#&gt; Standard error:           7.5</span></span>
+<span><span class="co">#&gt; 95% CI:                   [113.0, 134.8]</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="bootstrap-estimator">Bootstrap estimator<a class="anchor" aria-label="anchor" href="#bootstrap-estimator"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/bootstrap_richness.html">bootstrap_richness</a></span><span class="op">(</span><span class="va">species</span>, n_boot <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Richness Estimator: bootstrap</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span></code></pre></div>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       119.7</span></span>
+<span><span class="co">#&gt; Standard error:           3.2</span></span>
+<span><span class="co">#&gt; 95% CI:                   [113.0, 118.7]</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="comparison-table">Comparison table<a class="anchor" aria-label="anchor" href="#comparison-table"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">estimators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>,</span>
-<span>  <span class="fu">spacc</span><span class="fu">::</span><span class="fu"><a href="../reference/ace.html">ace</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="../reference/jackknife.html">jackknife</a></span><span class="op">(</span><span class="va">species</span>, order <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="../reference/jackknife.html">jackknife</a></span><span class="op">(</span><span class="va">species</span>, order <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>, <span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>, <span class="fu">spacc</span><span class="fu">::</span><span class="fu"><a href="../reference/ace.html">ace</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="../reference/jackknife.html">jackknife</a></span><span class="op">(</span><span class="va">species</span>, order <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="../reference/jackknife.html">jackknife</a></span><span class="op">(</span><span class="va">species</span>, order <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="../reference/bootstrap_richness.html">bootstrap_richness</a></span><span class="op">(</span><span class="va">species</span>, n_boot <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">estimators</span>, <span class="va">as.data.frame</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    estimator S_obs estimate se lower upper</span></span>
-<span><span class="co">#&gt; 1      chao1    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 2      chao2    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 3        ace    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 4 jackknife1    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 5 jackknife2    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 6  bootstrap    30       30  0    30    30</span></span></code></pre></div>
+<span><span class="va">tab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">estimators</span>, <span class="va">as.data.frame</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tab</span><span class="op">$</span><span class="va">gap_to_truth</span> <span class="op">&lt;-</span> <span class="va">S_true</span> <span class="op">-</span> <span class="va">tab</span><span class="op">$</span><span class="va">estimate</span></span>
+<span><span class="va">tab</span></span>
+<span><span class="co">#&gt;    estimator S_obs estimate         se    lower    upper gap_to_truth</span></span>
+<span><span class="co">#&gt; 1      chao1   113 117.0333   3.002789 114.0975 127.8232    2.9666667</span></span>
+<span><span class="co">#&gt; 2      chao2   113 116.9829   3.287717 113.9696 129.3604    3.0170833</span></span>
+<span><span class="co">#&gt; 3        ace   113 119.1117  37.166285 113.1455 369.7607    0.8882910</span></span>
+<span><span class="co">#&gt; 4 jackknife1   113 123.8625 260.367721 113.0000 634.1832   -3.8625000</span></span>
+<span><span class="co">#&gt; 5 jackknife2   113 120.1476   7.470878 113.0000 134.7905   -0.1476266</span></span>
+<span><span class="co">#&gt; 6  bootstrap   113 119.7154   3.345286 113.0000 117.6051    0.2846335</span></span></code></pre></div>
+<p>Every estimate lies above the observed count and below or near the
+true 120. The bootstrap and the bias-corrected Chao bounds sit lowest,
+the jackknives highest, which matches the textbook ordering for a
+moderately under-sampled community.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="improved-chao-estimators-ichao1ichao2">Improved Chao estimators (iChao1/iChao2)<a class="anchor" aria-label="anchor" href="#improved-chao-estimators-ichao1ichao2"></a>
+<h2 id="mathematical-detail">Mathematical detail<a class="anchor" aria-label="anchor" href="#mathematical-detail"></a>
 </h2>
-<p>The improved estimators (Chiu et al. 2014) use tripletons (f3) and
-quadrupletons (f4) to reduce negative bias, particularly for
-under-sampled communities.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>The formulas below are the ones <strong>spacc</strong> evaluates,
+read directly from <code>R/estimators.R</code>. Symbols are as defined
+above: <span class="math inline">\(S_{obs}\)</span> observed richness,
+<span class="math inline">\(f_k\)</span> abundance frequency counts,
+<span class="math inline">\(Q_k\)</span> incidence frequency counts, and
+<span class="math inline">\(m\)</span> the number of sampling units.</p>
+<div class="section level3">
+<h3 id="chao1">Chao1<a class="anchor" aria-label="anchor" href="#chao1"></a>
+</h3>
+<p>When at least one doubleton is present, Chao1 uses the classic ratio
+of squared singletons to doubletons:</p>
+<p><span class="math display">\[
+S_{Chao1} = S_{obs} + \frac{f_1^2}{2 f_2}, \qquad f_2 &gt; 0 .
+\]</span></p>
+<p>When <span class="math inline">\(f_2 = 0\)</span> the ratio is
+undefined and <strong>spacc</strong> switches to the bias-corrected
+form, which replaces the doubleton denominator with a count-based
+expression:</p>
+<p><span class="math display">\[
+S_{Chao1} = S_{obs} + \frac{f_1 (f_1 - 1)}{2}, \qquad f_2 = 0 .
+\]</span></p>
+<p>The variance follows Chao (1987). With <span class="math inline">\(f_2 &gt; 0\)</span>,</p>
+<p><span class="math display">\[
+\widehat{\mathrm{var}} = f_2 \left[
+\frac{1}{4}\left(\frac{f_1}{f_2}\right)^2
+  + \left(\frac{f_1}{f_2}\right)^3
+  + \frac{1}{4}\left(\frac{f_1}{f_2}\right)^4 \right] ,
+\]</span></p>
+<p>and the standard error is its square root. The confidence interval is
+log-transformed about <span class="math inline">\(T = S_{Chao1} -
+S_{obs}\)</span> so that the lower bound stays at or above <span class="math inline">\(S_{obs}\)</span>.</p>
+</div>
+<div class="section level3">
+<h3 id="chao2">Chao2<a class="anchor" aria-label="anchor" href="#chao2"></a>
+</h3>
+<p>Chao2 is the incidence analogue. It replaces individual frequencies
+with occurrence frequencies and carries a finite-sample factor <span class="math inline">\((m-1)/m\)</span>:</p>
+<p><span class="math display">\[
+S_{Chao2} = S_{obs} + \frac{m-1}{m}\,\frac{Q_1^2}{2 Q_2}, \qquad Q_2
+&gt; 0 .
+\]</span></p>
+<p>When <span class="math inline">\(Q_2 = 0\)</span> the same correction
+structure as Chao1 applies, again scaled by <span class="math inline">\((m-1)/m\)</span>:</p>
+<p><span class="math display">\[
+S_{Chao2} = S_{obs} + \frac{m-1}{m}\,\frac{Q_1 (Q_1 - 1)}{2}, \qquad Q_2
+= 0 .
+\]</span></p>
+<p>The factor <span class="math inline">\((m-1)/m\)</span> tends to one
+as the number of sampling units grows, so the correction matters most
+when <span class="math inline">\(m\)</span> is small.</p>
+</div>
+<div class="section level3">
+<h3 id="ace">ACE<a class="anchor" aria-label="anchor" href="#ace"></a>
+</h3>
+<p>ACE partitions the species into a rare group, those with pooled
+abundance at most the threshold <span class="math inline">\(\tau\)</span> (the <code>threshold</code>
+argument, default 10), and an abundant group above it. Let <span class="math inline">\(S_{rare}\)</span> and <span class="math inline">\(S_{abund}\)</span> be the counts in each group,
+<span class="math inline">\(n_{rare}\)</span> the total individuals in
+the rare group, and <span class="math inline">\(f_1\)</span> the
+singletons. The sample coverage of the rare group is</p>
+<p><span class="math display">\[
+C_{ACE} = 1 - \frac{f_1}{n_{rare}} ,
+\]</span></p>
+<p>and the squared coefficient of variation of the rare abundances
+is</p>
+<p><span class="math display">\[
+\gamma^2 = \max\left( \frac{S_{rare}}{C_{ACE}}
+  \frac{\sum_{i=1}^{\tau} i(i-1)\, f_i}{n_{rare}(n_{rare} - 1)} - 1,\; 0
+\right) .
+\]</span></p>
+<p>The estimate combines the abundant count, the coverage-inflated rare
+count, and a heterogeneity term:</p>
+<p><span class="math display">\[
+S_{ACE} = S_{abund} + \frac{S_{rare}}{C_{ACE}}
+  + \frac{f_1}{C_{ACE}}\, \gamma^2 .
+\]</span></p>
+<p>When no species fall in the rare group, ACE returns <span class="math inline">\(S_{obs}\)</span> unchanged. When the rare group is
+all singletons, <span class="math inline">\(C_{ACE} \le 0\)</span> and
+<strong>spacc</strong> falls back to the Chao1 bias-corrected form.</p>
+</div>
+<div class="section level3">
+<h3 id="jackknife">Jackknife<a class="anchor" aria-label="anchor" href="#jackknife"></a>
+</h3>
+<p>The first-order jackknife adds a single <span class="math inline">\(Q_1\)</span> term scaled by <span class="math inline">\((m-1)/m\)</span>:</p>
+<p><span class="math display">\[
+S_{jack1} = S_{obs} + Q_1 \frac{m-1}{m} .
+\]</span></p>
+<p>The second-order jackknife adds a <span class="math inline">\(Q_2\)</span> term and inflates the <span class="math inline">\(Q_1\)</span> weight:</p>
+<p><span class="math display">\[
+S_{jack2} = S_{obs} + \frac{Q_1 (2m - 3)}{m}
+  - \frac{Q_2 (m - 2)^2}{m(m - 1)} .
+\]</span></p>
+<p>The jackknives are first- and second-order approximations to the bias
+of <span class="math inline">\(S_{obs}\)</span>, and the second-order
+form corrects for curvature that the first misses. The intervals are
+symmetric Gaussian bands truncated at <span class="math inline">\(S_{obs}\)</span> from below.</p>
+</div>
+<div class="section level3">
+<h3 id="bootstrap">Bootstrap<a class="anchor" aria-label="anchor" href="#bootstrap"></a>
+</h3>
+<p>The bootstrap estimator sums each species’ probability of being
+absent from all <span class="math inline">\(m\)</span> units. With <span class="math inline">\(p_i = Q_i / m\)</span> the proportion of units
+occupied by species <span class="math inline">\(i\)</span>,</p>
+<p><span class="math display">\[
+S_{boot} = S_{obs} + \sum_{i=1}^{S_{obs}} (1 - p_i)^{m} .
+\]</span></p>
+<p>The standard error and interval come from <code>n_boot</code>
+resamples of the units (default 200), so they are empirical rather than
+analytic.</p>
+</div>
+<div class="section level3">
+<h3 id="ichao1-and-ichao2">iChao1 and iChao2<a class="anchor" aria-label="anchor" href="#ichao1-and-ichao2"></a>
+</h3>
+<p>The improved estimators (Chiu et al. 2014) add a correction built
+from the next two frequency counts. For iChao1, with <span class="math inline">\(f_4 &gt; 0\)</span> and <span class="math inline">\(f_3 &gt; 0\)</span>,</p>
+<p><span class="math display">\[
+S_{iChao1} = S_{Chao1}
+  + \frac{f_3}{4 f_4} \max\!\left( f_1 - \frac{f_2 f_3}{2 f_4},\; 0
+\right) .
+\]</span></p>
+<p>For iChao2 the incidence quantities take over,</p>
+<p><span class="math display">\[
+S_{iChao2} = S_{Chao2}
+  + \frac{Q_3}{4 Q_4} \max\!\left( Q_1 - \frac{Q_2 Q_3}{2 Q_4},\; 0
+\right) .
+\]</span></p>
+<p>When <span class="math inline">\(f_4 = 0\)</span> (respectively <span class="math inline">\(Q_4 = 0\)</span>) the correction term is dropped
+and the improved estimator returns exactly its Chao parent. The <span class="math inline">\(\max(\cdot, 0)\)</span> guard keeps the correction
+non-negative, which is why the improved estimates are always at least as
+large as the standard ones.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r_ichao1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/iChao1.html">iChao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="va">r_ichao2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/iChao2.html">iChao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
-<span></span>
 <span><span class="va">r_ichao1</span></span>
 <span><span class="co">#&gt; Richness Estimator: iChao1</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       117.3</span></span>
+<span><span class="co">#&gt; Standard error:           3.3</span></span>
+<span><span class="co">#&gt; 95% CI:                   [114.1, 129.5]</span></span>
 <span><span class="va">r_ichao2</span></span>
 <span><span class="co">#&gt; Richness Estimator: iChao2</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
-<span><span class="co">#&gt; Observed species (S_obs): 30</span></span>
-<span><span class="co">#&gt; Estimated richness:       30.0</span></span>
-<span><span class="co">#&gt; Standard error:           0.0</span></span>
-<span><span class="co">#&gt; 95% CI:                   [30.0, 30.0]</span></span></code></pre></div>
-<p>Compare with standard Chao:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">r_ichao1</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">r_ichao2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
+<span><span class="co">#&gt; Estimated richness:       117.0</span></span>
+<span><span class="co">#&gt; Standard error:           3.9</span></span>
+<span><span class="co">#&gt; 95% CI:                   [113.8, 132.6]</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ich</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">r_ichao1</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">r_ichao2</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt;   estimator S_obs estimate se lower upper</span></span>
-<span><span class="co">#&gt; 1     chao1    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 2    iChao1    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 3     chao2    30       30  0    30    30</span></span>
-<span><span class="co">#&gt; 4    iChao2    30       30  0    30    30</span></span></code></pre></div>
-<p>The iChao estimators are always &gt;= their standard counterparts.
-When f4 or Q4 = 0, they collapse to the standard Chao1/Chao2.</p>
+<span><span class="va">ich</span><span class="op">$</span><span class="va">gap_to_truth</span> <span class="op">&lt;-</span> <span class="va">S_true</span> <span class="op">-</span> <span class="va">ich</span><span class="op">$</span><span class="va">estimate</span></span>
+<span><span class="va">ich</span></span>
+<span><span class="co">#&gt;   estimator S_obs estimate       se    lower    upper gap_to_truth</span></span>
+<span><span class="co">#&gt; 1     chao1   113 117.0333 3.002789 114.0975 127.8232     2.966667</span></span>
+<span><span class="co">#&gt; 2    iChao1   113 117.2697 3.339807 114.1022 129.5398     2.730339</span></span>
+<span><span class="co">#&gt; 3     chao2   113 116.9829 3.287717 113.9696 129.3604     3.017083</span></span>
+<span><span class="co">#&gt; 4    iChao2   113 116.9829 3.854043 113.8096 132.5952     3.017083</span></span></code></pre></div>
+<p>The improved estimates exceed their standard counterparts by a small
+margin here, which is consistent with a sample that is close to but not
+at saturation. A large iChao-minus-Chao gap would flag a heavy rare tail
+and a sample far from complete.</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="sample-completeness-profile">Sample completeness profile<a class="anchor" aria-label="anchor" href="#sample-completeness-profile"></a>
+<h2 id="behaviour-with-sample-size">Behaviour with sample size<a class="anchor" aria-label="anchor" href="#behaviour-with-sample-size"></a>
 </h2>
-<p>The <code><a href="../reference/completenessProfile.html">completenessProfile()</a></code> function shows how sample
-completeness (the proportion of the community represented) changes with
-accumulation:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/completenessProfile.html">completenessProfile</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cp</span><span class="op">)</span></span></code></pre></div>
+<p>The defining property of a useful richness estimator is that it
+climbs toward the truth as effort grows while its standard error
+shrinks. The check is direct: subsample rows of the matrix at increasing
+intensities, recompute the estimate, and average over replicate
+subsamples to smooth the sampling noise. Here Chao1 is tracked across
+eight effort levels, thirty replicates each.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">effort</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span>, <span class="fl">40</span>, <span class="fl">50</span>, <span class="fl">60</span>, <span class="fl">70</span>, <span class="fl">80</span><span class="op">)</span></span>
+<span><span class="va">conv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">effort</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">reps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">30</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span>, <span class="va">k</span><span class="op">)</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">S_obs</span>, <span class="va">e</span><span class="op">$</span><span class="va">estimate</span>, <span class="va">e</span><span class="op">$</span><span class="va">se</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>sites <span class="op">=</span> <span class="va">k</span>, S_obs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">reps</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>             estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">reps</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span>, se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">reps</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">conv</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   sites S_obs estimate   se</span></span>
+<span><span class="co">#&gt; 1    10  68.2     99.2 15.5</span></span>
+<span><span class="co">#&gt; 2    20  87.1    109.3 11.3</span></span>
+<span><span class="co">#&gt; 3    30  95.9    117.1 10.9</span></span>
+<span><span class="co">#&gt; 4    40 102.2    119.5  9.3</span></span>
+<span><span class="co">#&gt; 5    50 106.0    118.2  6.9</span></span>
+<span><span class="co">#&gt; 6    60 109.1    118.6  5.8</span></span>
+<span><span class="co">#&gt; 7    70 111.3    117.5  4.1</span></span>
+<span><span class="co">#&gt; 8    80 113.0    117.0  3.0</span></span></code></pre></div>
+<p>The observed count rises steeply and never catches the truth. The
+Chao1 estimate overshoots a little at low effort, where singleton noise
+dominates, then settles toward 120 from above as more units accumulate.
+The standard error falls monotonically across the eight levels, so the
+estimate becomes both more accurate and more precise with effort.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">conv</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">estimate</span> <span class="op">-</span> <span class="va">se</span>, ymax <span class="op">=</span> <span class="va">estimate</span> <span class="op">+</span> <span class="va">se</span><span class="op">)</span>,</span>
+<span>              fill <span class="op">=</span> <span class="st">"#4CAF50"</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">estimate</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"#4CAF50"</span>, linewidth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">S_obs</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"#78909C"</span>, linewidth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="va">S_true</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Sampling units"</span>, y <span class="op">=</span> <span class="st">"Richness"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"Chao1 estimate (green) and observed count (grey) vs effort"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
+<span>        plot.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
 <svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
 <g class='svglite'>
@@ -307,7 +577,221 @@ accumulation:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.07; stroke: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpMzguMDJ8NDk4LjUyfDIzLjE4fDMyOC41MA=='>
+    <rect x='38.02' y='23.18' width='460.50' height='305.33' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzguMDJ8NDk4LjUyfDIzLjE4fDMyOC41MA==)'>
+<rect x='38.02' y='23.18' width='460.50' height='305.33' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<polyline points='38.02,306.54 498.52,306.54 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='38.02,214.97 498.52,214.97 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='38.02,123.39 498.52,123.39 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='38.02,31.82 498.52,31.82 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='58.95,328.50 58.95,23.18 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='178.56,328.50 178.56,23.18 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='298.17,328.50 298.17,23.18 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='417.78,328.50 417.78,23.18 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='38.02,260.75 498.52,260.75 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='38.02,169.18 498.52,169.18 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='38.02,77.61 498.52,77.61 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='118.76,328.50 118.76,23.18 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='238.37,328.50 238.37,23.18 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='357.98,328.50 357.98,23.18 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='477.59,328.50 477.59,23.18 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polygon points='58.95,102.20 118.76,74.93 178.56,40.86 238.37,37.06 298.17,54.32 357.98,57.60 417.78,70.27 477.59,77.44 477.59,104.94 417.78,107.90 357.98,110.42 298.17,117.60 238.37,122.59 178.56,141.00 118.76,178.07 58.95,243.74 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
+<polyline points='58.95,102.20 118.76,74.93 178.56,40.86 238.37,37.06 298.17,54.32 357.98,57.60 417.78,70.27 477.59,77.44 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.59,104.94 417.78,107.90 357.98,110.42 298.17,117.60 238.37,122.59 178.56,141.00 118.76,178.07 58.95,243.74 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='58.95,172.97 118.76,126.50 178.56,90.93 238.37,79.82 298.17,85.96 357.98,84.01 417.78,89.08 477.59,91.19 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
+<polyline points='58.95,314.63 118.76,228.40 178.56,187.95 238.37,159.11 298.17,141.86 357.98,127.52 417.78,117.44 477.59,109.66 ' style='stroke-width: 2.13; stroke: #78909C; stroke-linecap: butt;' />
+<line x1='38.02' y1='77.61' x2='498.52' y2='77.61' style='stroke-width: 1.07; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='33.09' y='263.90' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='33.09' y='172.33' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='14.67px' lengthAdjust='spacingAndGlyphs'>100</text>
+<text x='33.09' y='80.76' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='14.67px' lengthAdjust='spacingAndGlyphs'>120</text>
+<polyline points='35.28,260.75 38.02,260.75 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='35.28,169.18 38.02,169.18 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='35.28,77.61 38.02,77.61 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='118.76,331.24 118.76,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='238.37,331.24 238.37,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='357.98,331.24 357.98,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='477.59,331.24 477.59,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<text x='118.76' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='238.37' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='357.98' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='477.59' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='268.27' y='352.20' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='72.19px' lengthAdjust='spacingAndGlyphs'>Sampling units</text>
+<text transform='translate(13.36,175.84) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='45.25px' lengthAdjust='spacingAndGlyphs'>Richness</text>
+<text x='38.02' y='14.93' style='font-size: 13.20px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='346.22px' lengthAdjust='spacingAndGlyphs'>Chao1 estimate (green) and observed count (grey) vs effort</text>
+</g>
+</g>
+</svg></div></p>
+<p>The dashed line marks the true 120. The green band is the Chao1
+estimate plus or minus one standard error; the grey line is the observed
+count. The gap between grey and dashed is the deficit the estimator
+exists to close, and the green band closes most of it by the time half
+the units are in.</p>
+</div>
+<div class="section level2">
+<h2 id="tuning">Tuning<a class="anchor" aria-label="anchor" href="#tuning"></a>
+</h2>
+<p>Most of the estimators have no free parameters: Chao1, Chao2, iChao1,
+and iChao2 are determined entirely by the frequency counts. Three
+estimators expose a knob.</p>
+<p>The ACE threshold <span class="math inline">\(\tau\)</span>
+(<code>threshold</code>, default 10) sets the abundance boundary between
+the rare and abundant groups. Only the rare group contributes to the
+coverage and heterogeneity correction, so <span class="math inline">\(\tau\)</span> controls how much of the
+distribution ACE treats as informative about unseen species. The default
+of 10 follows Chao &amp; Lee (1992) and works for most samples. Raising
+it pulls more moderately common species into the rare group, which can
+stabilise the estimate when the rare group is otherwise tiny, at the
+cost of diluting the singleton signal. Lowering it sharpens the focus on
+the rarest species but can leave too few rare individuals for <span class="math inline">\(C_{ACE}\)</span> to be stable.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">10</span>, <span class="fl">15</span>, <span class="fl">20</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">th</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">spacc</span><span class="fu">::</span><span class="fu"><a href="../reference/ace.html">ace</a></span><span class="op">(</span><span class="va">species</span>, threshold <span class="op">=</span> <span class="va">th</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>threshold <span class="op">=</span> <span class="va">th</span>, estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">estimate</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>             se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">se</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   threshold estimate   se</span></span>
+<span><span class="co">#&gt; 1         5    117.7 19.8</span></span>
+<span><span class="co">#&gt; 2        10    119.1 37.2</span></span>
+<span><span class="co">#&gt; 3        15    120.0 65.5</span></span>
+<span><span class="co">#&gt; 4        20    120.7 80.3</span></span></code></pre></div>
+<p>The jackknife order chooses between bias corrections. The first order
+uses <span class="math inline">\(Q_1\)</span> alone and tends to
+under-correct in heterogeneous communities; the second adds a <span class="math inline">\(Q_2\)</span> term and corrects more aggressively,
+at the price of higher variance. The package default is
+<code>order = 1</code>. A common selection rule moves to
+<code>order = 2</code> when the first-order estimate still sits far
+below a more information-hungry estimator such as Chao2 or iChao2,
+signalling residual bias that the extra term can absorb.</p>
+<p>The bootstrap <code>n_boot</code> (default 200) sets the number of
+unit resamples behind the standard error and the percentile interval.
+The point estimate is the closed-form sum above and does not change with
+it. Small values such as 50 give a noisy interval; values of 200 or more
+give a stable one. The vignette uses 100 to keep build time short, which
+is adequate for illustration but light for a reported analysis.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span>, <span class="fl">500</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nb</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bootstrap_richness.html">bootstrap_richness</a></span><span class="op">(</span><span class="va">species</span>, n_boot <span class="op">=</span> <span class="va">nb</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n_boot <span class="op">=</span> <span class="va">nb</span>, estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">estimate</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>             se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">se</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   n_boot estimate   se</span></span>
+<span><span class="co">#&gt; 1     50    119.7 3.48</span></span>
+<span><span class="co">#&gt; 2    100    119.7 2.88</span></span>
+<span><span class="co">#&gt; 3    500    119.7 3.10</span></span></code></pre></div>
+<p>The point estimate is identical across <code>n_boot</code>,
+confirming that the knob touches only the uncertainty, while the
+standard error settles as the resample count rises.</p>
+</div>
+<div class="section level2">
+<h2 id="comparison-to-alternatives">Comparison to alternatives<a class="anchor" aria-label="anchor" href="#comparison-to-alternatives"></a>
+</h2>
+<p><code>iNEXT</code> is the standard reference implementation for
+asymptotic richness. Its <code>ChaoRichness()</code> computes the same
+Chao1 lower bound on pooled abundance data, so it offers a clean
+cross-check on identical input. The agreement table places the
+<strong>spacc</strong> Chao1 alongside the <code>iNEXT</code> estimate
+and the true richness.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cr</span> <span class="op">&lt;-</span> <span class="fu">iNEXT</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/iNEXT/man/ChaoRichness.html" class="external-link">ChaoRichness</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>, datatype <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
+<span><span class="va">sp_c1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"spacc::chao1"</span>, <span class="st">"iNEXT::ChaoRichness"</span>, <span class="st">"truth"</span><span class="op">)</span>,</span>
+<span>  estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">sp_c1</span><span class="op">$</span><span class="va">estimate</span>, <span class="va">cr</span><span class="op">[[</span><span class="st">"Estimator"</span><span class="op">]</span><span class="op">]</span>, <span class="va">S_true</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">sp_c1</span><span class="op">$</span><span class="va">se</span>, <span class="va">cr</span><span class="op">[[</span><span class="st">"Est_s.e."</span><span class="op">]</span><span class="op">]</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;                source estimate   se</span></span>
+<span><span class="co">#&gt; 1        spacc::chao1   117.03 3.00</span></span>
+<span><span class="co">#&gt; 2 iNEXT::ChaoRichness   117.03 3.32</span></span>
+<span><span class="co">#&gt; 3               truth   120.00   NA</span></span></code></pre></div>
+<p>The two Chao1 implementations agree to the displayed precision, which
+is the expected result for the same estimator on the same counts. Any
+residual difference would trace to interval conventions rather than the
+point estimate. Both land below the true 120, the conservative-by-design
+behaviour of a lower bound on a moderately incomplete sample.</p>
+</div>
+<div class="section level2">
+<h2 id="sample-completeness-profile">Sample completeness profile<a class="anchor" aria-label="anchor" href="#sample-completeness-profile"></a>
+</h2>
+<p>Richness is the diversity order <span class="math inline">\(q =
+0\)</span>, where every species counts equally and the rare tail
+dominates. <code><a href="../reference/completenessProfile.html">completenessProfile()</a></code> extends the completeness
+idea across the Hill spectrum, reporting the ratio of observed to
+estimated diversity at each order:</p>
+<p><span class="math display">\[
+C_q = \frac{D_q^{obs}}{D_q^{est}} ,
+\]</span></p>
+<p>where <span class="math inline">\(D_q^{obs}\)</span> is the observed
+Hill number of order <span class="math inline">\(q\)</span> and <span class="math inline">\(D_q^{est}\)</span> its estimated asymptote.
+Completeness near one means the sample captures most of the true
+diversity at that order.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/completenessProfile.html">completenessProfile</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="va">cp</span></span>
+<span><span class="co">#&gt; Sample Completeness Profile: 80 sites, 113 species</span></span>
+<span><span class="co">#&gt; ---------------------------------------- </span></span>
+<span><span class="co">#&gt;    q observed estimated completeness</span></span>
+<span><span class="co">#&gt;  0.0   113.00    117.03        0.966</span></span>
+<span><span class="co">#&gt;  0.2    95.34     98.84        0.965</span></span>
+<span><span class="co">#&gt;  0.4    80.51     83.47        0.965</span></span>
+<span><span class="co">#&gt;  0.6    68.27     70.49        0.969</span></span>
+<span><span class="co">#&gt;  0.8    58.28     59.53        0.979</span></span>
+<span><span class="co">#&gt;  1.0    50.20     50.28        0.998</span></span>
+<span><span class="co">#&gt;  1.2    43.68     44.84        0.974</span></span>
+<span><span class="co">#&gt;  1.4    38.43     39.99        0.961</span></span>
+<span><span class="co">#&gt;  1.6    34.20     35.67        0.959</span></span>
+<span><span class="co">#&gt;  1.8    30.77     31.82        0.967</span></span>
+<span><span class="co">#&gt;  2.0    27.99     28.38        0.986</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cp</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
+<span>        plot.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00' class="r-plt inline-svg" style="max-width:100%;width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNDQuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
@@ -315,18 +799,19 @@ accumulation:</p>
   </clipPath>
 </defs>
 <g clip-path='url(#cpNDQuMTJ8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
-<polyline points='64.75,67.52 106.02,67.52 147.28,67.52 188.54,67.52 229.81,67.52 271.07,67.52 312.33,68.00 353.60,68.49 394.86,68.98 436.13,69.46 477.39,69.95 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
-<circle cx='64.75' cy='67.52' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='106.02' cy='67.52' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='147.28' cy='67.52' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='188.54' cy='67.52' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='229.81' cy='67.52' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='271.07' cy='67.52' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='312.33' cy='68.00' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='353.60' cy='68.49' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='394.86' cy='68.98' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='436.13' cy='69.46' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='477.39' cy='69.95' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<rect x='44.12' y='42.38' width='453.90' height='283.28' style='stroke-width: 1.16;' />
+<polyline points='64.75,75.97 106.02,76.20 147.28,76.20 188.54,75.24 229.81,72.66 271.07,67.90 312.33,73.87 353.60,77.11 394.86,77.65 436.13,75.54 477.39,70.84 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
+<circle cx='64.75' cy='75.97' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='106.02' cy='76.20' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='147.28' cy='76.20' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='188.54' cy='75.24' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='229.81' cy='72.66' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='271.07' cy='67.90' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='312.33' cy='73.87' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='353.60' cy='77.11' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='394.86' cy='77.65' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='436.13' cy='75.54' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='477.39' cy='70.84' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
 <line x1='44.12' y1='67.52' x2='498.02' y2='67.52' style='stroke-width: 1.16; stroke: #7F7F7F; stroke-dasharray: 6.21,6.21; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
@@ -342,28 +827,125 @@ accumulation:</p>
 <text x='477.39' y='337.90' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='13.33px' lengthAdjust='spacingAndGlyphs'>2.0</text>
 <text x='271.07' y='351.50' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='95.36px' lengthAdjust='spacingAndGlyphs'>Diversity order (q)</text>
 <text transform='translate(14.57,184.01) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='199.39px' lengthAdjust='spacingAndGlyphs'>Completeness (observed / estimated)</text>
-<text x='44.12' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='105.36px' lengthAdjust='spacingAndGlyphs'>50 sites, 30 species</text>
+<text x='44.12' y='33.88' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='111.14px' lengthAdjust='spacingAndGlyphs'>80 sites, 113 species</text>
 <text x='44.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='189.56px' lengthAdjust='spacingAndGlyphs'>Sample Completeness Profile</text>
 </g>
 </g>
 </svg></div></p>
+<p>Completeness is lowest at <span class="math inline">\(q = 0\)</span>,
+where undetected rare species bite hardest, and rises toward one as
+<span class="math inline">\(q\)</span> increases and common species,
+which are detected early, take over the weighting. The profile is a
+compact summary of which part of the diversity spectrum a sample
+resolves well: the high-<span class="math inline">\(q\)</span> end here
+is nearly complete, while the richness end carries the residual deficit
+that the non-parametric estimators try to fill. A flat profile near one
+across all orders would mean the survey is essentially complete; a
+profile that sags only at low <span class="math inline">\(q\)</span>, as
+here, localises the incompleteness to the rare species and points to the
+<span class="math inline">\(q = 0\)</span> estimators as the ones that
+still have work to do.</p>
+</div>
+<div class="section level2">
+<h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
+</h2>
+<p>The choice of estimator depends on the data type and the rare tail.
+The rules below use specific frequency counts rather than
+adjectives.</p>
+<p>Use an abundance-based estimator (Chao1, ACE, iChao1) when individual
+counts are trustworthy and pooling them is meaningful. Use an
+incidence-based estimator (Chao2, jackknife, bootstrap, iChao2) when
+only presence or absence per unit is reliable, which covers most plot,
+transect, and trap surveys. Reach for the improved estimators iChao1 or
+iChao2 whenever <span class="math inline">\(f_3, f_4 &gt; 0\)</span>
+(respectively <span class="math inline">\(Q_3, Q_4 &gt; 0\)</span>): the
+rare tail still carries signal, and the standard Chao bound will be
+conservative. When <span class="math inline">\(f_4 = 0\)</span>, iChao1
+returns Chao1, so there is nothing to gain by switching.</p>
+<p>Three rules of thumb with numbers:</p>
+<ol style="list-style-type: decimal">
+<li>With <span class="math inline">\(f_2 = 0\)</span> (no doubletons),
+the standard Chao1 ratio is undefined and <strong>spacc</strong> uses
+the bias-corrected form. Treat any estimate from a <span class="math inline">\(f_2 = 0\)</span> sample as a soft lower bound
+only, since a single observed doubleton can move it substantially.</li>
+<li>Aim for at least 20 sampling units before trusting an incidence
+estimator. The <span class="math inline">\((m-1)/m\)</span> factor in
+Chao2 and the bias terms in the jackknives are unstable when <span class="math inline">\(m\)</span> is in single digits, and the
+convergence table above shows the estimate still drifting below <span class="math inline">\(m = 30\)</span>.</li>
+<li>When the iChao-minus-Chao gap exceeds roughly 10% of <span class="math inline">\(S_{obs}\)</span>, read it as a warning that the
+sample is far from saturation and the point estimate is a weak lower
+bound; collect more data rather than report a single number.</li>
+</ol>
+<p>When estimates are unreliable: a sample with <span class="math inline">\(f_1 \approx S_{obs}\)</span> (almost every species
+a singleton) gives an enormous, badly determined Chao1 estimate with a
+standard error of the same order as the estimate itself, as the ACE row
+in the comparison table illustrates. The jackknives inflate without
+bound in that regime. The honest report there is the observed count plus
+a statement that the community is under-sampled, not a precise-looking
+estimate.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  data_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"abundance"</span>, <span class="st">"abundance"</span>, <span class="st">"abundance"</span>,</span>
+<span>                <span class="st">"incidence"</span>, <span class="st">"incidence"</span>, <span class="st">"incidence"</span><span class="op">)</span>,</span>
+<span>  estimator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chao1"</span>, <span class="st">"ace"</span>, <span class="st">"iChao1"</span>,</span>
+<span>                <span class="st">"chao2"</span>, <span class="st">"jackknife"</span>, <span class="st">"iChao2"</span><span class="op">)</span>,</span>
+<span>  use_when <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"counts reliable, f2 &gt; 0"</span>,</span>
+<span>               <span class="st">"many rare species, heterogeneous"</span>,</span>
+<span>               <span class="st">"f3, f4 &gt; 0, sample incomplete"</span>,</span>
+<span>               <span class="st">"presence/absence, m &gt;= 20"</span>,</span>
+<span>               <span class="st">"incidence, simple bias correction"</span>,</span>
+<span>               <span class="st">"Q3, Q4 &gt; 0, sample incomplete"</span><span class="op">)</span>,</span>
+<span>  unreliable_when <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"f2 = 0"</span>, <span class="st">"C_ace &lt;= 0 (all singletons)"</span>, <span class="st">"f4 = 0"</span>,</span>
+<span>                      <span class="st">"Q2 = 0 or m &lt; 10"</span>, <span class="st">"few units"</span>, <span class="st">"Q4 = 0"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;   data_type estimator                          use_when</span></span>
+<span><span class="co">#&gt; 1 abundance     chao1           counts reliable, f2 &gt; 0</span></span>
+<span><span class="co">#&gt; 2 abundance       ace  many rare species, heterogeneous</span></span>
+<span><span class="co">#&gt; 3 abundance    iChao1     f3, f4 &gt; 0, sample incomplete</span></span>
+<span><span class="co">#&gt; 4 incidence     chao2         presence/absence, m &gt;= 20</span></span>
+<span><span class="co">#&gt; 5 incidence jackknife incidence, simple bias correction</span></span>
+<span><span class="co">#&gt; 6 incidence    iChao2     Q3, Q4 &gt; 0, sample incomplete</span></span>
+<span><span class="co">#&gt;               unreliable_when</span></span>
+<span><span class="co">#&gt; 1                      f2 = 0</span></span>
+<span><span class="co">#&gt; 2 C_ace &lt;= 0 (all singletons)</span></span>
+<span><span class="co">#&gt; 3                      f4 = 0</span></span>
+<span><span class="co">#&gt; 4            Q2 = 0 or m &lt; 10</span></span>
+<span><span class="co">#&gt; 5                   few units</span></span>
+<span><span class="co">#&gt; 6                      Q4 = 0</span></span></code></pre></div>
+<p>Minimum-sample guidance follows the same logic. Abundance estimators
+need enough total individuals that singletons and doubletons are
+countable, on the order of a few hundred for a community of dozens of
+species. Incidence estimators need on the order of 20 or more sampling
+units before the finite-sample corrections settle. Below those
+thresholds the estimators still return a number, but the number is
+governed by sampling noise in <span class="math inline">\(f_1\)</span>
+or <span class="math inline">\(Q_1\)</span> rather than by the structure
+of the community.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
+<li>Burnham, K.P. &amp; Overton, W.S. (1978). Estimation of the size of
+a closed population when capture probabilities vary among animals.
+<em>Biometrika</em>, 65, 625-633.</li>
 <li>Chao, A. (1984). Nonparametric estimation of the number of classes
 in a population. <em>Scandinavian Journal of Statistics</em>, 11,
 265-270.</li>
 <li>Chao, A. (1987). Estimating the population size for
 capture-recapture data with unequal catchability. <em>Biometrics</em>,
 43, 783-791.</li>
-<li>Chiu, C.H., Wang, Y.T., Walther, B.A. &amp; Chao, A. (2014). An
-improved nonparametric lower bound of species richness via a modified
-Good-Turing frequency formula. <em>Biometrics</em>, 70, 671-682.</li>
 <li>Chao, A. &amp; Lee, S.M. (1992). Estimating the number of classes
 via sample coverage. <em>Journal of the American Statistical
 Association</em>, 87, 210-217.</li>
+<li>Chao, A. &amp; Jost, L. (2012). Coverage-based rarefaction and
+extrapolation: standardizing samples by completeness rather than size.
+<em>Ecology</em>, 93, 2533-2547.</li>
+<li>Chiu, C.H., Wang, Y.T., Walther, B.A. &amp; Chao, A. (2014). An
+improved nonparametric lower bound of species richness via a modified
+Good-Turing frequency formula. <em>Biometrics</em>, 70, 671-682.</li>
+<li>Smith, E.P. &amp; van Belle, G. (1984). Nonparametric estimation of
+species richness. <em>Biometrics</em>, 40, 119-129.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

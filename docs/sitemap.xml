@@ -43,6 +43,7 @@
 <url><loc>https://gillescolling.com/spacc/reference/compare.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/compareModels.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/completenessProfile.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/confint.spacc_fit.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/cpp_beta_knn_parallel.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/cpp_beta_knn_single.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/cpp_collector_single.html</loc></url>
@@ -83,6 +84,7 @@
 <url><loc>https://gillescolling.com/spacc/reference/diversityProfilePhylo.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/evenness.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/extrapolate.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/extrapolateArea.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/extrapolateCoverage.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/gammaDiversity.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/iChao1.html</loc></url>
@@ -95,6 +97,8 @@
 <url><loc>https://gillescolling.com/spacc/reference/plot.spacc.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/plot.spacc_metrics.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/predict.spacc.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/predict.spacc_area.html</loc></url>
+<url><loc>https://gillescolling.com/spacc/reference/predict.spacc_fit.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/rarefy.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/ses.html</loc></url>
 <url><loc>https://gillescolling.com/spacc/reference/sesars.html</loc></url>

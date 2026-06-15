@@ -25,6 +25,13 @@
 
 ## Bug Fixes
 
+- `plot()` on a `spacc_endemism` object no longer lists "Endemic species" twice
+  in the legend. The confidence-band fill was drawn as its own guide because the
+  ribbon covered only the endemism series; that fill guide is now suppressed so a
+  single line-colour legend remains.
+- Removed a stray blank line beneath the y-axis title in `plot()` for
+  `spacc_beta` objects.
+
 - `extrapolate()` asymptote confidence intervals are no longer over-confident.
   The previous `confint()` used an `nls` profile interval on the (ultra-smooth)
   mean curve, ignoring across-seed variability; it could exclude the truth in

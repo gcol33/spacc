@@ -5,9 +5,9 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet"><meta property="og:title" content="Extrapolate Total Species Richness — extrapolate"><meta name="description" content="Fit an asymptotic model to estimate total species richness beyond
-the observed sampling effort."><meta property="og:description" content="Fit an asymptotic model to estimate total species richness beyond
-the observed sampling effort."></head><body><p>
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet"><meta property="og:title" content="Extrapolate Total Species Richness — extrapolate"><meta name="description" content="Fit an asymptotic model to the spatial accumulation curve and estimate total
+species richness beyond the observed sampling effort."><meta property="og:description" content="Fit an asymptotic model to the spatial accumulation curve and estimate total
+species richness beyond the observed sampling effort."></head><body><p>
 
 
 
@@ -28,7 +28,7 @@ the observed sampling effort."></head><body><p>
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,8 +77,8 @@ the observed sampling effort."></head><body><p>
     </div>
 
     <div class="ref-description section level2">
-    <p>Fit an asymptotic model to estimate total species richness beyond
-the observed sampling effort.</p>
+    <p>Fit an asymptotic model to the spatial accumulation curve and estimate total
+species richness beyond the observed sampling effort.</p>
     </div>
 
     <div class="section level2">
@@ -86,6 +86,11 @@ the observed sampling effort.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">extrapolate</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
 <span>  model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"michaelis-menten"</span>, <span class="st">"lomolino"</span>, <span class="st">"asymptotic"</span>, <span class="st">"weibull"</span>, <span class="st">"logistic"</span>, <span class="st">"evt"</span><span class="op">)</span>,</span>
+<span>  interval <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bootstrap"</span>, <span class="st">"profile"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  R <span class="op">=</span> <span class="fl">200L</span>,</span>
+<span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  compare <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  warn_ratio <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -104,6 +109,34 @@ the observed sampling effort.</p>
 (Extreme Value Theory, Borda-de-Agua et al. 2025).</p></dd>
 
 
+<dt id="arg-interval">interval<a class="anchor" aria-label="anchor" href="#arg-interval"></a></dt>
+<dd><p>Character. How to build the asymptote confidence interval:
+<code>"bootstrap"</code> (default) refits the model across resampled seed curves and
+takes percentile bounds; <code>"profile"</code> uses the (over-confident) <code>nls</code>
+profile interval on the mean-curve fit; <code>"none"</code> skips it.</p></dd>
+
+
+<dt id="arg-r">R<a class="anchor" aria-label="anchor" href="#arg-r"></a></dt>
+<dd><p>Integer. Number of bootstrap refits when <code>interval = "bootstrap"</code>.
+Default 200.</p></dd>
+
+
+<dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
+<dd><p>Numeric. Confidence level for the interval. Default 0.95.</p></dd>
+
+
+<dt id="arg-compare">compare<a class="anchor" aria-label="anchor" href="#arg-compare"></a></dt>
+<dd><p>Logical. If <code>TRUE</code> (default) and the object carries incidence
+frequencies, compare the asymptote to the nonparametric <code><a href="chao2.html">chao2()</a></code> /
+<code><a href="iChao2.html">iChao2()</a></code> estimates and flag large disagreement.</p></dd>
+
+
+<dt id="arg-warn-ratio">warn_ratio<a class="anchor" aria-label="anchor" href="#arg-warn-ratio"></a></dt>
+<dd><p>Numeric. Warn when the fitted asymptote exceeds the
+observed richness by more than this factor. Default 2. Set to <code>Inf</code> to
+silence.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed to <code><a href="https://rdrr.io/r/stats/nls.html" class="external-link">stats::nls()</a></code>.</p></dd>
 
@@ -112,21 +145,49 @@ the observed sampling effort.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>spacc_fit</code> containing:</p>
 <dl><dt>asymptote</dt>
-<dd><p>Estimated total species richness</p></dd>
+<dd><p>Estimated total species richness (asymptote of the model)</p></dd>
 
 <dt>asymptote_ci</dt>
-<dd><p>Confidence interval for asymptote</p></dd>
+<dd><p>Confidence interval for the asymptote</p></dd>
 
 <dt>model</dt>
 <dd><p>Model name</p></dd>
 
+<dt>interval</dt>
+<dd><p>Interval method used</p></dd>
+
 <dt>fit</dt>
-<dd><p>The nls fit object</p></dd>
+<dd><p>The <code>nls</code> fit object</p></dd>
 
 <dt>aic</dt>
 <dd><p>AIC of the model</p></dd>
 
+<dt>gof</dt>
+<dd><p>List with residual <code>rmse</code> and relative <code>rmse_rel</code> over the
+observed range</p></dd>
+
+<dt>compare</dt>
+<dd><p>Nonparametric <code>chao2</code> / <code>iChao2</code> estimates, if available</p></dd>
+
+<dt>boot</dt>
+<dd><p>Bootstrap coefficient draws, if <code>interval = "bootstrap"</code></p></dd>
+
 </dl></div>
+    <div class="section level2">
+    <h2 id="bias-caveat">Bias caveat<a class="anchor" aria-label="anchor" href="#bias-caveat"></a></h2>
+
+
+<p>The asymptote is a <em>parametric extrapolation</em> of the accumulation curve. On
+clustered or strongly under-sampled presence-absence data it tends to
+overestimate true richness, sometimes substantially, because the curve is far
+from saturation. The bootstrap interval quantifies the uncertainty of the
+fitted asymptote (curve-fit and across-seed variability) and is much wider
+than the <code>nls</code> profile interval, but it is <em>not</em> a calibrated interval for
+true total richness: it is centred on a possibly biased point estimate. For
+calibrated total-richness estimates prefer the nonparametric estimators
+<code><a href="chao2.html">chao2()</a></code> / <code><a href="iChao2.html">iChao2()</a></code>, which are unbiased on the same data. The printout
+shows their values alongside the asymptote for comparison.</p>
+    </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Lomolino, M.V. (2000). Ecology's most general, yet protean pattern: the
@@ -137,6 +198,11 @@ regional land use impacts on avian diversity. Journal of Biogeography,
 <p>Borda-de-Agua, L., Whittaker, R.J., Cardoso, P., et al. (2025). Extreme
 value theory explains the topography and scaling of the species-area
 relationship. Nature Communications, 16, 5346.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="extrapolateArea.html">extrapolateArea()</a></code> for area-based extrapolation to a region larger
+than the one sampled; <code><a href="chao2.html">chao2()</a></code>, <code><a href="iChao2.html">iChao2()</a></code> for nonparametric richness.</p></div>
     </div>
 
     <div class="section level2">

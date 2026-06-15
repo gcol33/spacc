@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00'>
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.07; stroke: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpMzMuMTN8NDk4LjUyfDUuNDh8MzI4LjUw'>
+    <rect x='33.13' y='5.48' width='465.39' height='323.02' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMzMuMTN8NDk4LjUyfDUuNDh8MzI4LjUw)'>
+<rect x='33.13' y='5.48' width='465.39' height='323.02' style='stroke-width: 1.07; stroke: none;' /> fill: #F5F6F8;' />
+<polyline points='33.13,283.70 498.52,283.70 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,208.40 498.52,208.40 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,133.11 498.52,133.11 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,57.81 498.52,57.81 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='102.48,328.50 102.48,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='209.59,328.50 209.59,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='316.70,328.50 316.70,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='423.81,328.50 423.81,5.48 ' style='stroke-width: 0.53; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,321.35 498.52,321.35 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,246.05 498.52,246.05 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,170.76 498.52,170.76 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,95.46 498.52,95.46 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='33.13,20.16 498.52,20.16 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='48.93,328.50 48.93,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='156.04,328.50 156.04,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='263.15,328.50 263.15,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='370.26,328.50 370.26,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polyline points='477.37,328.50 477.37,5.48 ' style='stroke-width: 1.07; stroke: #FFFFFF; stroke-linecap: butt;' />
+<polygon points='54.28,182.99 59.64,128.97 64.99,102.99 70.35,94.71 75.70,89.25 81.06,72.12 86.41,61.20 91.77,55.74 97.13,50.28 102.48,50.28 107.84,42.75 113.19,27.69 118.55,20.16 123.90,20.16 129.26,20.16 134.61,20.16 139.97,20.16 145.32,20.16 150.68,20.16 156.04,20.16 161.39,20.16 166.75,20.16 172.10,20.16 177.46,20.16 182.81,20.16 188.17,20.16 193.52,20.16 198.88,20.16 204.24,20.16 209.59,20.16 214.95,20.16 220.30,20.16 225.66,20.16 231.01,20.16 236.37,20.16 241.72,20.16 247.08,20.16 252.44,20.16 257.79,20.16 263.15,20.16 268.50,20.16 273.86,20.16 279.21,20.16 284.57,20.16 289.92,20.16 295.28,20.16 300.63,20.16 305.99,20.16 311.35,20.16 316.70,20.16 322.06,20.16 327.41,20.16 332.77,20.16 338.12,20.16 343.48,20.16 348.83,20.16 354.19,20.16 359.55,20.16 364.90,20.16 370.26,20.16 375.61,20.16 380.97,20.16 386.32,20.16 391.68,20.16 397.03,20.16 402.39,20.16 407.74,20.16 413.10,20.16 418.46,20.16 423.81,20.16 429.17,20.16 434.52,20.16 439.88,20.16 445.23,20.16 450.59,20.16 455.94,20.16 461.30,20.16 466.66,20.16 472.01,20.16 477.37,20.16 477.37,20.16 472.01,20.16 466.66,20.16 461.30,20.16 455.94,20.16 450.59,20.16 445.23,20.16 439.88,20.16 434.52,20.16 429.17,20.16 423.81,20.16 418.46,20.16 413.10,20.16 407.74,20.16 402.39,20.16 397.03,20.16 391.68,20.16 386.32,20.16 380.97,20.16 375.61,20.16 370.26,20.16 364.90,20.16 359.55,20.16 354.19,20.16 348.83,20.16 343.48,20.16 338.12,20.16 332.77,20.16 327.41,20.16 322.06,20.16 316.70,20.16 311.35,20.16 305.99,20.16 300.63,20.16 295.28,20.16 289.92,20.16 284.57,27.69 279.21,27.69 273.86,35.22 268.50,35.22 263.15,35.22 257.79,35.22 252.44,35.22 247.08,42.75 241.72,42.75 236.37,42.75 231.01,50.28 225.66,50.28 220.30,50.28 214.95,50.28 209.59,54.42 204.24,65.34 198.88,65.34 193.52,65.34 188.17,67.41 182.81,72.87 177.46,72.87 172.10,72.87 166.75,72.87 161.39,82.47 156.04,90.00 150.68,90.00 145.32,94.14 139.97,99.60 134.61,110.52 129.26,112.59 123.90,127.65 118.55,129.72 113.19,144.78 107.84,159.84 102.48,170.76 97.13,187.89 91.77,200.88 86.41,218.01 81.06,237.21 75.70,246.81 70.35,298.76 64.99,300.83 59.64,308.36 54.28,313.82 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.30;' />
+<polyline points='54.28,182.99 59.64,128.97 64.99,102.99 70.35,94.71 75.70,89.25 81.06,72.12 86.41,61.20 91.77,55.74 97.13,50.28 102.48,50.28 107.84,42.75 113.19,27.69 118.55,20.16 123.90,20.16 129.26,20.16 134.61,20.16 139.97,20.16 145.32,20.16 150.68,20.16 156.04,20.16 161.39,20.16 166.75,20.16 172.10,20.16 177.46,20.16 182.81,20.16 188.17,20.16 193.52,20.16 198.88,20.16 204.24,20.16 209.59,20.16 214.95,20.16 220.30,20.16 225.66,20.16 231.01,20.16 236.37,20.16 241.72,20.16 247.08,20.16 252.44,20.16 257.79,20.16 263.15,20.16 268.50,20.16 273.86,20.16 279.21,20.16 284.57,20.16 289.92,20.16 295.28,20.16 300.63,20.16 305.99,20.16 311.35,20.16 316.70,20.16 322.06,20.16 327.41,20.16 332.77,20.16 338.12,20.16 343.48,20.16 348.83,20.16 354.19,20.16 359.55,20.16 364.90,20.16 370.26,20.16 375.61,20.16 380.97,20.16 386.32,20.16 391.68,20.16 397.03,20.16 402.39,20.16 407.74,20.16 413.10,20.16 418.46,20.16 423.81,20.16 429.17,20.16 434.52,20.16 439.88,20.16 445.23,20.16 450.59,20.16 455.94,20.16 461.30,20.16 466.66,20.16 472.01,20.16 477.37,20.16 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='477.37,20.16 472.01,20.16 466.66,20.16 461.30,20.16 455.94,20.16 450.59,20.16 445.23,20.16 439.88,20.16 434.52,20.16 429.17,20.16 423.81,20.16 418.46,20.16 413.10,20.16 407.74,20.16 402.39,20.16 397.03,20.16 391.68,20.16 386.32,20.16 380.97,20.16 375.61,20.16 370.26,20.16 364.90,20.16 359.55,20.16 354.19,20.16 348.83,20.16 343.48,20.16 338.12,20.16 332.77,20.16 327.41,20.16 322.06,20.16 316.70,20.16 311.35,20.16 305.99,20.16 300.63,20.16 295.28,20.16 289.92,20.16 284.57,27.69 279.21,27.69 273.86,35.22 268.50,35.22 263.15,35.22 257.79,35.22 252.44,35.22 247.08,42.75 241.72,42.75 236.37,42.75 231.01,50.28 225.66,50.28 220.30,50.28 214.95,50.28 209.59,54.42 204.24,65.34 198.88,65.34 193.52,65.34 188.17,67.41 182.81,72.87 177.46,72.87 172.10,72.87 166.75,72.87 161.39,82.47 156.04,90.00 150.68,90.00 145.32,94.14 139.97,99.60 134.61,110.52 129.26,112.59 123.90,127.65 118.55,129.72 113.19,144.78 107.84,159.84 102.48,170.76 97.13,187.89 91.77,200.88 86.41,218.01 81.06,237.21 75.70,246.81 70.35,298.76 64.99,300.83 59.64,308.36 54.28,313.82 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='54.28,248.31 59.64,209.66 64.99,187.32 70.35,170.51 75.70,154.19 81.06,142.39 86.41,131.35 91.77,118.80 97.13,105.25 102.48,95.71 107.84,89.69 113.19,82.91 118.55,76.38 123.90,71.11 129.26,66.34 134.61,63.08 139.97,59.32 145.32,58.06 150.68,54.80 156.04,52.29 161.39,48.78 166.75,44.51 172.10,43.00 177.46,42.00 182.81,41.25 188.17,39.99 193.52,38.48 198.88,37.73 204.24,34.22 209.59,31.46 214.95,29.95 220.30,27.94 225.66,26.69 231.01,25.43 236.37,24.43 241.72,24.18 247.08,23.93 252.44,22.92 257.79,22.17 263.15,21.92 268.50,21.67 273.86,21.67 279.21,20.92 284.57,20.66 289.92,20.16 295.28,20.16 300.63,20.16 305.99,20.16 311.35,20.16 316.70,20.16 322.06,20.16 327.41,20.16 332.77,20.16 338.12,20.16 343.48,20.16 348.83,20.16 354.19,20.16 359.55,20.16 364.90,20.16 370.26,20.16 375.61,20.16 380.97,20.16 386.32,20.16 391.68,20.16 397.03,20.16 402.39,20.16 407.74,20.16 413.10,20.16 418.46,20.16 423.81,20.16 429.17,20.16 434.52,20.16 439.88,20.16 445.23,20.16 450.59,20.16 455.94,20.16 461.30,20.16 466.66,20.16 472.01,20.16 477.37,20.16 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
+<text x='28.20' y='324.50' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='28.20' y='249.20' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='28.20' y='173.91' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='28.20' y='98.61' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='28.20' y='23.31' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<polyline points='30.39,321.35 33.13,321.35 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,246.05 33.13,246.05 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,170.76 33.13,170.76 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,95.46 33.13,95.46 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='30.39,20.16 33.13,20.16 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='48.93,331.24 48.93,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='156.04,331.24 156.04,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='263.15,331.24 263.15,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='370.26,331.24 370.26,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<polyline points='477.37,331.24 477.37,328.50 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
+<text x='48.93' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='156.04' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='263.15' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='370.26' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='477.37' y='339.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='9.78px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='265.82' y='352.20' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='24.47px' lengthAdjust='spacingAndGlyphs'>Sites</text>
+<text transform='translate(13.36,166.99) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='95.41px' lengthAdjust='spacingAndGlyphs'>Cumulative species</text>
+</g>
+</g>
+</svg>
