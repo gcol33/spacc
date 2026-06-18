@@ -473,7 +473,7 @@ account of where the pattern lives.
 
 ## Wavefront expansion
 
-`wavefront()` accumulates species inside an expanding radius from seed points,
+`spaccWavefront()` accumulates species inside an expanding radius from seed points,
 a model of spread from an introduction front. As a diagnostic it answers a
 different question than the nearest-neighbour curve: how richness grows with
 geographic reach rather than with site count, which exposes how clumped the
@@ -483,7 +483,7 @@ range front sweeps outward, but it serves equally as a spatial diagnostic for
 any dataset where distance from a point is the relevant axis.
 
 ```{r wavefront}
-wf <- wavefront(species, coords, n_seeds = 20, n_steps = 40,
+wf <- spaccWavefront(species, coords, n_seeds = 20, n_steps = 40,
                 progress = FALSE, seed = 1)
 wf
 ```
@@ -598,7 +598,7 @@ package and the cited literature.
 | Is richness biased by uneven survey effort      | sesars        |
 | Where are the accumulation hotspots             | spaccMetrics  |
 | At what scale is the diversity pattern organised| spatialEigenvectors + spatialPartition |
-| How does richness grow with geographic reach    | wavefront     |
+| How does richness grow with geographic reach    | spaccWavefront |
 | How to break spatial autocorrelation            | subsample     |
 
 **When not to use each.**

@@ -1,5 +1,24 @@
 # spacc 0.9.0
 
+## API Changes
+
+- `wavefront()` was renamed `spaccWavefront()` so that every spatial-accumulation
+  curve front door shares the `spacc` prefix. The old name is a deprecated thin
+  wrapper and still works. The distance- and area-relationship functions keep
+  their established names: `distanceDecay()`, `betaDecay()`, `zetaDiversity()`,
+  and `dar()`.
+
+- `spaccBeta()` gains `traits` and `tree` arguments and now computes taxonomic,
+  functional, or phylogenetic beta diversity from a single front door. Supplying
+  `traits` gives the trait-weighted Baselga partition; supplying `tree` gives the
+  branch-length-weighted (PhyloSor) partition. `spaccBetaFunc()` and
+  `spaccBetaPhylo()` are deprecated thin wrappers and still work.
+
+- `diversityProfile()` gains `traits` and `tree` arguments and now computes
+  taxonomic, functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill
+  profiles from a single front door. `diversityProfileFunc()` and
+  `diversityProfilePhylo()` are deprecated thin wrappers and still work.
+
 ## New Features
 
 - `extrapolateArea()` extrapolates richness to a spatial extent larger than the

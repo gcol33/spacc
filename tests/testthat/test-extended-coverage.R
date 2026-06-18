@@ -80,7 +80,7 @@ test_that("wavefront works", {
   coords <- data.frame(x = runif(25), y = runif(25))
   species <- matrix(rbinom(25 * 10, 1, 0.3), nrow = 25)
 
-  result <- wavefront(species, coords, n_seeds = 3,
+  result <- spaccWavefront(species, coords, n_seeds = 3,
                       progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_wavefront")
@@ -96,7 +96,7 @@ test_that("as.data.frame.spacc_wavefront works", {
   coords <- data.frame(x = runif(25), y = runif(25))
   species <- matrix(rbinom(25 * 10, 1, 0.3), nrow = 25)
 
-  result <- wavefront(species, coords, n_seeds = 3,
+  result <- spaccWavefront(species, coords, n_seeds = 3,
                       progress = FALSE, seed = 1)
   df <- as.data.frame(result)
 
@@ -266,10 +266,10 @@ test_that("spaccFunc has expected structure", {
 
 
 # ==============================================================================
-# Test spaccBetaFunc and spaccBetaPhylo
+# Test spaccBeta functional / phylogenetic dispatch
 # ==============================================================================
 
-test_that("spaccBetaFunc works", {
+test_that("spaccBeta functional works", {
   skip_on_cran()
 
   set.seed(42)
@@ -283,14 +283,14 @@ test_that("spaccBetaFunc works", {
     row.names = paste0("sp", 1:8)
   )
 
-  result <- spaccBetaFunc(species, coords, traits = traits,
-                          n_seeds = 3, parallel = FALSE, progress = FALSE, seed = 1)
+  result <- spaccBeta(species, coords, traits = traits,
+                      n_seeds = 3, parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_beta")
 })
 
 
-test_that("spaccBetaPhylo works", {
+test_that("spaccBeta phylogenetic works", {
   skip_on_cran()
   skip_if_not_installed("ape")
 
@@ -301,8 +301,8 @@ test_that("spaccBetaPhylo works", {
 
   tree <- ape::rtree(8, tip.label = paste0("sp", 1:8))
 
-  result <- spaccBetaPhylo(species, coords, tree = tree,
-                           n_seeds = 3, parallel = FALSE, progress = FALSE, seed = 1)
+  result <- spaccBeta(species, coords, tree = tree,
+                      n_seeds = 3, parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_beta")
 })

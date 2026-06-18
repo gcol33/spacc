@@ -50,7 +50,7 @@ reference:
   contents:
   - spacc
   - spaccDiversity
-  - wavefront
+  - spaccWavefront
   - distanceDecay
   - distances
 - title: Diversity
@@ -60,8 +60,6 @@ reference:
   - gammaDiversity
   - diversityPartition
   - diversityProfile
-  - diversityProfilePhylo
-  - diversityProfileFunc
   - evenness
 - title: Hill Numbers
   desc: Diversity accumulation with Hill numbers (q=0,1,2)
@@ -73,8 +71,6 @@ reference:
   desc: Spatial beta diversity with turnover/nestedness partitioning
   contents:
   - spaccBeta
-  - spaccBetaFunc
-  - spaccBetaPhylo
 - title: Community Turnover
   desc: Distance-decay, zeta diversity, and null models
   contents:

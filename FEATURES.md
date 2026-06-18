@@ -48,7 +48,7 @@ Based on a literature review of methods published 2023--2026. Each feature impro
 
 **Status**: Not implemented
 
-**Builds on**: `spaccBeta()`, `spaccBetaFunc()`, `spaccBetaPhylo()`
+**Builds on**: `spaccBeta()` (taxonomic, plus `traits=` / `tree=`)
 
 **What**: `spaccBeta()` computes beta diversity at fixed spatial scales (site counts). Coverage-based standardization removes sampling intensity artifacts, yielding pure compositional differentiation. The iNEXT.beta3D framework unifies taxonomic, phylogenetic, and functional beta diversity under Hill numbers, with coverage-based rarefaction and extrapolation.
 
@@ -56,7 +56,7 @@ Based on a literature review of methods published 2023--2026. Each feature impro
 - Add `standardize = "coverage"` argument to `spaccBeta()` (default `"none"` preserves current behavior)
 - At each accumulation step, standardize alpha and gamma diversity to equal coverage before computing beta
 - Compute four dissimilarity indices (Jaccard-type and Sorensen-type turnover, and their complements) as functions of coverage
-- Extend to `spaccBetaFunc()` and `spaccBetaPhylo()` with the same `standardize` argument
+- Extend to functional and phylogenetic beta (`spaccBeta(traits=)`, `spaccBeta(tree=)`) with the same `standardize` argument
 - New plot panel showing beta diversity vs. coverage rather than vs. site count
 
 **References**:
@@ -209,12 +209,12 @@ Based on a literature review of methods published 2023--2026. Each feature impro
 
 **Status**: Not implemented
 
-**Builds on**: `spaccFunc()`, `spaccBetaFunc()`
+**Builds on**: `spaccFunc()`, `spaccBeta(traits=)`
 
 **What**: Current functional diversity computation uses species-level mean traits. Incorporating intraspecific trait variability (ITV) makes functional accumulation curves more realistic, especially for widespread species whose traits vary across the spatial extent of a study. Uses probabilistic hypervolumes rather than point representations in trait space.
 
 **Implementation**:
-- Add `itv = TRUE` option to `spaccFunc()` and `spaccBetaFunc()`
+- Add `itv = TRUE` option to `spaccFunc()` and `spaccBeta(traits=)`
 - Accept a traits object with per-individual or per-population measurements (not just species means)
 - Compute kernel density hypervolumes at each accumulation step using the accumulated individuals' trait values
 - FRic becomes the hypervolume volume; FDis becomes the mean distance to centroid in probability space

@@ -2,11 +2,15 @@
 % Please edit documentation in R/beta.R
 \name{spaccBeta}
 \alias{spaccBeta}
+\alias{spaccBetaFunc}
+\alias{spaccBetaPhylo}
 \title{Spatial Beta Diversity Accumulation}
 \usage{
 spaccBeta(
   x,
   coords,
+  traits = NULL,
+  tree = NULL,
   n_seeds = 50L,
   method = "knn",
   index = c("sorensen", "jaccard"),
@@ -17,11 +21,46 @@ spaccBeta(
   seed = NULL,
   map = FALSE
 )
+
+spaccBetaFunc(
+  x,
+  coords,
+  traits,
+  n_seeds = 50L,
+  method = "knn",
+  index = c("sorensen", "jaccard"),
+  distance = c("euclidean", "haversine"),
+  parallel = TRUE,
+  n_cores = NULL,
+  progress = TRUE,
+  seed = NULL
+)
+
+spaccBetaPhylo(
+  x,
+  coords,
+  tree,
+  n_seeds = 50L,
+  method = "knn",
+  index = c("sorensen", "jaccard"),
+  distance = c("euclidean", "haversine"),
+  parallel = TRUE,
+  n_cores = NULL,
+  progress = TRUE,
+  seed = NULL
+)
 }
 \arguments{
 \item{x}{A site-by-species matrix (presence/absence or abundance).}
 
 \item{coords}{A data.frame with columns \code{x} and \code{y}, or a \code{spacc_dist} object.}
+
+\item{traits}{Optional species-by-traits matrix or data.frame (row names
+matching species). When supplied, functional beta diversity is computed.}
+
+\item{tree}{Optional phylogenetic tree of class \code{phylo}, or a pairwise
+phylogenetic distance matrix. When supplied, phylogenetic beta diversity is
+computed. Supply at most one of \code{traits} or \code{tree}.}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
@@ -68,6 +107,14 @@ species composition changes as you expand spatially.
 }
 
 The sum of turnover and nestedness equals total beta diversity.
+
+Supplying \code{traits} computes functional beta diversity, weighting the partition
+by the trait distinctiveness of the species exchanged between the accumulated
+pool and each new site. Supplying \code{tree} computes phylogenetic beta diversity
+(PhyloSor), weighting by shared branch length. The taxonomic, functional, and
+phylogenetic variants all return a \code{spacc_beta} object whose \code{beta_type} field
+records which was computed. \code{map = TRUE} is supported for the taxonomic
+variant only.
 }
 \examples{
 \donttest{
@@ -79,6 +126,11 @@ plot(beta)
 
 # Compare Sorensen vs Jaccard
 beta_jac <- spaccBeta(species, coords, index = "jaccard")
+
+# Functional beta diversity (pass a species-by-traits matrix)
+traits <- matrix(rnorm(30 * 3), nrow = 30)
+rownames(traits) <- colnames(species) <- paste0("sp", 1:30)
+beta_func <- spaccBeta(species, coords, traits = traits)
 }
 
 }

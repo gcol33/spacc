@@ -149,7 +149,7 @@ test_that("spaccBeta with spacc_dist coords", {
 })
 
 
-test_that("spaccBetaFunc returns correct structure", {
+test_that("spaccBeta functional returns correct structure", {
   skip_on_cran()
 
   set.seed(42)
@@ -159,7 +159,7 @@ test_that("spaccBetaFunc returns correct structure", {
   colnames(species) <- paste0("sp", 1:8)
   rownames(traits) <- paste0("sp", 1:8)
 
-  result <- spaccBetaFunc(species, coords, traits, n_seeds = 3,
+  result <- spaccBeta(species, coords, traits = traits, n_seeds = 3,
                            parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_beta")
@@ -168,7 +168,7 @@ test_that("spaccBetaFunc returns correct structure", {
 })
 
 
-test_that("spaccBetaFunc jaccard works", {
+test_that("spaccBeta functional jaccard works", {
   skip_on_cran()
 
   set.seed(42)
@@ -176,7 +176,7 @@ test_that("spaccBetaFunc jaccard works", {
   species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
   traits <- matrix(rnorm(8 * 3), nrow = 8)
 
-  result <- spaccBetaFunc(species, coords, traits, n_seeds = 3,
+  result <- spaccBeta(species, coords, traits = traits, n_seeds = 3,
                            index = "jaccard",
                            parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -184,7 +184,7 @@ test_that("spaccBetaFunc jaccard works", {
 })
 
 
-test_that("spaccBetaPhylo returns correct structure", {
+test_that("spaccBeta phylogenetic returns correct structure", {
   skip_on_cran()
 
   set.seed(42)
@@ -195,7 +195,7 @@ test_that("spaccBetaPhylo returns correct structure", {
   phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
   diag(phylo_dist) <- 0
 
-  result <- spaccBetaPhylo(species, coords, phylo_dist, n_seeds = 3,
+  result <- spaccBeta(species, coords, tree = phylo_dist, n_seeds = 3,
                             parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_beta")
@@ -203,7 +203,7 @@ test_that("spaccBetaPhylo returns correct structure", {
 })
 
 
-test_that("spaccBetaPhylo jaccard works", {
+test_that("spaccBeta phylogenetic jaccard works", {
   skip_on_cran()
 
   set.seed(42)
@@ -214,7 +214,7 @@ test_that("spaccBetaPhylo jaccard works", {
   phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
   diag(phylo_dist) <- 0
 
-  result <- spaccBetaPhylo(species, coords, phylo_dist, n_seeds = 3,
+  result <- spaccBeta(species, coords, tree = phylo_dist, n_seeds = 3,
                             index = "jaccard",
                             parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -222,19 +222,19 @@ test_that("spaccBetaPhylo jaccard works", {
 })
 
 
-test_that("spaccBetaPhylo errors on bad tree input", {
+test_that("spaccBeta phylogenetic errors on bad tree input", {
   coords <- data.frame(x = runif(10), y = runif(10))
   species <- matrix(rbinom(10 * 5, 1, 0.3), nrow = 10)
 
   expect_error(
-    spaccBetaPhylo(species, coords, "not_a_tree", n_seeds = 1,
-                    parallel = FALSE, progress = FALSE),
+    spaccBeta(species, coords, tree = "not_a_tree", n_seeds = 1,
+              parallel = FALSE, progress = FALSE),
     "tree must be"
   )
 })
 
 
-test_that("spaccBetaFunc errors on missing species in traits", {
+test_that("spaccBeta functional errors on missing species in traits", {
   coords <- data.frame(x = runif(10), y = runif(10))
   species <- matrix(rbinom(10 * 5, 1, 0.3), nrow = 10)
   colnames(species) <- paste0("sp", 1:5)
@@ -242,8 +242,8 @@ test_that("spaccBetaFunc errors on missing species in traits", {
   rownames(traits) <- paste0("sp", 1:3)
 
   expect_error(
-    spaccBetaFunc(species, coords, traits, n_seeds = 1,
-                   parallel = FALSE, progress = FALSE),
+    spaccBeta(species, coords, traits = traits, n_seeds = 1,
+              parallel = FALSE, progress = FALSE),
     "Some species"
   )
 })

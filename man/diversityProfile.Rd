@@ -2,23 +2,62 @@
 % Please edit documentation in R/diversity.R
 \name{diversityProfile}
 \alias{diversityProfile}
+\alias{diversityProfilePhylo}
+\alias{diversityProfileFunc}
 \title{Diversity Profile}
 \usage{
 diversityProfile(
   x,
   q = seq(0, 3, by = 0.1),
   type = c("both", "per_site", "regional"),
+  traits = NULL,
+  tree = NULL,
+  dist_method = c("euclidean", "gower"),
+  normalize = TRUE,
+  coords = NULL
+)
+
+diversityProfilePhylo(
+  x,
+  tree,
+  q = seq(0, 3, by = 0.1),
+  type = c("both", "per_site", "regional"),
+  coords = NULL
+)
+
+diversityProfileFunc(
+  x,
+  traits,
+  q = seq(0, 3, by = 0.1),
+  type = c("both", "per_site", "regional"),
+  dist_method = c("euclidean", "gower"),
+  normalize = TRUE,
   coords = NULL
 )
 }
 \arguments{
-\item{x}{A site-by-species matrix (abundance data).}
+\item{x}{A site-by-species matrix (abundance data). Column names must match
+trait row names / tree tip labels when \code{traits} / \code{tree} is supplied.}
 
 \item{q}{Numeric vector. Orders of diversity to evaluate. Default
 \code{seq(0, 3, by = 0.1)}.}
 
 \item{type}{Character. What to compute: \code{"per_site"} (per-site profiles),
 \code{"regional"} (pooled gamma), or \code{"both"} (default).}
+
+\item{traits}{Optional species-by-traits data.frame (row names matching
+species). When supplied, functional Hill numbers (Leinster & Cobbold 2012)
+are computed.}
+
+\item{tree}{Optional \code{ape::phylo} object. When supplied, phylogenetic Hill
+numbers (Chao et al. 2010) are computed. Supply at most one of \code{traits} or
+\code{tree}.}
+
+\item{dist_method}{Character. Trait distance for the functional profile:
+\code{"euclidean"} (default) or \code{"gower"}. Ignored unless \code{traits} is supplied.}
+
+\item{normalize}{Logical. Normalize trait distances to [0, 1]? Default
+\code{TRUE}. Ignored unless \code{traits} is supplied.}
 
 \item{coords}{Optional data.frame with columns \code{x} and \code{y} for spatial
 mapping. When provided, enables \code{plot(type = "map")}.}
@@ -47,6 +86,11 @@ their proportional abundance)
 \item q = 2: Inverse Simpson concentration (emphasizes dominant species)
 \item q > 2: Increasingly dominated by common species
 }
+
+Supplying \code{traits} computes functional Hill numbers via a trait-similarity
+matrix (Leinster & Cobbold 2012); supplying \code{tree} computes phylogenetic Hill
+numbers weighted by branch length (Chao et al. 2010). Both return a
+\code{spacc_profile} whose \code{profile_type} records which was computed.
 }
 \examples{
 species <- matrix(rpois(50 * 30, 2), nrow = 50)
@@ -55,6 +99,11 @@ print(prof)
 
 \donttest{
 plot(prof)
+
+# Functional profile (pass a species-by-traits data.frame)
+colnames(species) <- paste0("sp", 1:30)
+traits <- data.frame(size = rnorm(30), row.names = paste0("sp", 1:30))
+fp <- diversityProfile(species, traits = traits)
 }
 
 }

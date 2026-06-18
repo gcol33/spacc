@@ -5,7 +5,7 @@ test_that("wavefront returns correct structure", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.3), nrow = 20)
 
-  result <- wavefront(species, coords, n_seeds = 3, n_steps = 10,
+  result <- spaccWavefront(species, coords, n_seeds = 3, n_steps = 10,
                       progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_wavefront")
@@ -21,7 +21,7 @@ test_that("wavefront print works", {
   coords <- data.frame(x = runif(15), y = runif(15))
   species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
 
-  result <- wavefront(species, coords, n_seeds = 3, n_steps = 8,
+  result <- spaccWavefront(species, coords, n_seeds = 3, n_steps = 8,
                       progress = FALSE, seed = 1)
 
   expect_output(print(result), "spacc")

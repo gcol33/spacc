@@ -576,10 +576,10 @@ test_that("summary.spacc_comp returns invisibly", {
 
 
 # ============================================================================
-# BETA.R - spaccBetaFunc and spaccBetaPhylo
+# BETA.R - spaccBeta functional / phylogenetic dispatch
 # ============================================================================
 
-test_that("spaccBetaFunc returns correct structure", {
+test_that("spaccBeta functional returns correct structure", {
   skip_on_cran()
 
   set.seed(42)
@@ -589,7 +589,7 @@ test_that("spaccBetaFunc returns correct structure", {
   traits <- matrix(rnorm(8 * 3), nrow = 8)
   rownames(traits) <- paste0("sp", 1:8)
 
-  result <- spaccBetaFunc(species, coords, traits, n_seeds = 3,
+  result <- spaccBeta(species, coords, traits = traits, n_seeds = 3,
                           parallel = FALSE, progress = FALSE)
 
   expect_s3_class(result, "spacc_beta")
@@ -597,7 +597,7 @@ test_that("spaccBetaFunc returns correct structure", {
 })
 
 
-test_that("spaccBetaFunc with jaccard index works", {
+test_that("spaccBeta functional with jaccard index works", {
   skip_on_cran()
 
   set.seed(42)
@@ -607,7 +607,7 @@ test_that("spaccBetaFunc with jaccard index works", {
   traits <- matrix(rnorm(8 * 3), nrow = 8)
   rownames(traits) <- paste0("sp", 1:8)
 
-  result <- spaccBetaFunc(species, coords, traits, n_seeds = 3,
+  result <- spaccBeta(species, coords, traits = traits, n_seeds = 3,
                           index = "jaccard",
                           parallel = FALSE, progress = FALSE)
 
@@ -616,7 +616,7 @@ test_that("spaccBetaFunc with jaccard index works", {
 })
 
 
-test_that("spaccBetaPhylo with tree returns correct structure", {
+test_that("spaccBeta phylogenetic with tree returns correct structure", {
   skip_on_cran()
   skip_if_not_installed("ape")
 
@@ -627,7 +627,7 @@ test_that("spaccBetaPhylo with tree returns correct structure", {
   tree <- ape::rtree(8)
   colnames(species) <- tree$tip.label
 
-  result <- spaccBetaPhylo(species, coords, tree, n_seeds = 3,
+  result <- spaccBeta(species, coords, tree = tree, n_seeds = 3,
                            parallel = FALSE, progress = FALSE)
 
   expect_s3_class(result, "spacc_beta")
@@ -635,7 +635,7 @@ test_that("spaccBetaPhylo with tree returns correct structure", {
 })
 
 
-test_that("spaccBetaPhylo with distance matrix works", {
+test_that("spaccBeta phylogenetic with distance matrix works", {
   skip_on_cran()
 
   set.seed(42)
@@ -646,7 +646,7 @@ test_that("spaccBetaPhylo with distance matrix works", {
   phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
   diag(phylo_dist) <- 0
 
-  result <- spaccBetaPhylo(species, coords, phylo_dist, n_seeds = 3,
+  result <- spaccBeta(species, coords, tree = phylo_dist, n_seeds = 3,
                            parallel = FALSE, progress = FALSE)
 
   expect_s3_class(result, "spacc_beta")
@@ -654,7 +654,7 @@ test_that("spaccBetaPhylo with distance matrix works", {
 })
 
 
-test_that("spaccBetaPhylo with jaccard index works", {
+test_that("spaccBeta phylogenetic with jaccard index works", {
   skip_on_cran()
 
   set.seed(42)
@@ -665,7 +665,7 @@ test_that("spaccBetaPhylo with jaccard index works", {
   phylo_dist <- (phylo_dist + t(phylo_dist)) / 2
   diag(phylo_dist) <- 0
 
-  result <- spaccBetaPhylo(species, coords, phylo_dist, n_seeds = 3,
+  result <- spaccBeta(species, coords, tree = phylo_dist, n_seeds = 3,
                            index = "jaccard",
                            parallel = FALSE, progress = FALSE)
 

@@ -64,8 +64,11 @@ spacc(x, coords)  ─┬─> extrapolate()      -> spacc_fit      (asymptotic mo
                     ├─> spaccMetrics()      -> spacc_metrics  (per-site metrics)
                     ├─> spaccPhylo()        -> spacc_phylo    (Faith PD, MPD, MNTD)
                     ├─> spaccFunc()         -> spacc_func     (FDis, FRic)
-                    ├─> wavefront()         -> spacc_wavefront
-                    └─> distanceDecay()     -> spacc_decay
+                    ├─> spaccWavefront()    -> spacc_wavefront
+                    ├─> distanceDecay()     -> spacc_decay    (distance decay)
+                    ├─> betaDecay()         -> spacc_beta_decay
+                    ├─> zetaDiversity()     -> spacc_zeta     (zeta diversity)
+                    └─> dar()               -> spacc_dar      (diversity-area)
 ```
 
 All downstream functions accept a `spacc` object and return typed S3 objects with `print()`, `summary()`, `plot()`, `as.data.frame()` methods.
@@ -86,7 +89,7 @@ Each seed runs independently via RcppParallel (no shared state). Multiple seeds 
 
 ## Naming Conventions
 
-- **Functions**: camelCase (`distanceDecay`, `spatialRarefaction`)
+- **Functions**: camelCase (`spaccHill`, `spatialRarefaction`). Accumulation-curve front doors carry the `spacc` prefix (`spaccHill`, `spaccBeta`, `spaccWavefront`, ...); distance/area relationship functions keep their established literature names (`distanceDecay`, `betaDecay`, `zetaDiversity`, `dar`).
 - **Arguments**: snake_case (`n_seeds`, `n_cores`)
 - **Classes**: lowercase with underscore (`spacc`, `spacc_fit`, `spacc_decay`)
 - **C++ functions**: snake_case with `cpp_` prefix (`cpp_knn_parallel`)

@@ -586,12 +586,12 @@ spacc <- function(x,
 #' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
-#' wf <- wavefront(species, coords, n_seeds = 20, n_steps = 50)
+#' wf <- spaccWavefront(species, coords, n_seeds = 20, n_steps = 50)
 #' plot(wf)
 #' }
 #'
 #' @export
-wavefront <- function(x,
+spaccWavefront <- function(x,
                       coords,
                       n_seeds = 50L,
                       r0 = 0,
@@ -729,6 +729,18 @@ plot.spacc_wavefront <- function(x, ci = TRUE, ci_alpha = 0.3,
       subtitle = sprintf("%d seeds, r0=%.1f, dr=%.2f", x$n_seeds, x$r0, x$dr)
     ) +
     spacc_theme()
+}
+
+
+#' @rdname spaccWavefront
+#' @export
+wavefront <- function(x, coords, n_seeds = 50L, r0 = 0, dr = NULL,
+                      n_steps = 50L, distance = c("euclidean", "haversine"),
+                      progress = TRUE, seed = NULL) {
+  .Deprecated("spaccWavefront")
+  spaccWavefront(x, coords, n_seeds = n_seeds, r0 = r0, dr = dr,
+                 n_steps = n_steps, distance = distance, progress = progress,
+                 seed = seed)
 }
 
 

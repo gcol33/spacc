@@ -446,7 +446,7 @@ test_that("wavefront with spacc_dist input works", {
   species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
 
   d <- distances(coords)
-  result <- wavefront(species, d, n_seeds = 3,
+  result <- spaccWavefront(species, d, n_seeds = 3,
                       progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_wavefront")
@@ -460,7 +460,7 @@ test_that("wavefront returns correct structure", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
 
-  result <- wavefront(species, coords, n_seeds = 3,
+  result <- spaccWavefront(species, coords, n_seeds = 3,
                       progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_wavefront")
@@ -477,7 +477,7 @@ test_that("wavefront print works", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
 
-  result <- wavefront(species, coords, n_seeds = 3,
+  result <- spaccWavefront(species, coords, n_seeds = 3,
                       progress = FALSE, seed = 1)
 
   expect_output(print(result), "wavefront")
@@ -491,7 +491,7 @@ test_that("wavefront summary returns data.frame", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
 
-  result <- wavefront(species, coords, n_seeds = 3,
+  result <- spaccWavefront(species, coords, n_seeds = 3,
                       progress = FALSE, seed = 1)
 
   summ <- summary(result)
@@ -509,7 +509,7 @@ test_that("wavefront plot returns ggplot", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
 
-  result <- wavefront(species, coords, n_seeds = 3,
+  result <- spaccWavefront(species, coords, n_seeds = 3,
                       progress = FALSE, seed = 1)
 
   p <- plot(result)

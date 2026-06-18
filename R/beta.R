@@ -6,6 +6,11 @@
 #'
 #' @param x A site-by-species matrix (presence/absence or abundance).
 #' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
+#' @param traits Optional species-by-traits matrix or data.frame (row names
+#'   matching species). When supplied, functional beta diversity is computed.
+#' @param tree Optional phylogenetic tree of class `phylo`, or a pairwise
+#'   phylogenetic distance matrix. When supplied, phylogenetic beta diversity is
+#'   computed. Supply at most one of `traits` or `tree`.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
 #' @param method Character. Accumulation method. Default `"knn"`.
 #' @param index Character. Dissimilarity index: `"sorensen"` (default) or `"jaccard"`.
@@ -36,6 +41,14 @@
 #'
 #' The sum of turnover and nestedness equals total beta diversity.
 #'
+#' Supplying `traits` computes functional beta diversity, weighting the partition
+#' by the trait distinctiveness of the species exchanged between the accumulated
+#' pool and each new site. Supplying `tree` computes phylogenetic beta diversity
+#' (PhyloSor), weighting by shared branch length. The taxonomic, functional, and
+#' phylogenetic variants all return a `spacc_beta` object whose `beta_type` field
+#' records which was computed. `map = TRUE` is supported for the taxonomic
+#' variant only.
+#'
 #' @references
 #' Baselga, A. (2010). Partitioning the turnover and nestedness components
 #' of beta diversity. Global Ecology and Biogeography, 19, 134-143.
@@ -52,11 +65,18 @@
 #'
 #' # Compare Sorensen vs Jaccard
 #' beta_jac <- spaccBeta(species, coords, index = "jaccard")
+#'
+#' # Functional beta diversity (pass a species-by-traits matrix)
+#' traits <- matrix(rnorm(30 * 3), nrow = 30)
+#' rownames(traits) <- colnames(species) <- paste0("sp", 1:30)
+#' beta_func <- spaccBeta(species, coords, traits = traits)
 #' }
 #'
 #' @export
 spaccBeta <- function(x,
                       coords,
+                      traits = NULL,
+                      tree = NULL,
                       n_seeds = 50L,
                       method = "knn",
                       index = c("sorensen", "jaccard"),
@@ -70,14 +90,22 @@ spaccBeta <- function(x,
   index <- match.arg(index)
   distance <- match.arg(distance)
 
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(traits) && !is.null(tree)) {
+    stop("Supply either `traits` (functional beta) or `tree` (phylogenetic beta), not both.")
+  }
+  if (map && (!is.null(traits) || !is.null(tree))) {
+    stop("`map = TRUE` is supported for taxonomic beta only (no `traits`/`tree`).")
+  }
 
+  if (!is.null(seed)) set.seed(seed)
 
   n_cores <- resolve_cores(n_cores, parallel)
 
   x <- as.matrix(x)
+  species_pa <- (x > 0) * 1L
+  storage.mode(species_pa) <- "integer"
 
-  # Handle coords
+  # Handle coords -> distance matrix (shared across variants)
   if (inherits(coords, "spacc_dist")) {
     dist_mat <- as.matrix(coords)
     coord_data <- attr(coords, "coords")
@@ -93,52 +121,35 @@ spaccBeta <- function(x,
   n_sites <- nrow(x)
   n_species <- ncol(x)
 
-  # Convert to presence/absence
-  species_pa <- (x > 0) * 1L
-  storage.mode(species_pa) <- "integer"
-
-  use_jaccard <- index == "jaccard"
-
-  if (progress) cli_info(sprintf("Computing beta diversity (%s, %d seeds)",
-                                  index, n_seeds))
-
-  result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_seeds,
-                                   use_jaccard, n_cores, progress)
+  # Dispatch on the requested dimension
+  if (!is.null(tree)) {
+    comp <- beta_phylogenetic(x, species_pa, tree, dist_mat, n_seeds, index, progress)
+    beta_type <- "phylogenetic"
+  } else if (!is.null(traits)) {
+    comp <- beta_functional(x, species_pa, traits, dist_mat, n_seeds, index, progress)
+    beta_type <- "functional"
+  } else {
+    comp <- beta_taxonomic(species_pa, dist_mat, n_seeds, index, n_cores,
+                           progress, map, coord_data, n_sites)
+    beta_type <- "taxonomic"
+  }
 
   if (progress) cli_success("Done")
 
-  # Compute per-site map values if requested
-  site_values <- NULL
-  if (map) {
-    if (progress) cli_info("Computing per-site beta map values (all sites as seeds)")
-    map_result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_sites,
-                                         use_jaccard, n_cores, progress)
-
-    n_steps <- ncol(map_result$beta_total)
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y,
-      beta_total = map_result$beta_total[, n_steps],
-      beta_turnover = map_result$beta_turnover[, n_steps],
-      beta_nestedness = map_result$beta_nestedness[, n_steps]
-    )
-    if (progress) cli_success("Map values computed")
-  }
-
   structure(
     list(
-      beta_total = result$beta_total,
-      beta_turnover = result$beta_turnover,
-      beta_nestedness = result$beta_nestedness,
-      distance = result$distance,
+      beta_total = comp$beta_total,
+      beta_turnover = comp$beta_turnover,
+      beta_nestedness = comp$beta_nestedness,
+      distance = comp$distance,
       coords = coord_data,
-      site_values = site_values,
+      site_values = comp$site_values,
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
       index = index,
+      beta_type = beta_type,
       call = match.call()
     ),
     class = "spacc_beta"
@@ -257,91 +268,52 @@ as_sf.spacc_beta <- function(x, crs = NULL) {
 
 
 # ============================================================================
-# FUNCTIONAL AND PHYLOGENETIC BETA DIVERSITY
+# INTERNAL COMPUTE HELPERS (taxonomic / functional / phylogenetic)
 # ============================================================================
 
-#' Functional Beta Diversity Accumulation
-#'
-#' Compute spatial accumulation of functional beta diversity, partitioned
-#' into turnover and nestedness components. Measures how functional trait
-#' space composition changes as sites are accumulated spatially.
-#'
-#' @param x A site-by-species matrix (presence/absence or abundance).
-#' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
-#' @param traits A species-by-traits matrix. Row names should match species.
-#' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
-#' @param index Character. Dissimilarity index: `"sorensen"` (default) or `"jaccard"`.
-#' @param distance Character. Distance method. Default `"euclidean"`.
-#' @param parallel Logical. Use parallel processing? Default `TRUE`.
-#' @param n_cores Integer. Number of cores.
-#' @param progress Logical. Show progress? Default `TRUE`.
-#' @param seed Integer. Random seed.
-#'
-#' @return An object of class `spacc_beta` with additional attribute
-#'   `beta_type = "functional"`.
-#'
-#' @details
-#' Functional beta diversity quantifies the turnover of functional traits
-#' across space. At each accumulation step, beta is computed based on the
-#' overlap of trait ranges (functional space) between the accumulated pool
-#' and the newly added site.
-#'
-#' @references
-#' Baselga, A. (2012). The relationship between species replacement,
-#' dissimilarity derived from nestedness, and nestedness. Global Ecology
-#' and Biogeography, 21, 1223-1232.
-#'
-#' Cardoso, P., Rigal, F. & Carvalho, J.C. (2015). BAT -- Biodiversity
-#' Assessment Tools. Methods in Ecology and Evolution, 6, 232-236.
-#'
-#' @seealso [spaccBeta()], [spaccBetaPhylo()]
-#'
-#' @examples
-#' \donttest{
-#' coords <- data.frame(x = runif(50), y = runif(50))
-#' species <- matrix(rbinom(50 * 20, 1, 0.3), nrow = 50)
-#' traits <- matrix(rnorm(20 * 3), nrow = 20)
-#' rownames(traits) <- colnames(species) <- paste0("sp", 1:20)
-#'
-#' beta_func <- spaccBetaFunc(species, coords, traits)
-#' plot(beta_func)
-#' }
-#'
-#' @export
-spaccBetaFunc <- function(x,
-                           coords,
-                           traits,
-                           n_seeds = 50L,
-                           method = "knn",
-                           index = c("sorensen", "jaccard"),
-                           distance = c("euclidean", "haversine"),
-                           parallel = TRUE,
-                           n_cores = NULL,
-                           progress = TRUE,
-                           seed = NULL) {
+# Taxonomic beta via the C++ backend; optionally per-site map values.
+beta_taxonomic <- function(species_pa, dist_mat, n_seeds, index, n_cores,
+                           progress, map, coord_data, n_sites) {
+  use_jaccard <- index == "jaccard"
 
-  index <- match.arg(index)
-  distance <- match.arg(distance)
-  if (!is.null(seed)) set.seed(seed)
+  if (progress) cli_info(sprintf("Computing beta diversity (%s, %d seeds)",
+                                  index, n_seeds))
 
-  n_cores <- resolve_cores(n_cores, parallel)
+  result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_seeds,
+                                   use_jaccard, n_cores, progress)
 
-  x <- as.matrix(x)
-  traits <- as.matrix(traits)
-  species_pa <- (x > 0) * 1L
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
+  site_values <- NULL
+  if (map) {
+    if (progress) cli_info("Computing per-site beta map values (all sites as seeds)")
+    map_result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_sites,
+                                         use_jaccard, n_cores, progress)
+    n_steps <- ncol(map_result$beta_total)
+    site_values <- data.frame(
+      site_id = seq_len(n_sites),
+      x = coord_data$x,
+      y = coord_data$y,
+      beta_total = map_result$beta_total[, n_steps],
+      beta_turnover = map_result$beta_turnover[, n_steps],
+      beta_nestedness = map_result$beta_nestedness[, n_steps]
+    )
+    if (progress) cli_success("Map values computed")
   }
 
+  list(
+    beta_total = result$beta_total,
+    beta_turnover = result$beta_turnover,
+    beta_nestedness = result$beta_nestedness,
+    distance = result$distance,
+    site_values = site_values
+  )
+}
+
+
+# Functional beta: Baselga partition weighted by trait distinctiveness of the
+# species exchanged between the accumulated pool and each new site.
+beta_functional <- function(x, species_pa, traits, dist_mat, n_seeds, index,
+                            progress) {
+  traits <- as.matrix(traits)
   n_sites <- nrow(species_pa)
   n_species <- ncol(species_pa)
 
@@ -432,116 +404,20 @@ spaccBetaFunc <- function(x,
 
   distances <- t(apply(distances, 1, cumsum))
 
-  if (progress) cli_success("Done")
-
-  structure(
-    list(
-      beta_total = beta_total,
-      beta_turnover = beta_turn,
-      beta_nestedness = beta_nest,
-      distance = distances,
-      coords = coord_data,
-      site_values = NULL,
-      n_seeds = n_seeds,
-      n_sites = n_sites,
-      n_species = n_species,
-      method = method,
-      index = index,
-      beta_type = "functional",
-      call = match.call()
-    ),
-    class = "spacc_beta"
+  list(
+    beta_total = beta_total,
+    beta_turnover = beta_turn,
+    beta_nestedness = beta_nest,
+    distance = distances,
+    site_values = NULL
   )
 }
 
 
-#' Phylogenetic Beta Diversity Accumulation
-#'
-#' Compute spatial accumulation of phylogenetic beta diversity, partitioned
-#' into turnover and nestedness components. Measures how evolutionary
-#' composition changes as sites are accumulated spatially.
-#'
-#' @param x A site-by-species matrix (presence/absence or abundance).
-#' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
-#' @param tree A phylogenetic tree of class `phylo` (from ape), or a pairwise
-#'   phylogenetic distance matrix.
-#' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
-#' @param index Character. Dissimilarity index: `"sorensen"` (default) or `"jaccard"`.
-#' @param distance Character. Distance method. Default `"euclidean"`.
-#' @param parallel Logical. Use parallel processing? Default `TRUE`.
-#' @param n_cores Integer. Number of cores.
-#' @param progress Logical. Show progress? Default `TRUE`.
-#' @param seed Integer. Random seed.
-#'
-#' @return An object of class `spacc_beta` with additional attribute
-#'   `beta_type = "phylogenetic"`.
-#'
-#' @details
-#' Phylogenetic beta diversity quantifies evolutionary turnover across space.
-#' The PhyloSor index (phylogenetic Sorensen) is used: the fraction of
-#' branch length shared between two communities relative to total branch
-#' length. Partitioned into replacement (turnover) and loss (nestedness)
-#' components.
-#'
-#' @references
-#' Baselga, A. (2010). Partitioning the turnover and nestedness components
-#' of beta diversity. Global Ecology and Biogeography, 19, 134-143.
-#'
-#' Chao, A., Chiu, C.H., Villeger, S., et al. (2023). Rarefaction and
-#' extrapolation with beta diversity under a framework of Hill numbers:
-#' the iNEXT.beta3D standardization. Ecological Monographs, 93, e1588.
-#'
-#' @seealso [spaccBeta()], [spaccBetaFunc()]
-#'
-#' @examples
-#' \donttest{
-#' if (requireNamespace("ape", quietly = TRUE)) {
-#'   tree <- ape::rtree(20)
-#'   coords <- data.frame(x = runif(50), y = runif(50))
-#'   species <- matrix(rbinom(50 * 20, 1, 0.3), nrow = 50)
-#'   colnames(species) <- tree$tip.label
-#'
-#'   beta_phylo <- spaccBetaPhylo(species, coords, tree)
-#'   plot(beta_phylo)
-#' }
-#' }
-#'
-#' @export
-spaccBetaPhylo <- function(x,
-                            coords,
-                            tree,
-                            n_seeds = 50L,
-                            method = "knn",
-                            index = c("sorensen", "jaccard"),
-                            distance = c("euclidean", "haversine"),
-                            parallel = TRUE,
-                            n_cores = NULL,
-                            progress = TRUE,
-                            seed = NULL) {
-
-  index <- match.arg(index)
-  distance <- match.arg(distance)
-  if (!is.null(seed)) set.seed(seed)
-
-  n_cores <- resolve_cores(n_cores, parallel)
-
-  x <- as.matrix(x)
-  species_pa <- (x > 0) * 1L
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+# Phylogenetic beta: PhyloSor partition weighted by shared branch length.
+beta_phylogenetic <- function(x, species_pa, tree, dist_mat, n_seeds, index,
+                              progress) {
   n_sites <- nrow(species_pa)
-  n_species <- ncol(species_pa)
 
   # Get phylogenetic distances
   if (inherits(tree, "phylo")) {
@@ -628,24 +504,43 @@ spaccBetaPhylo <- function(x,
 
   distances <- t(apply(distances, 1, cumsum))
 
-  if (progress) cli_success("Done")
-
-  structure(
-    list(
-      beta_total = beta_total,
-      beta_turnover = beta_turn,
-      beta_nestedness = beta_nest,
-      distance = distances,
-      coords = coord_data,
-      site_values = NULL,
-      n_seeds = n_seeds,
-      n_sites = n_sites,
-      n_species = n_species,
-      method = method,
-      index = index,
-      beta_type = "phylogenetic",
-      call = match.call()
-    ),
-    class = "spacc_beta"
+  list(
+    beta_total = beta_total,
+    beta_turnover = beta_turn,
+    beta_nestedness = beta_nest,
+    distance = distances,
+    site_values = NULL
   )
+}
+
+
+# ============================================================================
+# DEPRECATED: superseded by spaccBeta(traits = ) / spaccBeta(tree = )
+# ============================================================================
+
+#' @rdname spaccBeta
+#' @export
+spaccBetaFunc <- function(x, coords, traits, n_seeds = 50L, method = "knn",
+                          index = c("sorensen", "jaccard"),
+                          distance = c("euclidean", "haversine"),
+                          parallel = TRUE, n_cores = NULL, progress = TRUE,
+                          seed = NULL) {
+  .Deprecated("spaccBeta(traits = ...)")
+  spaccBeta(x, coords, traits = traits, n_seeds = n_seeds, method = method,
+            index = index, distance = distance, parallel = parallel,
+            n_cores = n_cores, progress = progress, seed = seed)
+}
+
+
+#' @rdname spaccBeta
+#' @export
+spaccBetaPhylo <- function(x, coords, tree, n_seeds = 50L, method = "knn",
+                           index = c("sorensen", "jaccard"),
+                           distance = c("euclidean", "haversine"),
+                           parallel = TRUE, n_cores = NULL, progress = TRUE,
+                           seed = NULL) {
+  .Deprecated("spaccBeta(tree = ...)")
+  spaccBeta(x, coords, tree = tree, n_seeds = n_seeds, method = method,
+            index = index, distance = distance, parallel = parallel,
+            n_cores = n_cores, progress = progress, seed = seed)
 }

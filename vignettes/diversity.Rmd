@@ -393,7 +393,8 @@ distinct communities the accumulated set is worth. Reporting both is reasonable
 when the distinction matters.
 
 When species carry traits, functional beta weights turnover by how different the
-incoming and outgoing species are in trait space. `spaccBetaFunc()` scales the
+incoming and outgoing species are in trait space. Passing `traits` to
+`spaccBeta()` scales the
 Baselga components by the mean pairwise trait distance of the species that
 differ, so replacing a species with a near-identical one registers little beta
 even though the species list changed.
@@ -406,7 +407,7 @@ traits <- data.frame(
 )
 rownames(traits) <- colnames(species)
 
-beta_func <- spaccBetaFunc(pa, coords, traits, n_seeds = 20, progress = FALSE)
+beta_func <- spaccBeta(pa, coords, traits = traits, n_seeds = 20, progress = FALSE)
 ```
 
 ```{r plot-beta-func, fig.cap = "Functional beta diversity accumulation."}
@@ -417,7 +418,8 @@ plot(beta_func) +
 
 Functional beta is lower than taxonomic beta whenever the species that turn over
 are functionally similar, which is the common case in trait-redundant
-assemblages. The phylogenetic analogue, `spaccBetaPhylo()`, does the same with a
+assemblages. The phylogenetic analogue, `spaccBeta()` with a `tree` argument,
+does the same with a
 phylogenetic distance matrix from a tree, weighting turnover by evolutionary
 divergence so that swapping close relatives counts for less than swapping
 distant lineages.
@@ -426,7 +428,7 @@ distant lineages.
 library(ape)
 tree <- rcoal(n_species, tip.label = colnames(species))
 
-beta_phylo <- spaccBetaPhylo(pa, coords, tree, n_seeds = 20, progress = FALSE)
+beta_phylo <- spaccBeta(pa, coords, tree = tree, n_seeds = 20, progress = FALSE)
 ```
 
 ```{r plot-beta-phylo, fig.cap = "Phylogenetic beta diversity accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
@@ -494,14 +496,15 @@ trait variation, adding species near the centroid does not move the mean
 distance much. A FDis curve that keeps climbing indicates the region is still
 gaining functionally extreme species at large spatial scales.
 
-The continuous-$q$ profile extends to both paradigms. `diversityProfilePhylo()`
-gives phylogenetic Hill numbers across $q$, and `diversityProfileFunc()` gives
+The continuous-$q$ profile extends to both paradigms. `diversityProfile()` with a
+`tree` argument gives phylogenetic Hill numbers across $q$, and with a `traits`
+argument gives
 trait-similarity Hill numbers, each reading as an effective number of lineages
 or functional units that declines with $q$ exactly as the taxonomic profile
 does.
 
 ```{r profile-func}
-fp <- diversityProfileFunc(species, traits, q = seq(0, 3, by = 0.5))
+fp <- diversityProfile(species, traits = traits, q = seq(0, 3, by = 0.5))
 fp
 ```
 
@@ -715,7 +718,7 @@ The table below summarises which function fits which question.
 | How is regional diversity split locally vs across sites | `diversityPartition()` | abundance | alpha, beta, gamma |
 | Is turnover replacement or species loss | `spaccBeta()` | presence/absence | turnover, nestedness |
 | How many distinct communities (Hill beta) | `spaccHillBeta()` | abundance | beta per order |
-| Does turnover involve distinct traits or lineages | `spaccBetaFunc()`, `spaccBetaPhylo()` | P/A + traits/tree | weighted beta |
+| Does turnover involve distinct traits or lineages | `spaccBeta(traits=)`, `spaccBeta(tree=)` | P/A + traits/tree | weighted beta |
 | How does evolutionary or trait diversity accumulate | `spaccPhylo()`, `spaccFunc()` | abundance + tree/traits | MPD, MNTD, PD, FDis, FRic |
 | Abundance-weighted trait/lineage dispersion | `spaccPhylo(metric="rao")`, `spaccFunc(metric="rao")` | abundance + tree/traits | Rao's Q |
 | Fair comparison under unequal effort | `spaccCoverage()`, `spaccHillCoverage()` | abundance | coverage-standardised |
