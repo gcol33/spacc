@@ -97,7 +97,7 @@
 <div class="page-header"><h1 id="spacc">spacc<a class="anchor" aria-label="anchor" href="#spacc"></a>
 </h1></div>
 <p><em>species accumulating in the neighbourhood</em></p>
-<p><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg" alt="codecov"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
+<p><a href="https://CRAN.R-project.org/package=spacc" class="external-link"><img src="https://www.r-pkg.org/badges/version/spacc" alt="CRAN status"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/spacc" alt="CRAN downloads"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/spacc" alt="Monthly downloads"></a> <a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p><strong>Spatial species accumulation curves built by nearest-neighbour expansion in C++.</strong></p>
 <p>Pick a starting site, then walk outward to its nearest neighbours, counting new species as you go. <code>spacc</code> does that from many starting points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> you begin. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order and never sees the map. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -221,7 +221,9 @@
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"spacc"</span><span class="op">)</span>            <span class="co"># CRAN</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span>              <span class="co"># development version</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/spacc"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -256,17 +258,18 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co">@software{spacc,</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">  title = {spacc: Fast Spatial Species Accumulation Curves},</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">  year = {2025},</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/spacc}</span></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">spacc</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="dt">author</span> = {Gilles Colling},</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="dt">title</span>  = {spacc: Fast Spatial Species Accumulation Curves},</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="dt">year</span>   = {2026},</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="dt">url</span>    = {https://CRAN.R-project.org/package=spacc}</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
+<li><a href="https://cloud.r-project.org/package=spacc" class="external-link">View on CRAN</a></li>
 <li><a href="https://github.com/gcol33/spacc/" class="external-link">Browse source code</a></li>
 <li><a href="https://github.com/gcol33/spacc/issues" class="external-link">Report a bug</a></li>
 </ul>
