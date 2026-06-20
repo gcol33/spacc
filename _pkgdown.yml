@@ -44,6 +44,9 @@ articles:
   - richness-estimation
   - community-assembly
   - rarefaction-standardization
+- title: Theory
+  navbar: Theory
+  contents: theory
 reference:
 - title: Core Functions
   desc: Main spatial accumulation functions
@@ -129,6 +132,7 @@ reference:
   - extrapolate
   - extrapolateArea
   - compare
+  - as_spacc
   - rarefy
   - subsample
 - title: Internal

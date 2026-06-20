@@ -128,6 +128,7 @@ pak::pak("gcol33/spacc")
 - [Community Assembly](https://gillescolling.com/spacc/articles/community-assembly.html)
 - [Richness Estimation](https://gillescolling.com/spacc/articles/richness-estimation.html)
 - [Rarefaction](https://gillescolling.com/spacc/articles/rarefaction-standardization.html)
+- [Methods and Algorithms](https://gillescolling.com/spacc/articles/theory.html)
 - [Function Reference](https://gillescolling.com/spacc/reference/)
 
 ## Support

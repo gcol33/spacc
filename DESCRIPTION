@@ -50,7 +50,8 @@ Suggests:
     ape,
     iNEXT,
     betapart,
-    cluster
+    cluster,
+    vegan
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 SystemRequirements: GNU make
