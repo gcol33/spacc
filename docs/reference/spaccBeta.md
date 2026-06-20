@@ -10,6 +10,8 @@ nestedness (species loss) components following Baselga (2010).
 spaccBeta(
   x,
   coords,
+  traits = NULL,
+  tree = NULL,
   n_seeds = 50L,
   method = "knn",
   index = c("sorensen", "jaccard"),
@@ -19,6 +21,34 @@ spaccBeta(
   progress = TRUE,
   seed = NULL,
   map = FALSE
+)
+
+spaccBetaFunc(
+  x,
+  coords,
+  traits,
+  n_seeds = 50L,
+  method = "knn",
+  index = c("sorensen", "jaccard"),
+  distance = c("euclidean", "haversine"),
+  parallel = TRUE,
+  n_cores = NULL,
+  progress = TRUE,
+  seed = NULL
+)
+
+spaccBetaPhylo(
+  x,
+  coords,
+  tree,
+  n_seeds = 50L,
+  method = "knn",
+  index = c("sorensen", "jaccard"),
+  distance = c("euclidean", "haversine"),
+  parallel = TRUE,
+  n_cores = NULL,
+  progress = TRUE,
+  seed = NULL
 )
 ```
 
@@ -31,6 +61,17 @@ spaccBeta(
 - coords:
 
   A data.frame with columns `x` and `y`, or a `spacc_dist` object.
+
+- traits:
+
+  Optional species-by-traits matrix or data.frame (row names matching
+  species). When supplied, functional beta diversity is computed.
+
+- tree:
+
+  Optional phylogenetic tree of class `phylo`, or a pairwise
+  phylogenetic distance matrix. When supplied, phylogenetic beta
+  diversity is computed. Supply at most one of `traits` or `tree`.
 
 - n_seeds:
 
@@ -110,6 +151,14 @@ reveals how species composition changes as you expand spatially.
 
 The sum of turnover and nestedness equals total beta diversity.
 
+Supplying `traits` computes functional beta diversity, weighting the
+partition by the trait distinctiveness of the species exchanged between
+the accumulated pool and each new site. Supplying `tree` computes
+phylogenetic beta diversity (PhyloSor), weighting by shared branch
+length. The taxonomic, functional, and phylogenetic variants all return
+a `spacc_beta` object whose `beta_type` field records which was
+computed. `map = TRUE` is supported for the taxonomic variant only.
+
 ## References
 
 Baselga, A. (2010). Partitioning the turnover and nestedness components
@@ -132,5 +181,10 @@ plot(beta)
 
 # Compare Sorensen vs Jaccard
 beta_jac <- spaccBeta(species, coords, index = "jaccard")
+
+# Functional beta diversity (pass a species-by-traits matrix)
+traits <- matrix(rnorm(30 * 3), nrow = 30)
+rownames(traits) <- colnames(species) <- paste0("sp", 1:30)
+beta_func <- spaccBeta(species, coords, traits = traits)
 # }
 ```

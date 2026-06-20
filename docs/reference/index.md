@@ -8,7 +8,8 @@ Main spatial accumulation functions
   Spatial Species Accumulation Curves
 - [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
   : Spatial Accumulation of a Custom Diversity Metric
-- [`wavefront()`](https://gillescolling.com/spacc/reference/wavefront.md)
+- [`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
+  [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
   : Wavefront Expansion Accumulation
 - [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md)
   : Distance-Decay Analysis
@@ -26,11 +27,9 @@ Alpha, beta, and gamma diversity partitioning
 - [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)
   : Alpha-Beta-Gamma Diversity Partitioning
 - [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+  [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+  [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
   : Diversity Profile
-- [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfilePhylo.md)
-  : Phylogenetic Diversity Profile
-- [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfileFunc.md)
-  : Functional Diversity Profile
 - [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md)
   : Evenness Profiles
 
@@ -50,11 +49,9 @@ Diversity accumulation with Hill numbers (q=0,1,2)
 Spatial beta diversity with turnover/nestedness partitioning
 
 - [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+  [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+  [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
   : Spatial Beta Diversity Accumulation
-- [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md)
-  : Functional Beta Diversity Accumulation
-- [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md)
-  : Phylogenetic Beta Diversity Accumulation
 
 ## Community Turnover
 
@@ -162,6 +159,8 @@ Post-hoc analysis of accumulation curves
   : Extrapolate Richness to a Larger Area (Ugland T-S Curve)
 - [`compare()`](https://gillescolling.com/spacc/reference/compare.md) :
   Compare Two Accumulation Curves
+- [`as_spacc()`](https://gillescolling.com/spacc/reference/as_spacc.md)
+  : Convert an Accumulation Curve from Another Package to a spacc Object
 - [`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md) :
   Individual-Based Rarefaction
 - [`subsample()`](https://gillescolling.com/spacc/reference/subsample.md)

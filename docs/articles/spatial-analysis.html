@@ -66,6 +66,9 @@
     <li><a class="dropdown-item" href="../articles/richness-estimation.html">Richness Estimation and Completeness</a></li>
     <li><a class="dropdown-item" href="../articles/community-assembly.html">Community Assembly and Turnover</a></li>
     <li><a class="dropdown-item" href="../articles/rarefaction-standardization.html">Rarefaction and Standardization</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
+    <li><a class="dropdown-item" href="../articles/theory.html">Methods and Algorithms</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -101,7 +104,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-06-15</h4>
+            <h4 data-toc-skip class="date">2026-06-20</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/spatial-analysis.Rmd" class="external-link"><code>vignettes/spatial-analysis.Rmd</code></a></small>
       <div class="d-none name"><code>spatial-analysis.Rmd</code></div>
@@ -1691,7 +1694,7 @@ R-squared into a scale-resolved account of where the pattern lives.</p>
 <div class="section level2">
 <h2 id="wavefront-expansion">Wavefront expansion<a class="anchor" aria-label="anchor" href="#wavefront-expansion"></a>
 </h2>
-<p><code><a href="../reference/wavefront.html">wavefront()</a></code> accumulates species inside an expanding
+<p><code><a href="../reference/spaccWavefront.html">spaccWavefront()</a></code> accumulates species inside an expanding
 radius from seed points, a model of spread from an introduction front.
 As a diagnostic it answers a different question than the
 nearest-neighbour curve: how richness grows with geographic reach rather
@@ -1702,7 +1705,7 @@ range front sweeps outward, but it serves equally as a spatial
 diagnostic for any dataset where distance from a point is the relevant
 axis.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">wf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/wavefront.html">wavefront</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, n_steps <span class="op">=</span> <span class="fl">40</span>,</span>
+<code class="sourceCode R"><span><span class="va">wf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccWavefront.html">spaccWavefront</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, n_steps <span class="op">=</span> <span class="fl">40</span>,</span>
 <span>                progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">wf</span></span>
 <span><span class="co">#&gt; spacc wavefront: 80 sites, 40 species, 20 seeds</span></span>
@@ -2029,7 +2032,7 @@ several times the spacing discards most of the data.</li>
 </tr>
 <tr class="even">
 <td>How does richness grow with geographic reach</td>
-<td>wavefront</td>
+<td>spaccWavefront</td>
 </tr>
 <tr class="odd">
 <td>How to break spatial autocorrelation</td>

@@ -2,6 +2,40 @@
 
 ## spacc 0.9.0
 
+### API Changes
+
+- [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
+  was renamed
+  [`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
+  so that every spatial-accumulation curve front door shares the `spacc`
+  prefix. The old name is a deprecated thin wrapper and still works. The
+  distance- and area-relationship functions keep their established
+  names:
+  [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md),
+  [`betaDecay()`](https://gillescolling.com/spacc/reference/betaDecay.md),
+  [`zetaDiversity()`](https://gillescolling.com/spacc/reference/zetaDiversity.md),
+  and [`dar()`](https://gillescolling.com/spacc/reference/dar.md).
+
+- [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+  gains `traits` and `tree` arguments and now computes taxonomic,
+  functional, or phylogenetic beta diversity from a single front door.
+  Supplying `traits` gives the trait-weighted Baselga partition;
+  supplying `tree` gives the branch-length-weighted (PhyloSor)
+  partition.
+  [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+  and
+  [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+  are deprecated thin wrappers and still work.
+
+- [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+  gains `traits` and `tree` arguments and now computes taxonomic,
+  functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill
+  profiles from a single front door.
+  [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+  and
+  [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+  are deprecated thin wrappers and still work.
+
 ### New Features
 
 - [`extrapolateArea()`](https://gillescolling.com/spacc/reference/extrapolateArea.md)
@@ -77,6 +111,8 @@
 
 ## spacc 0.8.3
 
+CRAN release: 2026-06-20
+
 ### Documentation
 
 - Expanded all seven vignettes from brief overviews into full worked
@@ -88,7 +124,7 @@
   [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md),
   [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md),
   [`spatialEigenvectors()`](https://gillescolling.com/spacc/reference/spatialEigenvectors.md)/[`spatialPartition()`](https://gillescolling.com/spacc/reference/spatialPartition.md),
-  [`wavefront()`](https://gillescolling.com/spacc/reference/wavefront.md),
+  [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md),
   and
   [`compareModels()`](https://gillescolling.com/spacc/reference/compareModels.md)).
 
@@ -262,7 +298,7 @@ Initial release.
 
 #### Additional Accumulation Methods
 
-- [`wavefront()`](https://gillescolling.com/spacc/reference/wavefront.md) -
+- [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md) -
   Expanding radius accumulation
 - [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md) -
   Distance-decay relationships

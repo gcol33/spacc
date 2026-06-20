@@ -22,3 +22,8 @@
   Turnover](https://gillescolling.com/spacc/articles/community-assembly.md):
 - [Rarefaction and
   Standardization](https://gillescolling.com/spacc/articles/rarefaction-standardization.md):
+
+### Theory
+
+- [Methods and
+  Algorithms](https://gillescolling.com/spacc/articles/theory.md):

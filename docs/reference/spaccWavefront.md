@@ -1,0 +1,102 @@
+# Wavefront Expansion Accumulation
+
+Accumulate species within an expanding radius from seed points. Models
+invasion spread from introduction points.
+
+## Usage
+
+``` r
+spaccWavefront(
+  x,
+  coords,
+  n_seeds = 50L,
+  r0 = 0,
+  dr = NULL,
+  n_steps = 50L,
+  distance = c("euclidean", "haversine"),
+  progress = TRUE,
+  seed = NULL
+)
+
+wavefront(
+  x,
+  coords,
+  n_seeds = 50L,
+  r0 = 0,
+  dr = NULL,
+  n_steps = 50L,
+  distance = c("euclidean", "haversine"),
+  progress = TRUE,
+  seed = NULL
+)
+```
+
+## Arguments
+
+- x:
+
+  A site-by-species matrix.
+
+- coords:
+
+  A data.frame with x and y columns, or a `spacc_dist` object.
+
+- n_seeds:
+
+  Integer. Number of random starting points.
+
+- r0:
+
+  Numeric. Initial radius. Default 0.
+
+- dr:
+
+  Numeric. Radius increment per step. Default auto-calculated.
+
+- n_steps:
+
+  Integer. Number of expansion steps. Default 50.
+
+- distance:
+
+  Character. Distance method.
+
+- progress:
+
+  Logical. Show progress?
+
+- seed:
+
+  Integer. Random seed.
+
+## Value
+
+An object of class `spacc_wavefront` containing:
+
+- curves:
+
+  Matrix of species counts (n_seeds x n_steps)
+
+- radius:
+
+  Vector of radius values
+
+- sites_included:
+
+  Matrix of sites included at each step
+
+## References
+
+Shigesada, N. & Kawasaki, K. (1997). Biological Invasions: Theory and
+Practice. Oxford University Press.
+
+## Examples
+
+``` r
+# \donttest{
+coords <- data.frame(x = runif(50), y = runif(50))
+species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
+wf <- spaccWavefront(species, coords, n_seeds = 20, n_steps = 50)
+plot(wf)
+# }
+```

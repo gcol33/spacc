@@ -521,8 +521,9 @@ accumulated set is worth. Reporting both is reasonable when the
 distinction matters.
 
 When species carry traits, functional beta weights turnover by how
-different the incoming and outgoing species are in trait space.
-[`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md)
+different the incoming and outgoing species are in trait space. Passing
+`traits` to
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
 scales the Baselga components by the mean pairwise trait distance of the
 species that differ, so replacing a species with a near-identical one
 registers little beta even though the species list changed.
@@ -536,7 +537,7 @@ traits <- data.frame(
 )
 rownames(traits) <- colnames(species)
 
-beta_func <- spaccBetaFunc(pa, coords, traits, n_seeds = 20, progress = FALSE)
+beta_func <- spaccBeta(pa, coords, traits = traits, n_seeds = 20, progress = FALSE)
 ```
 
 ``` r
@@ -554,10 +555,11 @@ Functional beta diversity accumulation.
 Functional beta is lower than taxonomic beta whenever the species that
 turn over are functionally similar, which is the common case in
 trait-redundant assemblages. The phylogenetic analogue,
-[`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md),
-does the same with a phylogenetic distance matrix from a tree, weighting
-turnover by evolutionary divergence so that swapping close relatives
-counts for less than swapping distant lineages.
+[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
+with a `tree` argument, does the same with a phylogenetic distance
+matrix from a tree, weighting turnover by evolutionary divergence so
+that swapping close relatives counts for less than swapping distant
+lineages.
 
 ``` r
 
@@ -569,7 +571,7 @@ library(ape)
 #>     ace
 tree <- rcoal(n_species, tip.label = colnames(species))
 
-beta_phylo <- spaccBetaPhylo(pa, coords, tree, n_seeds = 20, progress = FALSE)
+beta_phylo <- spaccBeta(pa, coords, tree = tree, n_seeds = 20, progress = FALSE)
 ```
 
 ``` r
@@ -663,16 +665,15 @@ region is still gaining functionally extreme species at large spatial
 scales.
 
 The continuous-\\q\\ profile extends to both paradigms.
-[`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfilePhylo.md)
-gives phylogenetic Hill numbers across \\q\\, and
-[`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfileFunc.md)
-gives trait-similarity Hill numbers, each reading as an effective number
-of lineages or functional units that declines with \\q\\ exactly as the
-taxonomic profile does.
+[`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
+with a `tree` argument gives phylogenetic Hill numbers across \\q\\, and
+with a `traits` argument gives trait-similarity Hill numbers, each
+reading as an effective number of lineages or functional units that
+declines with \\q\\ exactly as the taxonomic profile does.
 
 ``` r
 
-fp <- diversityProfileFunc(species, traits, q = seq(0, 3, by = 0.5))
+fp <- diversityProfile(species, traits = traits, q = seq(0, 3, by = 0.5))
 fp
 #> Functional diversity profile: 60 sites, 30 species
 #> q range: [0.0, 3.0] (7 values)
@@ -966,7 +967,7 @@ The table below summarises which function fits which question.
 | How is regional diversity split locally vs across sites | [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md) | abundance | alpha, beta, gamma |
 | Is turnover replacement or species loss | [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md) | presence/absence | turnover, nestedness |
 | How many distinct communities (Hill beta) | [`spaccHillBeta()`](https://gillescolling.com/spacc/reference/spaccHillBeta.md) | abundance | beta per order |
-| Does turnover involve distinct traits or lineages | [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBetaFunc.md), [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBetaPhylo.md) | P/A + traits/tree | weighted beta |
+| Does turnover involve distinct traits or lineages | `spaccBeta(traits=)`, `spaccBeta(tree=)` | P/A + traits/tree | weighted beta |
 | How does evolutionary or trait diversity accumulate | [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md), [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | abundance + tree/traits | MPD, MNTD, PD, FDis, FRic |
 | Abundance-weighted trait/lineage dispersion | `spaccPhylo(metric="rao")`, `spaccFunc(metric="rao")` | abundance + tree/traits | Rao’s Q |
 | Fair comparison under unequal effort | [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md), [`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md) | abundance | coverage-standardised |

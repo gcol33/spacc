@@ -53,6 +53,9 @@ nestedness (species loss) components following Baselga (2010)."></head><body><p>
     <li><a class="dropdown-item" href="../articles/richness-estimation.html">Richness Estimation and Completeness</a></li>
     <li><a class="dropdown-item" href="../articles/community-assembly.html">Community Assembly and Turnover</a></li>
     <li><a class="dropdown-item" href="../articles/rarefaction-standardization.html">Rarefaction and Standardization</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
+    <li><a class="dropdown-item" href="../articles/theory.html">Methods and Algorithms</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -89,6 +92,8 @@ nestedness (species loss) components following Baselga (2010).</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">spaccBeta</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  <span class="va">coords</span>,</span>
+<span>  traits <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  tree <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_seeds <span class="op">=</span> <span class="fl">50L</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"knn"</span>,</span>
 <span>  index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sorensen"</span>, <span class="st">"jaccard"</span><span class="op">)</span>,</span>
@@ -98,6 +103,34 @@ nestedness (species loss) components following Baselga (2010).</p>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  map <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">spaccBetaFunc</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  <span class="va">coords</span>,</span>
+<span>  <span class="va">traits</span>,</span>
+<span>  n_seeds <span class="op">=</span> <span class="fl">50L</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"knn"</span>,</span>
+<span>  index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sorensen"</span>, <span class="st">"jaccard"</span><span class="op">)</span>,</span>
+<span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
+<span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">spaccBetaPhylo</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  <span class="va">coords</span>,</span>
+<span>  <span class="va">tree</span>,</span>
+<span>  n_seeds <span class="op">=</span> <span class="fl">50L</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"knn"</span>,</span>
+<span>  index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sorensen"</span>, <span class="st">"jaccard"</span><span class="op">)</span>,</span>
+<span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
+<span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -111,6 +144,17 @@ nestedness (species loss) components following Baselga (2010).</p>
 
 <dt id="arg-coords">coords<a class="anchor" aria-label="anchor" href="#arg-coords"></a></dt>
 <dd><p>A data.frame with columns <code>x</code> and <code>y</code>, or a <code>spacc_dist</code> object.</p></dd>
+
+
+<dt id="arg-traits">traits<a class="anchor" aria-label="anchor" href="#arg-traits"></a></dt>
+<dd><p>Optional species-by-traits matrix or data.frame (row names
+matching species). When supplied, functional beta diversity is computed.</p></dd>
+
+
+<dt id="arg-tree">tree<a class="anchor" aria-label="anchor" href="#arg-tree"></a></dt>
+<dd><p>Optional phylogenetic tree of class <code>phylo</code>, or a pairwise
+phylogenetic distance matrix. When supplied, phylogenetic beta diversity is
+computed. Supply at most one of <code>traits</code> or <code>tree</code>.</p></dd>
 
 
 <dt id="arg-n-seeds">n_seeds<a class="anchor" aria-label="anchor" href="#arg-n-seeds"></a></dt>
@@ -178,6 +222,13 @@ species composition changes as you expand spatially.</p>
 <p><strong>Interpretation:</strong></p><ul><li><p>High turnover: New sites contribute different species (replacement)</p></li>
 <li><p>High nestedness: New sites contribute subsets of existing species (loss)</p></li>
 </ul><p>The sum of turnover and nestedness equals total beta diversity.</p>
+<p>Supplying <code>traits</code> computes functional beta diversity, weighting the partition
+by the trait distinctiveness of the species exchanged between the accumulated
+pool and each new site. Supplying <code>tree</code> computes phylogenetic beta diversity
+(PhyloSor), weighting by shared branch length. The taxonomic, functional, and
+phylogenetic variants all return a <code>spacc_beta</code> object whose <code>beta_type</code> field
+records which was computed. <code>map = TRUE</code> is supported for the taxonomic
+variant only.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -200,6 +251,11 @@ of beta diversity. Global Ecology and Biogeography, 19, 134-143.</p>
 <span></span>
 <span><span class="co"># Compare Sorensen vs Jaccard</span></span>
 <span><span class="va">beta_jac</span> <span class="op">&lt;-</span> <span class="fu">spaccBeta</span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, index <span class="op">=</span> <span class="st">"jaccard"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Functional beta diversity (pass a species-by-traits matrix)</span></span>
+<span><span class="va">traits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">30</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">traits</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span></span>
+<span><span class="va">beta_func</span> <span class="op">&lt;-</span> <span class="fu">spaccBeta</span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, traits <span class="op">=</span> <span class="va">traits</span><span class="op">)</span></span>
 <span><span class="co"># }</span></span>
 <span></span></code></pre></div>
     </div>

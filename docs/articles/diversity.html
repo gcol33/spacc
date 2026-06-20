@@ -66,6 +66,9 @@
     <li><a class="dropdown-item" href="../articles/richness-estimation.html">Richness Estimation and Completeness</a></li>
     <li><a class="dropdown-item" href="../articles/community-assembly.html">Community Assembly and Turnover</a></li>
     <li><a class="dropdown-item" href="../articles/rarefaction-standardization.html">Rarefaction and Standardization</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
+    <li><a class="dropdown-item" href="../articles/theory.html">Methods and Algorithms</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -101,7 +104,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-06-15</h4>
+            <h4 data-toc-skip class="date">2026-06-20</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/diversity.Rmd" class="external-link"><code>vignettes/diversity.Rmd</code></a></small>
       <div class="d-none name"><code>diversity.Rmd</code></div>
@@ -925,11 +928,11 @@ asks whether dissimilarity is replacement or loss, while Hill beta asks
 how many distinct communities the accumulated set is worth. Reporting
 both is reasonable when the distinction matters.</p>
 <p>When species carry traits, functional beta weights turnover by how
-different the incoming and outgoing species are in trait space.
-<code><a href="../reference/spaccBetaFunc.html">spaccBetaFunc()</a></code> scales the Baselga components by the mean
-pairwise trait distance of the species that differ, so replacing a
-species with a near-identical one registers little beta even though the
-species list changed.</p>
+different the incoming and outgoing species are in trait space. Passing
+<code>traits</code> to <code><a href="../reference/spaccBeta.html">spaccBeta()</a></code> scales the Baselga
+components by the mean pairwise trait distance of the species that
+differ, so replacing a species with a near-identical one registers
+little beta even though the species list changed.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simulate two continuous traits</span></span>
 <span><span class="va">traits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -938,7 +941,7 @@ species list changed.</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">traits</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">beta_func</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccBetaFunc.html">spaccBetaFunc</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, <span class="va">traits</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">beta_func</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccBeta.html">spaccBeta</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, traits <span class="op">=</span> <span class="va">traits</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta_func</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
@@ -1023,10 +1026,10 @@ Functional beta diversity accumulation.
 <p>Functional beta is lower than taxonomic beta whenever the species
 that turn over are functionally similar, which is the common case in
 trait-redundant assemblages. The phylogenetic analogue,
-<code><a href="../reference/spaccBetaPhylo.html">spaccBetaPhylo()</a></code>, does the same with a phylogenetic
-distance matrix from a tree, weighting turnover by evolutionary
-divergence so that swapping close relatives counts for less than
-swapping distant lineages.</p>
+<code><a href="../reference/spaccBeta.html">spaccBeta()</a></code> with a <code>tree</code> argument, does the
+same with a phylogenetic distance matrix from a tree, weighting turnover
+by evolutionary divergence so that swapping close relatives counts for
+less than swapping distant lineages.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/emmanuelparadis/ape" class="external-link">ape</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1036,7 +1039,7 @@ swapping distant lineages.</p>
 <span><span class="co">#&gt;     ace</span></span>
 <span><span class="va">tree</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/ape/man/rtree.html" class="external-link">rcoal</a></span><span class="op">(</span><span class="va">n_species</span>, tip.label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">beta_phylo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccBetaPhylo.html">spaccBetaPhylo</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, <span class="va">tree</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">beta_phylo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccBeta.html">spaccBeta</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, tree <span class="op">=</span> <span class="va">tree</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta_phylo</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
@@ -1332,14 +1335,14 @@ move the mean distance much. A FDis curve that keeps climbing indicates
 the region is still gaining functionally extreme species at large
 spatial scales.</p>
 <p>The continuous-<span class="math inline">\(q\)</span> profile extends
-to both paradigms. <code><a href="../reference/diversityProfilePhylo.html">diversityProfilePhylo()</a></code> gives
-phylogenetic Hill numbers across <span class="math inline">\(q\)</span>,
-and <code><a href="../reference/diversityProfileFunc.html">diversityProfileFunc()</a></code> gives trait-similarity Hill
-numbers, each reading as an effective number of lineages or functional
-units that declines with <span class="math inline">\(q\)</span> exactly
-as the taxonomic profile does.</p>
+to both paradigms. <code><a href="../reference/diversityProfile.html">diversityProfile()</a></code> with a
+<code>tree</code> argument gives phylogenetic Hill numbers across <span class="math inline">\(q\)</span>, and with a <code>traits</code>
+argument gives trait-similarity Hill numbers, each reading as an
+effective number of lineages or functional units that declines with
+<span class="math inline">\(q\)</span> exactly as the taxonomic profile
+does.</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diversityProfileFunc.html">diversityProfileFunc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">traits</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">3</span>, by <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">fp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diversityProfile.html">diversityProfile</a></span><span class="op">(</span><span class="va">species</span>, traits <span class="op">=</span> <span class="va">traits</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">3</span>, by <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">fp</span></span>
 <span><span class="co">#&gt; Functional diversity profile: 60 sites, 30 species</span></span>
 <span><span class="co">#&gt; q range: [0.0, 3.0] (7 values)</span></span>
@@ -1900,7 +1903,7 @@ biological signal.</p>
 <tr class="odd">
 <td>Does turnover involve distinct traits or lineages</td>
 <td>
-<code><a href="../reference/spaccBetaFunc.html">spaccBetaFunc()</a></code>, <code><a href="../reference/spaccBetaPhylo.html">spaccBetaPhylo()</a></code>
+<code>spaccBeta(traits=)</code>, <code>spaccBeta(tree=)</code>
 </td>
 <td>P/A + traits/tree</td>
 <td>weighted beta</td>

@@ -9,7 +9,8 @@ articles:
   rarefaction-standardization: rarefaction-standardization.html
   richness-estimation: richness-estimation.html
   spatial-analysis: spatial-analysis.html
-last_built: 2026-06-20T15:14Z
+  theory: theory.html
+last_built: 2026-06-20T15:36Z
 urls:
   reference: https://gillescolling.com/spacc/reference
   article: https://gillescolling.com/spacc/articles

@@ -10,6 +10,28 @@ diversityProfile(
   x,
   q = seq(0, 3, by = 0.1),
   type = c("both", "per_site", "regional"),
+  traits = NULL,
+  tree = NULL,
+  dist_method = c("euclidean", "gower"),
+  normalize = TRUE,
+  coords = NULL
+)
+
+diversityProfilePhylo(
+  x,
+  tree,
+  q = seq(0, 3, by = 0.1),
+  type = c("both", "per_site", "regional"),
+  coords = NULL
+)
+
+diversityProfileFunc(
+  x,
+  traits,
+  q = seq(0, 3, by = 0.1),
+  type = c("both", "per_site", "regional"),
+  dist_method = c("euclidean", "gower"),
+  normalize = TRUE,
   coords = NULL
 )
 ```
@@ -18,7 +40,8 @@ diversityProfile(
 
 - x:
 
-  A site-by-species matrix (abundance data).
+  A site-by-species matrix (abundance data). Column names must match
+  trait row names / tree tip labels when `traits` / `tree` is supplied.
 
 - q:
 
@@ -29,6 +52,28 @@ diversityProfile(
 
   Character. What to compute: `"per_site"` (per-site profiles),
   `"regional"` (pooled gamma), or `"both"` (default).
+
+- traits:
+
+  Optional species-by-traits data.frame (row names matching species).
+  When supplied, functional Hill numbers (Leinster & Cobbold 2012) are
+  computed.
+
+- tree:
+
+  Optional [`ape::phylo`](https://rdrr.io/pkg/ape/man/read.tree.html)
+  object. When supplied, phylogenetic Hill numbers (Chao et al. 2010)
+  are computed. Supply at most one of `traits` or `tree`.
+
+- dist_method:
+
+  Character. Trait distance for the functional profile: `"euclidean"`
+  (default) or `"gower"`. Ignored unless `traits` is supplied.
+
+- normalize:
+
+  Logical. Normalize trait distances to \[0, 1\]? Default `TRUE`.
+  Ignored unless `traits` is supplied.
 
 - coords:
 
@@ -78,6 +123,12 @@ q: \\D_q \ge D\_{q'}\\ for \\q \le q'\\.
 
 - q \> 2: Increasingly dominated by common species
 
+Supplying `traits` computes functional Hill numbers via a
+trait-similarity matrix (Leinster & Cobbold 2012); supplying `tree`
+computes phylogenetic Hill numbers weighted by branch length (Chao et
+al. 2010). Both return a `spacc_profile` whose `profile_type` records
+which was computed.
+
 ## References
 
 Leinster, T. & Cobbold, C.A. (2012). Measuring diversity: the importance
@@ -106,5 +157,10 @@ print(prof)
 
 # \donttest{
 plot(prof)
+
+# Functional profile (pass a species-by-traits data.frame)
+colnames(species) <- paste0("sp", 1:30)
+traits <- data.frame(size = rnorm(30), row.names = paste0("sp", 1:30))
+fp <- diversityProfile(species, traits = traits)
 # }
 ```

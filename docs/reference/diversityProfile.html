@@ -51,6 +51,9 @@ producing a diversity profile for each site and the regional pool."></head><body
     <li><a class="dropdown-item" href="../articles/richness-estimation.html">Richness Estimation and Completeness</a></li>
     <li><a class="dropdown-item" href="../articles/community-assembly.html">Community Assembly and Turnover</a></li>
     <li><a class="dropdown-item" href="../articles/rarefaction-standardization.html">Rarefaction and Standardization</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
+    <li><a class="dropdown-item" href="../articles/theory.html">Methods and Algorithms</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -87,6 +90,28 @@ producing a diversity profile for each site and the regional pool.</p>
 <span>  <span class="va">x</span>,</span>
 <span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">3</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"per_site"</span>, <span class="st">"regional"</span><span class="op">)</span>,</span>
+<span>  traits <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  tree <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  dist_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"gower"</span><span class="op">)</span>,</span>
+<span>  normalize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  coords <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">diversityProfilePhylo</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  <span class="va">tree</span>,</span>
+<span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">3</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"per_site"</span>, <span class="st">"regional"</span><span class="op">)</span>,</span>
+<span>  coords <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">diversityProfileFunc</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  <span class="va">traits</span>,</span>
+<span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">3</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"per_site"</span>, <span class="st">"regional"</span><span class="op">)</span>,</span>
+<span>  dist_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"gower"</span><span class="op">)</span>,</span>
+<span>  normalize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  coords <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -96,7 +121,8 @@ producing a diversity profile for each site and the regional pool.</p>
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A site-by-species matrix (abundance data).</p></dd>
+<dd><p>A site-by-species matrix (abundance data). Column names must match
+trait row names / tree tip labels when <code>traits</code> / <code>tree</code> is supplied.</p></dd>
 
 
 <dt id="arg-q">q<a class="anchor" aria-label="anchor" href="#arg-q"></a></dt>
@@ -107,6 +133,28 @@ producing a diversity profile for each site and the regional pool.</p>
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
 <dd><p>Character. What to compute: <code>"per_site"</code> (per-site profiles),
 <code>"regional"</code> (pooled gamma), or <code>"both"</code> (default).</p></dd>
+
+
+<dt id="arg-traits">traits<a class="anchor" aria-label="anchor" href="#arg-traits"></a></dt>
+<dd><p>Optional species-by-traits data.frame (row names matching
+species). When supplied, functional Hill numbers (Leinster &amp; Cobbold 2012)
+are computed.</p></dd>
+
+
+<dt id="arg-tree">tree<a class="anchor" aria-label="anchor" href="#arg-tree"></a></dt>
+<dd><p>Optional <code><a href="https://rdrr.io/pkg/ape/man/read.tree.html" class="external-link">ape::phylo</a></code> object. When supplied, phylogenetic Hill
+numbers (Chao et al. 2010) are computed. Supply at most one of <code>traits</code> or
+<code>tree</code>.</p></dd>
+
+
+<dt id="arg-dist-method">dist_method<a class="anchor" aria-label="anchor" href="#arg-dist-method"></a></dt>
+<dd><p>Character. Trait distance for the functional profile:
+<code>"euclidean"</code> (default) or <code>"gower"</code>. Ignored unless <code>traits</code> is supplied.</p></dd>
+
+
+<dt id="arg-normalize">normalize<a class="anchor" aria-label="anchor" href="#arg-normalize"></a></dt>
+<dd><p>Logical. Normalize trait distances to [0, 1]? Default
+<code>TRUE</code>. Ignored unless <code>traits</code> is supplied.</p></dd>
 
 
 <dt id="arg-coords">coords<a class="anchor" aria-label="anchor" href="#arg-coords"></a></dt>
@@ -145,7 +193,11 @@ order q. The key property is that Hill numbers are non-increasing in q:
 their proportional abundance)</p></li>
 <li><p>q = 2: Inverse Simpson concentration (emphasizes dominant species)</p></li>
 <li><p>q &gt; 2: Increasingly dominated by common species</p></li>
-</ul></div>
+</ul><p>Supplying <code>traits</code> computes functional Hill numbers via a trait-similarity
+matrix (Leinster &amp; Cobbold 2012); supplying <code>tree</code> computes phylogenetic Hill
+numbers weighted by branch length (Chao et al. 2010). Both return a
+<code>spacc_profile</code> whose <code>profile_type</code> records which was computed.</p>
+    </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Leinster, T. &amp; Cobbold, C.A. (2012). Measuring diversity: the importance
@@ -170,6 +222,11 @@ profiles</p></div>
 <span></span>
 <span><span class="co"># \donttest{</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">prof</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Functional profile (pass a species-by-traits data.frame)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span></span>
+<span><span class="va">traits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span>, row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sp"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fp</span> <span class="op">&lt;-</span> <span class="fu">diversityProfile</span><span class="op">(</span><span class="va">species</span>, traits <span class="op">=</span> <span class="va">traits</span><span class="op">)</span></span>
 <span><span class="co"># }</span></span>
 <span></span></code></pre></div>
     </div>
