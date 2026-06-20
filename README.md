@@ -2,8 +2,11 @@
 
 *species accumulating in the neighbourhood*
 
+[![CRAN status](https://www.r-pkg.org/badges/version/spacc)](https://CRAN.R-project.org/package=spacc)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/spacc)](https://cran.r-project.org/package=spacc)
+[![Monthly downloads](https://cranlogs.r-pkg.org/badges/spacc)](https://cran.r-project.org/package=spacc)
 [![R-CMD-check](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml)
-[![codecov](https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg)](https://app.codecov.io/gh/gcol33/spacc)
+[![Codecov test coverage](https://codecov.io/gh/gcol33/spacc/graph/badge.svg)](https://app.codecov.io/gh/gcol33/spacc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Spatial species accumulation curves built by nearest-neighbour expansion in C++.**
@@ -110,7 +113,9 @@ sac_st <- spacc(species, coords, method = "knn",
 ## Installation
 
 ```r
-install.packages("pak")
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
 pak::pak("gcol33/spacc")
 ```
 
@@ -145,10 +150,10 @@ MIT (see the LICENSE.md file)
 ## Citation
 
 ```bibtex
-@software{spacc,
-  author = {Colling, Gilles},
-  title = {spacc: Fast Spatial Species Accumulation Curves},
-  year = {2025},
-  url = {https://github.com/gcol33/spacc}
+@Manual{spacc,
+  author = {Gilles Colling},
+  title  = {spacc: Fast Spatial Species Accumulation Curves},
+  year   = {2026},
+  url    = {https://CRAN.R-project.org/package=spacc}
 }
 ```
