@@ -13,7 +13,20 @@ not implement directly."><meta property="og:description" content="Accumulate any
 sites. At each accumulation step the cumulative community is passed to
 fun, which returns a single number. This is the general escape hatch
 behind the built-in metric functions: use it for indices that spacc does
-not implement directly."></head><body>
+not implement directly."><script>
+(function () {
+  var D = String.fromCharCode(36);
+  window.MathJax = {
+    tex: {
+      inlineMath: [[D, D], ["\\(", "\\)"]],
+      displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+    },
+    chtml: { linebreaks: { automatic: true, width: "90% container" } },
+    svg: { linebreaks: { automatic: true, width: "90% container" } },
+    options: { renderActions: { addMenu: [] } }
+  };
+})();
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -192,7 +205,7 @@ metrics for full flexibility.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
@@ -201,6 +214,5 @@ metrics for full flexibility.</p>
 
 
 
-  
-</body></html>
+  </body></html>
 

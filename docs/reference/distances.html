@@ -9,7 +9,20 @@
 spacc() calls. Supports sf objects with accurate geodesic distances
 for global-scale studies."><meta property="og:description" content="Pre-compute pairwise distances between sites for reuse across multiple
 spacc() calls. Supports sf objects with accurate geodesic distances
-for global-scale studies."></head><body>
+for global-scale studies."><script>
+(function () {
+  var D = String.fromCharCode(36);
+  window.MathJax = {
+    tex: {
+      inlineMath: [[D, D], ["\\(", "\\)"]],
+      displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+    },
+    chtml: { linebreaks: { automatic: true, width: "90% container" } },
+    svg: { linebreaks: { automatic: true, width: "90% container" } },
+    options: { renderActions: { addMenu: [] } }
+  };
+})();
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -143,7 +156,7 @@ distance is appropriate and faster.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
@@ -152,6 +165,5 @@ distance is appropriate and faster.</p>
 
 
 
-  
-</body></html>
+  </body></html>
 

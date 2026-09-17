@@ -58,26 +58,26 @@
 <polyline points='57.11,220.10 64.23,209.96 71.35,200.50 78.47,189.04 85.58,183.22 92.70,174.56 99.82,170.56 106.93,164.76 114.05,160.79 121.17,155.12 128.29,150.81 135.40,147.38 142.52,145.71 149.64,143.32 156.75,141.88 163.87,141.17 170.99,138.98 178.11,136.76 185.22,135.28 192.34,132.08 199.46,130.04 206.58,126.88 213.69,121.91 220.81,116.60 227.93,111.77 235.04,107.59 242.16,104.17 249.28,100.86 256.40,98.34 263.51,94.49 270.63,91.57 277.75,89.08 284.86,85.54 291.98,82.32 299.10,80.02 306.22,78.60 313.33,77.79 320.45,76.35 327.57,75.02 334.68,73.97 341.80,72.36 348.92,71.64 356.04,70.73 363.15,70.01 370.27,68.91 377.39,68.24 384.50,66.82 391.62,64.99 398.74,63.12 405.86,61.76 412.97,59.67 420.09,58.19 427.21,56.50 434.32,54.98 441.44,53.55 448.56,52.34 455.68,51.83 462.79,51.41 469.91,50.80 477.03,50.36 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='30.74' y='225.96' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='30.74' y='133.23' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='30.74' y='40.50' text-anchor='end' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>30</text>
-<text x='50.00' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='5.33px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='192.34' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='334.68' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='477.03' y='296.71' text-anchor='middle' style='font-size: 9.60px;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='10.66px' lengthAdjust='spacingAndGlyphs'>60</text>
-<text x='267.07' y='310.31' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='98.03px' lengthAdjust='spacingAndGlyphs'>Sites accumulated</text>
-<text transform='translate(14.57,154.87) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='160.50px' lengthAdjust='spacingAndGlyphs'>Hill number (effective species)</text>
-<text x='175.47' y='343.70' style='font-size: 12.00px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='30.67px' lengthAdjust='spacingAndGlyphs'>Order</text>
+<text x='30.74' y='225.96' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
+<text x='30.74' y='133.23' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='30.74' y='40.50' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
+<text x='50.00' y='296.71' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='192.34' y='296.71' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='334.68' y='296.71' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
+<text x='477.03' y='296.71' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
+<text x='267.07' y='310.31' text-anchor='middle' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites accumulated</text>
+<text transform='translate(14.57,154.87) rotate(-90)' text-anchor='middle' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Hill number (effective species)</text>
+<text x='175.47' y='343.70' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Order</text>
 <rect x='212.89' y='331.54' width='15.73' height='15.73' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
 <line x1='213.85' y1='339.40' x2='227.67' y2='339.40' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
 <rect x='263.74' y='331.54' width='15.73' height='15.73' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
 <line x1='264.69' y1='339.40' x2='278.51' y2='339.40' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
 <rect x='314.58' y='331.54' width='15.73' height='15.73' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
 <line x1='315.53' y1='339.40' x2='329.36' y2='339.40' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
-<text x='235.38' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='21.61px' lengthAdjust='spacingAndGlyphs'>q = 0</text>
-<text x='286.22' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='21.61px' lengthAdjust='spacingAndGlyphs'>q = 1</text>
-<text x='337.06' y='342.84' style='font-size: 9.60px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='21.61px' lengthAdjust='spacingAndGlyphs'>q = 2</text>
-<text x='36.12' y='16.28' style='font-size: 14.40px; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='212.77px' lengthAdjust='spacingAndGlyphs'>Spatial Hill Number Accumulation</text>
+<text x='235.38' y='342.84' style='font-size: 0.96em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 0</text>
+<text x='286.22' y='342.84' style='font-size: 0.96em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 1</text>
+<text x='337.06' y='342.84' style='font-size: 0.96em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 2</text>
+<text x='36.12' y='16.28' style='font-size: 1.44em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial Hill Number Accumulation</text>
 </g>
 </g>
 </svg>

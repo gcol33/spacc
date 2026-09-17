@@ -9,7 +9,20 @@
 number of species) instead of raw richness. Hill numbers unify diversity
 measures: q=0 is richness, q=1 is exponential Shannon, q=2 is inverse Simpson."><meta property="og:description" content="Compute spatial species accumulation curves using Hill numbers (effective
 number of species) instead of raw richness. Hill numbers unify diversity
-measures: q=0 is richness, q=1 is exponential Shannon, q=2 is inverse Simpson."></head><body>
+measures: q=0 is richness, q=1 is exponential Shannon, q=2 is inverse Simpson."><script>
+(function () {
+  var D = String.fromCharCode(36);
+  window.MathJax = {
+    tex: {
+      inlineMath: [[D, D], ["\\(", "\\)"]],
+      displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+    },
+    chtml: { linebreaks: { automatic: true, width: "90% container" } },
+    svg: { linebreaks: { automatic: true, width: "90% container" } },
+    options: { renderActions: { addMenu: [] } }
+  };
+})();
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -216,7 +229,7 @@ non-spatial Hill number rarefaction</p></div>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
@@ -225,6 +238,5 @@ non-spatial Hill number rarefaction</p></div>
 
 
 
-  
-</body></html>
+  </body></html>
 

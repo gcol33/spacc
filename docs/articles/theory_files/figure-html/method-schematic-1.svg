@@ -69,7 +69,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHwyNTIuMDB8MC4wMHwyMTYuMDA=)'>
-<text x='131.98' y='16.23' text-anchor='middle' style='font-size: 11.95px; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='23.89px' lengthAdjust='spacingAndGlyphs'>kNN</text>
+<text x='131.98' y='16.23' text-anchor='middle' style='font-size: 1.195em; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>kNN</text>
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHw0MzIuMDA=)'>
 <polygon points='23.90,192.10 240.05,192.10 240.05,23.90 23.90,23.90 ' style='stroke-width: 0.75;' />
@@ -107,7 +107,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMjUyLjAwfDUwNC4wMHwwLjAwfDIxNi4wMA==)'>
-<text x='383.98' y='16.23' text-anchor='middle' style='font-size: 11.95px; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='35.83px' lengthAdjust='spacingAndGlyphs'>radius</text>
+<text x='383.98' y='16.23' text-anchor='middle' style='font-size: 1.195em; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>radius</text>
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHw0MzIuMDA=)'>
 <polygon points='275.90,192.10 492.05,192.10 492.05,23.90 275.90,23.90 ' style='stroke-width: 0.75;' />
@@ -145,7 +145,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHwyNTIuMDB8MjE2LjAwfDQzMi4wMA==)'>
-<text x='131.98' y='232.23' text-anchor='middle' style='font-size: 11.95px; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='43.78px' lengthAdjust='spacingAndGlyphs'>random</text>
+<text x='131.98' y='232.23' text-anchor='middle' style='font-size: 1.195em; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>random</text>
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHw0MzIuMDA=)'>
 <polygon points='23.90,408.10 240.05,408.10 240.05,239.90 23.90,239.90 ' style='stroke-width: 0.75;' />
@@ -183,7 +183,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMjUyLjAwfDUwNC4wMHwyMTYuMDB8NDMyLjAw)'>
-<text x='383.98' y='232.23' text-anchor='middle' style='font-size: 11.95px; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;' textLength='49.75px' lengthAdjust='spacingAndGlyphs'>collector</text>
+<text x='383.98' y='232.23' text-anchor='middle' style='font-size: 1.195em; font-weight: bold; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>collector</text>
 </g>
 <g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHw0MzIuMDA=)'>
 <polygon points='275.90,408.10 492.05,408.10 492.05,239.90 275.90,239.90 ' style='stroke-width: 0.75;' />

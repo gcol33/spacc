@@ -23,9 +23,9 @@ points (Rcpp/RcppParallel backend), so the curve carries a confidence
 ribbon showing how richness depends on *where* you begin. The classical
 curve in
 [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
-shuffles sites in random order and never sees the map. `spacc`
-reproduces that random-order curve and adds the spatial one, so you can
-read the gap between them.
+shuffles sites in random order, without using their spatial arrangement.
+`spacc` reproduces that random-order curve and adds the spatial one, so
+you can read the gap between them.
 
 ``` r
 

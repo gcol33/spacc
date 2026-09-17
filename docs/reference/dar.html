@@ -9,7 +9,20 @@
 relationship using Hill numbers of any order q. Instead of plotting species
 richness vs. sites, this plots effective diversity vs. cumulative area."><meta property="og:description" content="Extend the classic species-area relationship (SAR) to a diversity-area
 relationship using Hill numbers of any order q. Instead of plotting species
-richness vs. sites, this plots effective diversity vs. cumulative area."></head><body>
+richness vs. sites, this plots effective diversity vs. cumulative area."><script>
+(function () {
+  var D = String.fromCharCode(36);
+  window.MathJax = {
+    tex: {
+      inlineMath: [[D, D], ["\\(", "\\)"]],
+      displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+    },
+    chtml: { linebreaks: { automatic: true, width: "90% container" } },
+    svg: { linebreaks: { automatic: true, width: "90% container" } },
+    options: { renderActions: { addMenu: [] } }
+  };
+})();
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -198,7 +211,7 @@ for biodiversity and biogeography analyses. Ecology and Evolution, 8,
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
@@ -207,6 +220,5 @@ for biodiversity and biogeography analyses. Ecology and Evolution, 8,
 
 
 
-  
-</body></html>
+  </body></html>
 

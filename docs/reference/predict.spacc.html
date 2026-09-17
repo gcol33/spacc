@@ -11,7 +11,20 @@ objects, this does not use a fitted model; it interpolates the observed
 curve directly."><meta property="og:description" content="Interpolate the mean empirical accumulation curve at arbitrary site counts
 using linear interpolation. Unlike the predict method for spacc_fit
 objects, this does not use a fitted model; it interpolates the observed
-curve directly."></head><body>
+curve directly."><script>
+(function () {
+  var D = String.fromCharCode(36);
+  window.MathJax = {
+    tex: {
+      inlineMath: [[D, D], ["\\(", "\\)"]],
+      displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+    },
+    chtml: { linebreaks: { automatic: true, width: "90% container" } },
+    svg: { linebreaks: { automatic: true, width: "90% container" } },
+    options: { renderActions: { addMenu: [] } }
+  };
+})();
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -140,7 +153,7 @@ Out-of-range values return <code>NA</code>.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
@@ -149,6 +162,5 @@ Out-of-range values return <code>NA</code>.</p>
 
 
 
-  
-</body></html>
+  </body></html>
 

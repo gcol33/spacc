@@ -14,9 +14,9 @@
 Pick a starting site, then walk outward to its nearest neighbours, counting new species
 as you go. `spacc` does that from many starting points (Rcpp/RcppParallel backend), so the
 curve carries a confidence ribbon showing how richness depends on *where* you begin.
-The classical curve in `vegan::specaccum()` shuffles sites in random order and never sees
-the map. `spacc` reproduces that random-order curve and adds the spatial one, so you can
-read the gap between them.
+The classical curve in `vegan::specaccum()` shuffles sites in random order, without using
+their spatial arrangement. `spacc` reproduces that random-order curve and adds the spatial
+one, so you can read the gap between them.
 
 ```r
 library(spacc)

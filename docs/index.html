@@ -20,9 +20,22 @@
 <meta property="og:title" content="spacc">
 <meta name="description" content="Fast Spatial Species Accumulation Curves">
 <meta property="og:description" content="Fast Spatial Species Accumulation Curves">
+<script>
+(function () {
+  var D = String.fromCharCode(36);
+  window.MathJax = {
+    tex: {
+      inlineMath: [[D, D], ["\\(", "\\)"]],
+      displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+    },
+    chtml: { linebreaks: { automatic: true, width: "90% container" } },
+    svg: { linebreaks: { automatic: true, width: "90% container" } },
+    options: { renderActions: { addMenu: [] } }
+  };
+})();
+</script>
 </head>
 <body>
-
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -89,7 +102,7 @@
 <p><em>species accumulating in the neighbourhood</em></p>
 <p><a href="https://CRAN.R-project.org/package=spacc" class="external-link"><img src="https://www.r-pkg.org/badges/version/spacc" alt="CRAN status"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/spacc" alt="CRAN downloads"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/spacc" alt="Monthly downloads"></a> <a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p><strong>Spatial species accumulation curves built by nearest-neighbour expansion in C++.</strong></p>
-<p>Pick a starting site, then walk outward to its nearest neighbours, counting new species as you go. <code>spacc</code> does that from many starting points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> you begin. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order and never sees the map. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
+<p>Pick a starting site, then walk outward to its nearest neighbours, counting new species as you go. <code>spacc</code> does that from many starting points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> you begin. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order, without using their spatial arrangement. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span></span>
@@ -300,7 +313,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
@@ -310,6 +323,5 @@
 
 
 
-  
-</body>
+  </body>
 </html>
