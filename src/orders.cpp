@@ -1,5 +1,8 @@
 #include <Rcpp.h>
+#include <algorithm>
+#include <cmath>
 #include <vector>
+#include "core/distance_core.h"
 using namespace Rcpp;
 
 // Site-visitation orders for custom-metric accumulation (spaccDiversity()).
@@ -8,10 +11,10 @@ using namespace Rcpp;
 // traversal used by the built-in accumulation methods.
 
 
-// kNN order: from each seed, repeatedly move to the nearest unvisited site,
-// using a precomputed distance matrix. Mirrors the traversal in cpp_knn_*.
+// Nearest-neighbour walk: from each seed, repeatedly move to the nearest
+// unvisited site using a precomputed distance matrix.
 // [[Rcpp::export]]
-IntegerMatrix cpp_knn_order(NumericMatrix dist_mat, IntegerVector seeds) {
+IntegerMatrix cpp_nn_walk_order(NumericMatrix dist_mat, IntegerVector seeds) {
   int n_sites = dist_mat.nrow();
   int n_seeds = seeds.size();
   IntegerMatrix orders(n_seeds, n_sites);
@@ -37,6 +40,38 @@ IntegerMatrix cpp_knn_order(NumericMatrix dist_mat, IntegerVector seeds) {
     }
   }
 
+  return orders;
+}
+
+
+// Fixed-focus spatial ordering. Each row ranks every sampling site by its
+// distance from one continuous focal point.
+// [[Rcpp::export]]
+IntegerMatrix cpp_focal_order(NumericVector x, NumericVector y,
+                              NumericVector focus_x, NumericVector focus_y,
+                              std::string distance = "euclidean") {
+  int n_sites = x.size();
+  int n_foci = focus_x.size();
+  IntegerMatrix orders(n_foci, n_sites);
+  bool use_haversine = distance == "haversine";
+
+  for (int focus = 0; focus < n_foci; focus++) {
+    std::vector<std::pair<double, int>> ranked(n_sites);
+    for (int site = 0; site < n_sites; site++) {
+      double separation = use_haversine
+        ? spacc::haversine_distance(focus_y[focus], focus_x[focus], y[site], x[site])
+        : spacc::euclidean_distance(focus_x[focus], focus_y[focus], x[site], y[site]);
+      ranked[site] = std::make_pair(separation, site);
+    }
+    std::stable_sort(ranked.begin(), ranked.end(),
+      [](const std::pair<double, int>& left, const std::pair<double, int>& right) {
+        if (left.first == right.first) return left.second < right.second;
+        return left.first < right.first;
+      });
+    for (int step = 0; step < n_sites; step++) {
+      orders(focus, step) = ranked[step].second;
+    }
+  }
   return orders;
 }
 

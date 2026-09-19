@@ -30,7 +30,7 @@ analysis applied spatially)."><script>
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,10 @@ analysis applied spatially).</p>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"nn_walk"</span><span class="op">)</span>,</span>
+<span>  focal_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  focal_domain <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -148,6 +151,18 @@ standardization. Default <code>NULL</code> (no standardization). Values in (0, 1
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer. Random seed for reproducibility.</p></dd>
+
+
+<dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
+<dd><p>Character. Accumulation method: <code>"knn"</code> or <code>"nn_walk"</code>.</p></dd>
+
+
+<dt id="arg-focal-points">focal_points<a class="anchor" aria-label="anchor" href="#arg-focal-points"></a></dt>
+<dd><p>Optional focal points for <code>method = "knn"</code>. See <code><a href="spacc.html">spacc()</a></code>.</p></dd>
+
+
+<dt id="arg-focal-domain">focal_domain<a class="anchor" aria-label="anchor" href="#arg-focal-domain"></a></dt>
+<dd><p>Optional polygonal focal domain. See <code><a href="spacc.html">spacc()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

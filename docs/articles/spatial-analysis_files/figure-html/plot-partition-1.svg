@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' ?>
-<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00'>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00'>
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
@@ -28,36 +28,36 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
-  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
-    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.000000000000064' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
-  <clipPath id='cpNDcuNDd8NDk4LjAyfDI1LjI4fDMzOS43Ng=='>
-    <rect x='47.47' y='25.28' width='450.56' height='314.48' />
+  <clipPath id='cpNzUuMjF8NDU4LjU0fDQwLjA1fDMyNy45NQ=='>
+    <rect x='75.21' y='40.05' width='383.32' height='287.89' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpNDcuNDd8NDk4LjAyfDI1LjI4fDMzOS43Ng==)'>
-<rect x='47.47' y='25.28' width='450.56' height='314.48' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
-<rect x='119.14' y='120.90' width='102.40' height='204.56' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50;' />
-<rect x='323.94' y='244.14' width='102.40' height='81.32' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #78909C;' />
+<g clip-path='url(#cpNzUuMjF8NDU4LjU0fDQwLjA1fDMyNy45NQ==)'>
+<rect x='75.21' y='40.05' width='383.32' height='287.89' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+<rect x='136.20' y='157.95' width='87.12' height='156.92' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4CAF50;' />
+<rect x='310.43' y='210.06' width='87.12' height='104.81' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #78909C;' />
 </g>
-<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='42.09' y='328.90' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.00</text>
-<text x='42.09' y='257.43' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.25</text>
-<text x='42.09' y='185.95' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.50</text>
-<text x='42.09' y='114.48' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.75</text>
-<text x='42.09' y='43.01' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.00</text>
-<text x='170.34' y='352.01' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial</text>
-<text x='375.14' y='352.01' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Non-spatial</text>
-<text transform='translate(17.92,189.19) rotate(-90)' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>R</text>
-<text transform='translate(12.00,180.52) rotate(-90)' style='font-size: 0.84em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2</text>
-<text x='47.47' y='16.28' style='font-size: 1.44em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial Variance Partitioning</text>
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<text x='66.70' y='320.30' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.00</text>
+<text x='66.70' y='254.87' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.25</text>
+<text x='66.70' y='189.44' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.50</text>
+<text x='66.70' y='124.01' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.75</text>
+<text x='66.70' y='58.58' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.00</text>
+<text x='179.76' y='347.34' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial</text>
+<text x='353.99' y='347.34' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Non-spatial</text>
+<text transform='translate(28.38,194.56) rotate(-90)' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>R</text>
+<text transform='translate(19.02,180.84) rotate(-90)' style='font-size: 1.33em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2</text>
+<text x='75.21' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial Variance Partitioning</text>
 </g>
 </g>
 </svg>

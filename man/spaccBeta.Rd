@@ -2,8 +2,6 @@
 % Please edit documentation in R/beta.R
 \name{spaccBeta}
 \alias{spaccBeta}
-\alias{spaccBetaFunc}
-\alias{spaccBetaPhylo}
 \title{Spatial Beta Diversity Accumulation}
 \usage{
 spaccBeta(
@@ -12,42 +10,16 @@ spaccBeta(
   traits = NULL,
   tree = NULL,
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   index = c("sorensen", "jaccard"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
-)
-
-spaccBetaFunc(
-  x,
-  coords,
-  traits,
-  n_seeds = 50L,
-  method = "knn",
-  index = c("sorensen", "jaccard"),
-  distance = c("euclidean", "haversine"),
-  parallel = TRUE,
-  n_cores = NULL,
-  progress = TRUE,
-  seed = NULL
-)
-
-spaccBetaPhylo(
-  x,
-  coords,
-  tree,
-  n_seeds = 50L,
-  method = "knn",
-  index = c("sorensen", "jaccard"),
-  distance = c("euclidean", "haversine"),
-  parallel = TRUE,
-  n_cores = NULL,
-  progress = TRUE,
-  seed = NULL
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -64,7 +36,7 @@ computed. Supply at most one of \code{traits} or \code{tree}.}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{index}{Character. Dissimilarity index: \code{"sorensen"} (default) or \code{"jaccard"}.}
 
@@ -81,6 +53,10 @@ computed. Supply at most one of \code{traits} or \code{tree}.}
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final beta values for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_beta} containing:

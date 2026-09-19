@@ -10,13 +10,15 @@ spaccPhylo(
   tree,
   metric = c("mpd", "mntd"),
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -39,7 +41,7 @@ presence/absence it reduces to the equal-weight form.
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{distance}{Character. Site distance method: \code{"euclidean"} or \code{"haversine"}.}
 
@@ -54,6 +56,10 @@ presence/absence it reduces to the equal-weight form.
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final values for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_phylo} containing:

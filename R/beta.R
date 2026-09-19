@@ -12,7 +12,7 @@
 #'   phylogenetic distance matrix. When supplied, phylogenetic beta diversity is
 #'   computed. Supply at most one of `traits` or `tree`.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param index Character. Dissimilarity index: `"sorensen"` (default) or `"jaccard"`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
@@ -22,6 +22,8 @@
 #' @param map Logical. If `TRUE`, run accumulation from every site as seed
 #'   and store per-site final beta values for spatial mapping. Enables
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_beta` containing:
 #'   \item{beta_total}{Matrix of total beta diversity (n_seeds x n_sites-1)}
@@ -78,15 +80,18 @@ spaccBeta <- function(x,
                       traits = NULL,
                       tree = NULL,
                       n_seeds = 50L,
-                      method = "knn",
+                      method = c("knn", "nn_walk"),
                       index = c("sorensen", "jaccard"),
                       distance = c("euclidean", "haversine"),
                       parallel = TRUE,
                       n_cores = NULL,
                       progress = TRUE,
                       seed = NULL,
-                      map = FALSE) {
+                      map = FALSE,
+                      focal_points = NULL,
+                      focal_domain = NULL) {
 
+  method <- match.arg(method)
   index <- match.arg(index)
   distance <- match.arg(distance)
 
@@ -120,16 +125,21 @@ spaccBeta <- function(x,
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
 
   # Dispatch on the requested dimension
   if (!is.null(tree)) {
-    comp <- beta_phylogenetic(x, species_pa, tree, dist_mat, n_seeds, index, progress)
+    comp <- beta_phylogenetic(x, species_pa, tree, dist_mat, ordering$orders,
+                              index, progress)
     beta_type <- "phylogenetic"
   } else if (!is.null(traits)) {
-    comp <- beta_functional(x, species_pa, traits, dist_mat, n_seeds, index, progress)
+    comp <- beta_functional(x, species_pa, traits, dist_mat, ordering$orders,
+                            index, progress)
     beta_type <- "functional"
   } else {
-    comp <- beta_taxonomic(species_pa, dist_mat, n_seeds, index, n_cores,
+    comp <- beta_taxonomic(species_pa, dist_mat, ordering$orders, index, n_cores,
                            progress, map, coord_data, n_sites)
     beta_type <- "taxonomic"
   }
@@ -148,6 +158,7 @@ spaccBeta <- function(x,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
+      focal_points = ordering$focal_points,
       index = index,
       beta_type = beta_type,
       call = match.call()
@@ -272,21 +283,22 @@ as_sf.spacc_beta <- function(x, crs = NULL) {
 # ============================================================================
 
 # Taxonomic beta via the C++ backend; optionally per-site map values.
-beta_taxonomic <- function(species_pa, dist_mat, n_seeds, index, n_cores,
+beta_taxonomic <- function(species_pa, dist_mat, orders, index, n_cores,
                            progress, map, coord_data, n_sites) {
   use_jaccard <- index == "jaccard"
 
   if (progress) cli_info(sprintf("Computing beta diversity (%s, %d seeds)",
-                                  index, n_seeds))
+                                  index, nrow(orders)))
 
-  result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_seeds,
-                                   use_jaccard, n_cores, progress)
+  result <- cpp_beta_order_parallel(species_pa, dist_mat, orders - 1L,
+                                    use_jaccard, n_cores, progress)
 
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site beta map values (all sites as seeds)")
-    map_result <- cpp_beta_knn_parallel(species_pa, dist_mat, n_sites,
-                                         use_jaccard, n_cores, progress)
+    map_orders <- .observed_site_orders(coord_data)
+    map_result <- cpp_beta_order_parallel(species_pa, dist_mat, map_orders - 1L,
+                                          use_jaccard, n_cores, progress)
     n_steps <- ncol(map_result$beta_total)
     site_values <- data.frame(
       site_id = seq_len(n_sites),
@@ -311,7 +323,7 @@ beta_taxonomic <- function(species_pa, dist_mat, n_seeds, index, n_cores,
 
 # Functional beta: Baselga partition weighted by trait distinctiveness of the
 # species exchanged between the accumulated pool and each new site.
-beta_functional <- function(x, species_pa, traits, dist_mat, n_seeds, index,
+beta_functional <- function(x, species_pa, traits, dist_mat, orders, index,
                             progress) {
   traits <- as.matrix(traits)
   n_sites <- nrow(species_pa)
@@ -330,30 +342,26 @@ beta_functional <- function(x, species_pa, traits, dist_mat, n_seeds, index,
   trait_dist <- as.matrix(stats::dist(traits))
 
   if (progress) cli_info(sprintf("Computing functional beta diversity (%s, %d seeds)",
-                                  index, n_seeds))
+                                  index, nrow(orders)))
 
   use_jaccard <- index == "jaccard"
   n_steps <- n_sites - 1
 
-  beta_total <- matrix(0, n_seeds, n_steps)
-  beta_turn <- matrix(0, n_seeds, n_steps)
-  beta_nest <- matrix(0, n_seeds, n_steps)
-  distances <- matrix(0, n_seeds, n_steps)
+  n_orderings <- nrow(orders)
+  beta_total <- matrix(0, n_orderings, n_steps)
+  beta_turn <- matrix(0, n_orderings, n_steps)
+  beta_nest <- matrix(0, n_orderings, n_steps)
+  distances <- matrix(0, n_orderings, n_steps)
 
-  for (s in seq_len(n_seeds)) {
-    seed_site <- sample(n_sites, 1) - 1L
-    visited <- logical(n_sites)
-    current <- seed_site + 1L
-    visited[current] <- TRUE
+  for (s in seq_len(n_orderings)) {
+    visit_order <- orders[s, ]
+    current <- visit_order[1]
 
     accumulated_sp <- which(species_pa[current, ] > 0)
 
     for (step in seq_len(n_steps)) {
-      dists <- dist_mat[current, ]
-      dists[visited] <- Inf
-      next_site <- which.min(dists)
-      distances[s, step] <- dists[next_site]
-      visited[next_site] <- TRUE
+      next_site <- visit_order[step + 1L]
+      distances[s, step] <- dist_mat[current, next_site]
 
       new_sp <- which(species_pa[next_site, ] > 0)
 
@@ -415,7 +423,7 @@ beta_functional <- function(x, species_pa, traits, dist_mat, n_seeds, index,
 
 
 # Phylogenetic beta: PhyloSor partition weighted by shared branch length.
-beta_phylogenetic <- function(x, species_pa, tree, dist_mat, n_seeds, index,
+beta_phylogenetic <- function(x, species_pa, tree, dist_mat, orders, index,
                               progress) {
   n_sites <- nrow(species_pa)
 
@@ -436,30 +444,26 @@ beta_phylogenetic <- function(x, species_pa, tree, dist_mat, n_seeds, index,
   }
 
   if (progress) cli_info(sprintf("Computing phylogenetic beta diversity (%s, %d seeds)",
-                                  index, n_seeds))
+                                  index, nrow(orders)))
 
   use_jaccard <- index == "jaccard"
   n_steps <- n_sites - 1
 
-  beta_total <- matrix(0, n_seeds, n_steps)
-  beta_turn <- matrix(0, n_seeds, n_steps)
-  beta_nest <- matrix(0, n_seeds, n_steps)
-  distances <- matrix(0, n_seeds, n_steps)
+  n_orderings <- nrow(orders)
+  beta_total <- matrix(0, n_orderings, n_steps)
+  beta_turn <- matrix(0, n_orderings, n_steps)
+  beta_nest <- matrix(0, n_orderings, n_steps)
+  distances <- matrix(0, n_orderings, n_steps)
 
-  for (s in seq_len(n_seeds)) {
-    seed_site <- sample(n_sites, 1) - 1L
-    visited <- logical(n_sites)
-    current <- seed_site + 1L
-    visited[current] <- TRUE
+  for (s in seq_len(n_orderings)) {
+    visit_order <- orders[s, ]
+    current <- visit_order[1]
 
     accumulated_sp <- which(species_pa[current, ] > 0)
 
     for (step in seq_len(n_steps)) {
-      dists <- dist_mat[current, ]
-      dists[visited] <- Inf
-      next_site <- which.min(dists)
-      distances[s, step] <- dists[next_site]
-      visited[next_site] <- TRUE
+      next_site <- visit_order[step + 1L]
+      distances[s, step] <- dist_mat[current, next_site]
 
       new_sp <- which(species_pa[next_site, ] > 0)
 
@@ -511,36 +515,4 @@ beta_phylogenetic <- function(x, species_pa, tree, dist_mat, n_seeds, index,
     distance = distances,
     site_values = NULL
   )
-}
-
-
-# ============================================================================
-# DEPRECATED: superseded by spaccBeta(traits = ) / spaccBeta(tree = )
-# ============================================================================
-
-#' @rdname spaccBeta
-#' @export
-spaccBetaFunc <- function(x, coords, traits, n_seeds = 50L, method = "knn",
-                          index = c("sorensen", "jaccard"),
-                          distance = c("euclidean", "haversine"),
-                          parallel = TRUE, n_cores = NULL, progress = TRUE,
-                          seed = NULL) {
-  .Deprecated("spaccBeta(traits = ...)")
-  spaccBeta(x, coords, traits = traits, n_seeds = n_seeds, method = method,
-            index = index, distance = distance, parallel = parallel,
-            n_cores = n_cores, progress = progress, seed = seed)
-}
-
-
-#' @rdname spaccBeta
-#' @export
-spaccBetaPhylo <- function(x, coords, tree, n_seeds = 50L, method = "knn",
-                           index = c("sorensen", "jaccard"),
-                           distance = c("euclidean", "haversine"),
-                           parallel = TRUE, n_cores = NULL, progress = TRUE,
-                           seed = NULL) {
-  .Deprecated("spaccBeta(tree = ...)")
-  spaccBeta(x, coords, tree = tree, n_seeds = n_seeds, method = method,
-            index = index, distance = distance, parallel = parallel,
-            n_cores = n_cores, progress = progress, seed = seed)
 }

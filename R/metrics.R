@@ -16,7 +16,8 @@
 #'   `"richness_90pct"` (sites to reach 90% of species),
 #'   `"auc"` (area under accumulation curve),
 #'   `"final_richness"` (total species starting from this site).
-#' @param method Character. Accumulation method: `"knn"`, `"kncn"`, `"random"`.
+#' @param method Character. Accumulation method: `"knn"`, `"kncn"`,
+#'   `"nn_walk"`, or `"random"`.
 #'   Default `"knn"`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
@@ -61,7 +62,7 @@
 spaccMetrics <- function(x,
                          coords,
                          metrics = c("slope_10", "half_richness", "auc"),
-                         method = c("knn", "kncn", "random"),
+                         method = c("knn", "kncn", "nn_walk", "random"),
                          distance = c("euclidean", "haversine"),
                          parallel = TRUE,
                          n_cores = NULL,
@@ -97,7 +98,7 @@ spaccMetrics <- function(x,
   storage.mode(species_pa) <- "integer"
 
   # Compute distance matrix if needed
-  if (is.null(dist_mat) && method %in% c("knn", "random")) {
+  if (is.null(dist_mat) && method %in% c("knn", "nn_walk")) {
     if (progress) cli_info(sprintf("Computing distances (%d x %d)", n_sites, n_sites))
     dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
   }
@@ -108,7 +109,10 @@ spaccMetrics <- function(x,
 
   # Run with n_seeds = n_sites, specifying each site as its own seed
   curves <- switch(method,
-    knn = cpp_knn_metrics_parallel(species_pa, dist_mat, n_cores, progress),
+    knn = cpp_order_parallel(species_pa,
+                             .observed_site_orders(coord_data, distance) - 1L,
+                             n_cores, progress),
+    nn_walk = cpp_nn_walk_metrics_parallel(species_pa, dist_mat, n_cores, progress),
     kncn = cpp_kncn_metrics_parallel(species_pa, coord_data$x, coord_data$y, n_cores, progress),
     random = cpp_random_parallel(species_pa, n_sites, n_cores, progress)
   )

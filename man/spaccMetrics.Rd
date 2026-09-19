@@ -8,7 +8,7 @@ spaccMetrics(
   x,
   coords,
   metrics = c("slope_10", "half_richness", "auc"),
-  method = c("knn", "kncn", "random"),
+  method = c("knn", "kncn", "nn_walk", "random"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
@@ -31,7 +31,8 @@ or a \code{spacc_dist} object from \code{\link[=distances]{distances()}}.}
 \code{"auc"} (area under accumulation curve),
 \code{"final_richness"} (total species starting from this site).}
 
-\item{method}{Character. Accumulation method: \code{"knn"}, \code{"kncn"}, \code{"random"}.
+\item{method}{Character. Accumulation method: \code{"knn"}, \code{"kncn"},
+\code{"nn_walk"}, or \code{"random"}.
 Default \code{"knn"}.}
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}

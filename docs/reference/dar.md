@@ -19,7 +19,9 @@ dar(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 ```
 
@@ -43,7 +45,7 @@ dar(
 
 - method:
 
-  Character. Accumulation method. Default `"knn"`.
+  Character. Accumulation method: `"knn"` or `"nn_walk"`.
 
 - area_method:
 
@@ -71,6 +73,16 @@ dar(
 - seed:
 
   Integer. Random seed.
+
+- focal_points:
+
+  Optional focal points for `method = "knn"`. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
+
+- focal_domain:
+
+  Optional polygonal focal domain. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
 
 ## Value
 

@@ -7,7 +7,8 @@
 #' @param x A site-by-species matrix with abundance data.
 #' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
+#' @param method Character. Accumulation method: canonical fixed-focus `"knn"`
+#'   or `"nn_walk"`. Default `"knn"`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param coverage Character. Coverage estimator to use: `"chao"` (default)
 #'   for the individual-based Chao & Jost (2012) estimator using
@@ -22,6 +23,8 @@
 #' @param map Logical. If `TRUE`, run accumulation from every site as seed
 #'   and store per-site final coverage and richness for spatial mapping. Enables
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_coverage` containing:
 #'   \item{richness}{Matrix of species richness (n_seeds x n_sites)}
@@ -76,15 +79,18 @@
 spaccCoverage <- function(x,
                           coords,
                           n_seeds = 50L,
-                          method = "knn",
+                          method = c("knn", "nn_walk"),
                           distance = c("euclidean", "haversine"),
                           coverage = c("chao", "chiu"),
                           parallel = TRUE,
                           n_cores = NULL,
                           progress = TRUE,
                           seed = NULL,
-                          map = FALSE) {
+                          map = FALSE,
+                          focal_points = NULL,
+                          focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   coverage <- match.arg(coverage)
 
@@ -119,8 +125,11 @@ spaccCoverage <- function(x,
   cov_label <- if (coverage == "chiu") "Chiu 2023" else "Chao-Jost 2012"
   if (progress) cli_info(sprintf("Computing coverage-based accumulation (%d seeds, %s)", n_seeds, cov_label))
 
-  result <- cpp_knn_coverage_parallel(x, dist_mat, n_seeds, n_cores, progress,
-                                      coverage_type)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
+  result <- cpp_order_coverage_parallel(x, ordering$orders - 1L, n_cores,
+                                        progress, coverage_type)
 
   if (progress) cli_success("Done")
 
@@ -128,8 +137,10 @@ spaccCoverage <- function(x,
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site coverage map values (all sites as seeds)")
-    map_result <- cpp_knn_coverage_parallel(x, dist_mat, n_sites, n_cores, progress,
-                                            coverage_type)
+    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
+                                       dist_mat, all_sites = TRUE)
+    map_result <- cpp_order_coverage_parallel(x, map_orders$orders - 1L,
+                                              n_cores, progress, coverage_type)
 
     site_values <- data.frame(
       site_id = seq_len(n_sites),
@@ -155,6 +166,7 @@ spaccCoverage <- function(x,
       method = method,
       distance = distance,
       coverage_type = coverage,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_coverage"

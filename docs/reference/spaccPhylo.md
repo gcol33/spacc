@@ -12,13 +12,15 @@ spaccPhylo(
   tree,
   metric = c("mpd", "mntd"),
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 ```
 
@@ -58,7 +60,7 @@ spaccPhylo(
 
 - method:
 
-  Character. Accumulation method. Default `"knn"`.
+  Character. Accumulation method: `"knn"` or `"nn_walk"`.
 
 - distance:
 
@@ -86,6 +88,16 @@ spaccPhylo(
   per-site final values for spatial mapping. Enables
   [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
   `plot(type = "map")`. Default `FALSE`.
+
+- focal_points:
+
+  Optional focal points for `method = "knn"`. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
+
+- focal_domain:
+
+  Optional polygonal focal domain. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
 
 ## Value
 

@@ -15,7 +15,9 @@ dar(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -27,7 +29,7 @@ dar(
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{area_method}{Character. How to estimate cumulative area:
 \code{"voronoi"} (Voronoi tessellation, requires sf), \code{"convex_hull"}
@@ -43,6 +45,10 @@ dar(
 \item{progress}{Logical. Show progress? Default \code{TRUE}.}
 
 \item{seed}{Integer. Random seed.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_dar} containing:

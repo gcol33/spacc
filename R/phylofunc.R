@@ -14,7 +14,7 @@
 #'     phylogenetic distance). Pass abundance data for weighting; with
 #'     presence/absence it reduces to the equal-weight form.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param distance Character. Site distance method: `"euclidean"` or `"haversine"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
@@ -23,6 +23,8 @@
 #' @param map Logical. If `TRUE`, run accumulation from every site as seed
 #'   and store per-site final values for spatial mapping. Enables
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_phylo` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
@@ -71,14 +73,17 @@ spaccPhylo <- function(x,
                        tree,
                        metric = c("mpd", "mntd"),
                        n_seeds = 50L,
-                       method = "knn",
+                       method = c("knn", "nn_walk"),
                        distance = c("euclidean", "haversine"),
                        parallel = TRUE,
                        n_cores = NULL,
                        progress = TRUE,
                        seed = NULL,
-                       map = FALSE) {
+                       map = FALSE,
+                       focal_points = NULL,
+                       focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   metric <- match.arg(metric, c("mpd", "mntd", "pd", "rao"), several.ok = TRUE)
 
@@ -103,6 +108,9 @@ spaccPhylo <- function(x,
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   site_dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
 
   # Get phylogenetic distance matrix
   if (inherits(tree, "phylo")) {
@@ -149,8 +157,8 @@ spaccPhylo <- function(x,
   }
 
   if (length(metric) > 0) {
-    result <- cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat,
-                                      n_seeds, metric, n_cores, progress,
+    result <- cpp_phylo_order_parallel(species_pa, ordering$orders - 1L,
+                                      phylo_dist_mat, metric, n_cores, progress,
                                       tree_edge, tree_edge_length, tree_n_tips)
   } else {
     result <- list()
@@ -162,8 +170,10 @@ spaccPhylo <- function(x,
   site_values <- NULL
   if (map && length(metric) > 0) {
     if (progress) cli_info("Computing per-site phylo map values (all sites as seeds)")
-    map_result <- cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat,
-                                          n_sites, metric, n_cores, progress,
+    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
+                                       site_dist_mat, all_sites = TRUE)
+    map_result <- cpp_phylo_order_parallel(species_pa, map_orders$orders - 1L,
+                                          phylo_dist_mat, metric, n_cores, progress,
                                           tree_edge, tree_edge_length, tree_n_tips)
 
     site_values <- data.frame(
@@ -188,6 +198,7 @@ spaccPhylo <- function(x,
       n_species = n_species,
       method = method,
       distance = distance,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_phylo"
@@ -208,7 +219,7 @@ spaccPhylo <- function(x,
 #'   - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
 #'     Euclidean trait distance)
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param distance Character. Site distance method: `"euclidean"` or `"haversine"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
@@ -217,6 +228,8 @@ spaccPhylo <- function(x,
 #' @param map Logical. If `TRUE`, run accumulation from every site as seed
 #'   and store per-site final values for spatial mapping. Enables
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_func` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
@@ -258,14 +271,17 @@ spaccFunc <- function(x,
                       traits,
                       metric = c("fdis", "fric"),
                       n_seeds = 50L,
-                      method = "knn",
+                      method = c("knn", "nn_walk"),
                       distance = c("euclidean", "haversine"),
                       parallel = TRUE,
                       n_cores = NULL,
                       progress = TRUE,
                       seed = NULL,
-                      map = FALSE) {
+                      map = FALSE,
+                      focal_points = NULL,
+                      focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   metric <- match.arg(metric, c("fdis", "fric", "rao"), several.ok = TRUE)
 
@@ -292,6 +308,9 @@ spaccFunc <- function(x,
   n_sites <- nrow(x)
   n_species <- ncol(x)
   n_traits <- ncol(traits)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   site_dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
 
   # Match traits to species
   if (!is.null(colnames(x)) && !is.null(rownames(traits))) {
@@ -310,8 +329,8 @@ spaccFunc <- function(x,
   if (progress) cli_info(sprintf("Computing functional diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
 
-  result <- cpp_func_knn_parallel(x, site_dist_mat, traits,
-                                   n_seeds, metric, n_cores, progress)
+  result <- cpp_func_order_parallel(x, ordering$orders - 1L, traits,
+                                    metric, n_cores, progress)
 
   if (progress) cli_success("Done")
 
@@ -319,8 +338,10 @@ spaccFunc <- function(x,
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site functional map values (all sites as seeds)")
-    map_result <- cpp_func_knn_parallel(x, site_dist_mat, traits,
-                                         n_sites, metric, n_cores, progress)
+    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
+                                       site_dist_mat, all_sites = TRUE)
+    map_result <- cpp_func_order_parallel(x, map_orders$orders - 1L, traits,
+                                          metric, n_cores, progress)
 
     site_values <- data.frame(
       site_id = seq_len(n_sites),
@@ -346,6 +367,7 @@ spaccFunc <- function(x,
       n_traits = n_traits,
       method = method,
       distance = distance,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_func"

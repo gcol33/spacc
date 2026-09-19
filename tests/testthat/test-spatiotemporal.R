@@ -4,7 +4,7 @@ test_that("time parameter produces valid spacc object", {
   coords <- data.frame(x = runif(30), y = runif(30))
   time <- rep(c(2020, 2021, 2022), each = 10)
 
-  result <- spacc(species, coords, n_seeds = 5, method = "knn",
+  result <- spacc(species, coords, n_seeds = 5, method = "nn_walk",
                   time = time, seed = 42, progress = FALSE)
 
   expect_s3_class(result, "spacc")
@@ -22,9 +22,9 @@ test_that("spatiotemporal differs from spatial-only", {
   coords <- data.frame(x = runif(30), y = runif(30))
   time <- rep(c(2020, 2021, 2022), each = 10)
 
-  spatial <- spacc(species, coords, n_seeds = 5, method = "knn",
+  spatial <- spacc(species, coords, n_seeds = 5, method = "nn_walk",
                    seed = 42, progress = FALSE)
-  spatiotemporal <- spacc(species, coords, n_seeds = 5, method = "knn",
+  spatiotemporal <- spacc(species, coords, n_seeds = 5, method = "nn_walk",
                           time = time, seed = 42, progress = FALSE)
 
   # Curves should differ (different distance matrices produce different orderings)
@@ -32,15 +32,15 @@ test_that("spatiotemporal differs from spatial-only", {
 })
 
 
-test_that("time parameter works with radius and gaussian methods", {
+test_that("time parameter works with nn_walk and gaussian methods", {
   set.seed(1)
   species <- matrix(rbinom(20 * 8, 1, 0.4), nrow = 20)
   coords <- data.frame(x = runif(20), y = runif(20))
   time <- rep(1:4, each = 5)
 
-  result_radius <- spacc(species, coords, n_seeds = 3, method = "radius",
-                         time = time, seed = 42, progress = FALSE)
-  expect_s3_class(result_radius, "spacc")
+  result_walk <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
+                       time = time, seed = 42, progress = FALSE)
+  expect_s3_class(result_walk, "spacc")
 
   result_gauss <- spacc(species, coords, n_seeds = 3, method = "gaussian",
                         time = time, seed = 42, progress = FALSE)
@@ -89,9 +89,9 @@ test_that("custom weights change results", {
   coords <- data.frame(x = runif(30), y = runif(30))
   time <- rep(c(2020, 2021, 2022), each = 10)
 
-  w1 <- spacc(species, coords, n_seeds = 5, method = "knn",
+  w1 <- spacc(species, coords, n_seeds = 5, method = "nn_walk",
               time = time, w_space = 1, w_time = 0.01, seed = 42, progress = FALSE)
-  w2 <- spacc(species, coords, n_seeds = 5, method = "knn",
+  w2 <- spacc(species, coords, n_seeds = 5, method = "nn_walk",
               time = time, w_space = 0.01, w_time = 1, seed = 42, progress = FALSE)
 
   # Different weights should produce different curves
@@ -106,7 +106,7 @@ test_that("time works with groups", {
   time <- rep(c(2020, 2021, 2022), each = 10)
   groups <- rep(c("A", "B"), each = 5)
 
-  result <- spacc(species, coords, n_seeds = 5, method = "knn",
+  result <- spacc(species, coords, n_seeds = 5, method = "nn_walk",
                   time = time, groups = groups, seed = 42, progress = FALSE)
 
   expect_s3_class(result, "spacc")

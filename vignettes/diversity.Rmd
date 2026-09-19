@@ -13,10 +13,11 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
 ```
 
@@ -651,7 +652,7 @@ when `incidence = TRUE`), plus any extra arguments passed through `...`. The
 result inherits the `spacc` class, so `summary()`, `as.data.frame()`, and
 `predict()` apply. The `plot()` method uses a metric-neutral axis label by
 default; set `ylab` to name the index. Available orderings are `"knn"`,
-`"kncn"`, `"random"`, `"radius"`, and `"collector"`. Because the index is an
+`"kncn"`, `"nn_walk"`, `"random"`, and `"collector"`. Because the index is an
 arbitrary R function it runs slower than the compiled metrics while accepting any
 definition, so it is best kept for indices that are not already built in.
 

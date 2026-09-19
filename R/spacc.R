@@ -9,13 +9,14 @@
 #'   - A data.frame with columns `x` and `y`
 #'   - An `sf` object with point geometries (CRS is preserved)
 #'   - A `spacc_dist` object from [distances()]
-#' @param n_seeds Integer. Number of random starting points for uncertainty
-#'   quantification. Default 50.
+#' @param n_seeds Integer. Number of random focal points or starting sites for
+#'   uncertainty quantification. Default 50.
 #' @param method Character. Accumulation method:
-#'   - `"knn"`: k-Nearest Neighbor (always visit closest unvisited)
+#'   - `"knn"`: fixed-focus spatially constrained rarefaction
 #'   - `"kncn"`: k-Nearest Centroid Neighbor (visit closest to centroid)
+#'   - `"nn_walk"`: nearest-neighbour walk (move from the current site to the
+#'     closest unvisited site)
 #'   - `"random"`: Random order (null model)
-#'   - `"radius"`: Expand by distance from seed
 #'   - `"gaussian"`: Probabilistic selection weighted by distance
 #'   - `"cone"`: Directional expansion within angular constraint
 #'   - `"collector"`: Sites in data order (no randomization, single curve)
@@ -41,7 +42,7 @@
 #' @param include_halo Logical. When `support` is provided, should halo sites
 #'   be included in accumulation? Default `TRUE` (ecological boundary).
 #'   Set to `FALSE` for political/hard boundary.
-#' @param backend Character. Nearest-neighbor backend for `knn` and `kncn`:
+#' @param backend Character. Nearest-neighbor backend for `nn_walk` and `kncn`:
 #'   - `"auto"` (default): Uses exact (brute-force) for <=500 sites,
 #'     spatial tree for >500 sites.
 #'   - `"exact"`: Always use brute-force with precomputed distance matrix.
@@ -64,12 +65,24 @@
 #'   matrix is computed as `w_space * d_spatial + w_time * d_temporal` and used
 #'   for accumulation. Forces exact (brute-force) backend since spatial trees
 #'   cannot handle composite distances. Only supported for methods that use a
-#'   distance matrix: `"knn"`, `"radius"`, `"gaussian"`.
+#'   distance matrix: `"nn_walk"`, `"gaussian"`.
 #' @param w_space Numeric. Weight for spatial distance when `time` is provided.
 #'   Default 1.
 #' @param w_time Numeric. Weight for temporal distance when `time` is provided.
 #'   Default 1.
 #' @param seed Integer. Random seed for reproducibility. Default `NULL`.
+#' @param focal_points Optional data frame or `sf` point object with `x` and
+#'   `y` coordinates. For `method = "knn"`, each row is a fixed focal point and
+#'   sites are accumulated by increasing distance from it. When supplied,
+#'   `n_seeds` is set to the number of focal points. Default `NULL` samples
+#'   continuous focal points uniformly from the spatial domain.
+#' @param focal_domain Optional `sf` or `sfc` polygon defining the domain from
+#'   which continuous `knn` focal points are sampled. When omitted, the convex
+#'   hull of the eligible site coordinates is used. For haversine distances,
+#'   hull sampling uses a local equal-area projection. Supplying the study
+#'   polygon preserves concavities, holes, and disconnected components in
+#'   irregular sampling domains. Its coordinates must use the same coordinate
+#'   reference system as `coords`.
 #'
 #' @return When `groups = NULL`, an object of class `spacc` containing:
 #'   \item{curves}{Matrix of cumulative species counts (n_seeds x n_sites)}
@@ -77,6 +90,14 @@
 #'   \item{n_seeds}{Number of seeds used}
 #'   \item{method}{Method used}
 #'   \item{n_species}{Total species in dataset}
+#'   \item{focal_points}{Continuous focal points used by `method = "knn"`}
+#'
+#' @details
+#' The canonical `knn` method follows Chiarucci et al. (2009): each curve uses
+#' one fixed focal point and accumulates sites by increasing distance from that
+#' point. The `nn_walk` method is a greedy traversal whose reference point moves
+#' to the most recently selected site. The two methods represent different
+#' spatial sampling models.
 #'
 #' @examples
 #' \donttest{
@@ -99,15 +120,16 @@
 #' Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
 #' and Biogeography, 12, 441-447.
 #'
-#' Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
-#' in using species diversity for assessing biodiversity. Philosophical
-#' Transactions of the Royal Society B, 366, 2426-2437.
+#' Chiarucci, A., Bacaro, G., Rocchini, D., Ricotta, C., Palmer, M.W. &
+#' Scheiner, S.M. (2009). Spatially constrained rarefaction: incorporating the
+#' autocorrelated structure of biological communities into sample-based
+#' rarefaction. Community Ecology, 10, 209-214.
 #'
 #' @export
 spacc <- function(x,
                   coords,
                   n_seeds = 50L,
-                  method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
+                  method = c("knn", "kncn", "nn_walk", "random", "gaussian", "cone", "collector"),
                   distance = c("euclidean", "haversine"),
                   backend = c("auto", "exact", "kdtree"),
                   support = NULL,
@@ -122,6 +144,8 @@ spacc <- function(x,
                   w_space = 1,
                   w_time = 1,
                   seed = NULL,
+                  focal_points = NULL,
+                  focal_domain = NULL,
                   order = NULL) {
 
   method <- match.arg(method)
@@ -172,6 +196,9 @@ spacc <- function(x,
       stop("`order` cannot be combined with `time`; user-defined orderings already fix the accumulation sequence.", call. = FALSE)
     }
   }
+  if ((!is.null(focal_points) || !is.null(focal_domain)) && method != "knn") {
+    stop("`focal_points` and `focal_domain` are only available for `method = \"knn\"`.", call. = FALSE)
+  }
 
   # Handle groups: split species by group and recurse
   if (!is.null(groups)) {
@@ -182,6 +209,7 @@ spacc <- function(x,
     group_levels <- unique(groups)
     if (progress) cli_info(sprintf("Running grouped accumulation (%d groups: %s)",
                                     length(group_levels), paste(group_levels, collapse = ", ")))
+    shared_seed <- if (is.null(seed)) sample.int(.Machine$integer.max, 1L) else seed
     objects <- lapply(group_levels, function(g) {
       cols <- which(groups == g)
       spacc(x[, cols, drop = FALSE], coords,
@@ -191,7 +219,8 @@ spacc <- function(x,
             parallel = parallel, n_cores = n_cores,
             progress = FALSE, groups = NULL,
             time = time, w_space = w_space, w_time = w_time,
-            seed = seed, order = order)
+            seed = shared_seed, focal_points = focal_points,
+            focal_domain = focal_domain, order = order)
     })
     names(objects) <- group_levels
 
@@ -227,6 +256,7 @@ spacc <- function(x,
           w_space = base$w_space,
           w_time = base$w_time,
           support = base$support,
+          focal_points = base$focal_points,
           call = match.call()
         ),
         class = "spacc"
@@ -251,6 +281,7 @@ spacc <- function(x,
         w_space = base$w_space,
         w_time = base$w_time,
         support = base$support,
+        focal_points = base$focal_points,
         call = match.call()
       ),
       class = "spacc"
@@ -286,7 +317,8 @@ spacc <- function(x,
             parallel = parallel, n_cores = n_cores,
             progress = FALSE, groups = groups,
             time = time, w_space = w_space, w_time = w_time,
-            seed = seed)
+            seed = seed, focal_points = focal_points,
+            focal_domain = focal_domain)
     })
     names(objects) <- country_names
 
@@ -329,6 +361,7 @@ spacc <- function(x,
         w_space = if (!is.null(time)) w_space else NULL,
         w_time = if (!is.null(time)) w_time else NULL,
         support = list(auto = TRUE, countries = country_names, aoe_result = aoe_result),
+        focal_points = base$focal_points,
         call = match.call()
       ),
       class = "spacc"
@@ -422,8 +455,8 @@ spacc <- function(x,
       "w_space must be a positive number" = is.numeric(w_space) && length(w_space) == 1 && w_space > 0,
       "w_time must be a positive number" = is.numeric(w_time) && length(w_time) == 1 && w_time > 0
     )
-    if (!method %in% c("knn", "radius", "gaussian")) {
-      stop(sprintf("Spatiotemporal accumulation (time argument) is only supported for methods 'knn', 'radius', and 'gaussian', not '%s'.", method),
+    if (!method %in% c("nn_walk", "gaussian")) {
+      stop(sprintf("Spatiotemporal accumulation (time argument) is only supported for methods 'nn_walk' and 'gaussian', not '%s'.", method),
            call. = FALSE)
     }
     if (progress) cli_info("Computing spatiotemporal distance matrix")
@@ -436,9 +469,9 @@ spacc <- function(x,
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Resolve backend for knn/kncn
+  # Resolve backend for nearest-neighbour traversal methods
   use_kdtree <- FALSE
-  if (method %in% c("knn", "kncn")) {
+  if (method %in% c("nn_walk", "kncn")) {
     if (!is.null(time)) {
       # Spatiotemporal: force exact backend (kdtree can't handle composite distances)
       use_kdtree <- FALSE
@@ -451,6 +484,7 @@ spacc <- function(x,
 
   # Collector method: no simulation needed
   backend_label <- NA_character_
+  focal_points_used <- NULL
   if (!is.null(order)) {
     # User-defined accumulation order(s): no distances or seeds needed
     orders_mat <- .build_orders(order, n_sites)
@@ -464,8 +498,8 @@ spacc <- function(x,
     curves <- matrix(curve, nrow = 1)
     n_seeds <- 1L
   } else {
-    # Compute distance matrix if needed (exact knn, radius, gaussian)
-    needs_dist <- (!use_kdtree && method == "knn") || method %in% c("radius", "gaussian")
+    # Compute distance matrix if needed
+    needs_dist <- (!use_kdtree && method == "nn_walk") || method == "gaussian"
     if (is.null(dist_mat) && needs_dist) {
       if (progress) cli_info(sprintf("Computing distances (%d x %d)", n_sites, n_sites))
       dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
@@ -480,12 +514,14 @@ spacc <- function(x,
     }
 
     # Run accumulation curves
-    backend_label <- if (method %in% c("knn", "kncn")) {
+    backend_label <- if (method == "knn") {
+      "fixed_focus"
+    } else if (method %in% c("nn_walk", "kncn")) {
       if (use_kdtree) "kdtree" else "exact"
     } else {
       NA_character_
     }
-    if (method %in% c("knn", "kncn")) {
+    if (method %in% c("nn_walk", "kncn")) {
       if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores, %s backend)",
                                       method, n_seeds, n_cores, backend_label))
     } else {
@@ -501,17 +537,28 @@ spacc <- function(x,
     }
 
     curves <- switch(method,
-      knn = if (use_kdtree) {
+      knn = {
+        ordering <- .knn_orders(
+          coord_data, n_seeds, distance,
+          focal_points = focal_points,
+          focal_domain = focal_domain,
+          domain_indices = core_indices
+        )
+        focal_points_used <- ordering$focal_points
+        n_seeds <- ordering$n_seeds
+        cpp_order_parallel(species_pa, ordering$orders - 1L, n_cores, progress)
+      },
+      nn_walk = if (use_kdtree) {
         if (is.null(explicit_seeds)) {
-          cpp_knn_kdtree_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress, distance)
+          cpp_nn_walk_kdtree_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress, distance)
         } else {
-          cpp_knn_kdtree_parallel_seeds(species_pa, coord_data$x, coord_data$y, explicit_seeds, n_cores, progress, distance)
+          cpp_nn_walk_kdtree_parallel_seeds(species_pa, coord_data$x, coord_data$y, explicit_seeds, n_cores, progress, distance)
         }
       } else {
         if (is.null(explicit_seeds)) {
-          cpp_knn_parallel(species_pa, dist_mat, n_seeds, n_cores, progress)
+          cpp_nn_walk_parallel(species_pa, dist_mat, n_seeds, n_cores, progress)
         } else {
-          cpp_knn_parallel_seeds(species_pa, dist_mat, explicit_seeds, n_cores, progress)
+          cpp_nn_walk_parallel_seeds(species_pa, dist_mat, explicit_seeds, n_cores, progress)
         }
       },
       kncn = if (use_kdtree) {
@@ -520,7 +567,6 @@ spacc <- function(x,
         cpp_kncn_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress)
       },
       random = cpp_random_parallel(species_pa, n_seeds, n_cores, progress),
-      radius = cpp_radius_parallel(species_pa, dist_mat, n_seeds, n_cores, progress),
       gaussian = cpp_gaussian_parallel(species_pa, dist_mat, n_seeds, sigma, n_cores, progress),
       cone = cpp_cone_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, cone_width, n_cores, progress)
     )
@@ -551,6 +597,7 @@ spacc <- function(x,
         n_halo = n_sites - length(core_indices),
         original_indices = original_indices
       ) else NULL,
+      focal_points = focal_points_used,
       call = match.call()
     ),
     class = "spacc"
@@ -729,18 +776,6 @@ plot.spacc_wavefront <- function(x, ci = TRUE, ci_alpha = 0.3,
       subtitle = sprintf("%d seeds, r0=%.1f, dr=%.2f", x$n_seeds, x$r0, x$dr)
     ) +
     spacc_theme()
-}
-
-
-#' @rdname spaccWavefront
-#' @export
-wavefront <- function(x, coords, n_seeds = 50L, r0 = 0, dr = NULL,
-                      n_steps = 50L, distance = c("euclidean", "haversine"),
-                      progress = TRUE, seed = NULL) {
-  .Deprecated("spaccWavefront")
-  spaccWavefront(x, coords, n_seeds = n_seeds, r0 = r0, dr = dr,
-                 n_steps = n_steps, distance = distance, progress = progress,
-                 seed = seed)
 }
 
 

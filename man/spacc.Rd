@@ -8,7 +8,7 @@ spacc(
   x,
   coords,
   n_seeds = 50L,
-  method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
+  method = c("knn", "kncn", "nn_walk", "random", "gaussian", "cone", "collector"),
   distance = c("euclidean", "haversine"),
   backend = c("auto", "exact", "kdtree"),
   support = NULL,
@@ -23,6 +23,8 @@ spacc(
   w_space = 1,
   w_time = 1,
   seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL,
   order = NULL
 )
 }
@@ -37,15 +39,16 @@ presence/absence (0/1) or abundance data. Can also be a data.frame.}
 \item A \code{spacc_dist} object from \code{\link[=distances]{distances()}}
 }}
 
-\item{n_seeds}{Integer. Number of random starting points for uncertainty
-quantification. Default 50.}
+\item{n_seeds}{Integer. Number of random focal points or starting sites for
+uncertainty quantification. Default 50.}
 
 \item{method}{Character. Accumulation method:
 \itemize{
-\item \code{"knn"}: k-Nearest Neighbor (always visit closest unvisited)
+\item \code{"knn"}: fixed-focus spatially constrained rarefaction
 \item \code{"kncn"}: k-Nearest Centroid Neighbor (visit closest to centroid)
+\item \code{"nn_walk"}: nearest-neighbour walk (move from the current site to the
+closest unvisited site)
 \item \code{"random"}: Random order (null model)
-\item \code{"radius"}: Expand by distance from seed
 \item \code{"gaussian"}: Probabilistic selection weighted by distance
 \item \code{"cone"}: Directional expansion within angular constraint
 \item \code{"collector"}: Sites in data order (no randomization, single curve)
@@ -53,7 +56,7 @@ quantification. Default 50.}
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}
 
-\item{backend}{Character. Nearest-neighbor backend for \code{knn} and \code{kncn}:
+\item{backend}{Character. Nearest-neighbor backend for \code{nn_walk} and \code{kncn}:
 \itemize{
 \item \code{"auto"} (default): Uses exact (brute-force) for <=500 sites,
 spatial tree for >500 sites.
@@ -102,7 +105,7 @@ coordinate for each site. When provided, a combined spatiotemporal distance
 matrix is computed as \code{w_space * d_spatial + w_time * d_temporal} and used
 for accumulation. Forces exact (brute-force) backend since spatial trees
 cannot handle composite distances. Only supported for methods that use a
-distance matrix: \code{"knn"}, \code{"radius"}, \code{"gaussian"}.}
+distance matrix: \code{"nn_walk"}, \code{"gaussian"}.}
 
 \item{w_space}{Numeric. Weight for spatial distance when \code{time} is provided.
 Default 1.}
@@ -111,6 +114,20 @@ Default 1.}
 Default 1.}
 
 \item{seed}{Integer. Random seed for reproducibility. Default \code{NULL}.}
+
+\item{focal_points}{Optional data frame or \code{sf} point object with \code{x} and
+\code{y} coordinates. For \code{method = "knn"}, each row is a fixed focal point and
+sites are accumulated by increasing distance from it. When supplied,
+\code{n_seeds} is set to the number of focal points. Default \code{NULL} samples
+continuous focal points uniformly from the spatial domain.}
+
+\item{focal_domain}{Optional \code{sf} or \code{sfc} polygon defining the domain from
+which continuous \code{knn} focal points are sampled. When omitted, the convex
+hull of the eligible site coordinates is used. For haversine distances,
+hull sampling uses a local equal-area projection. Supplying the study
+polygon preserves concavities, holes, and disconnected components in
+irregular sampling domains. Its coordinates must use the same coordinate
+reference system as \code{coords}.}
 
 \item{order}{Optional user-defined accumulation order(s). When supplied,
 \code{method} is ignored and sites are accumulated in the given sequence(s)
@@ -130,10 +147,18 @@ When \code{groups = NULL}, an object of class \code{spacc} containing:
 \item{n_seeds}{Number of seeds used}
 \item{method}{Method used}
 \item{n_species}{Total species in dataset}
+\item{focal_points}{Continuous focal points used by \code{method = "knn"}}
 }
 \description{
 Compute species accumulation curves using various spatial sampling methods
 with C++ backend for performance.
+}
+\details{
+The canonical \code{knn} method follows Chiarucci et al. (2009): each curve uses
+one fixed focal point and accumulates sites by increasing distance from that
+point. The \code{nn_walk} method is a greedy traversal whose reference point moves
+to the most recently selected site. The two methods represent different
+spatial sampling models.
 }
 \examples{
 \donttest{
@@ -157,7 +182,8 @@ Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
 Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
 and Biogeography, 12, 441-447.
 
-Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
-in using species diversity for assessing biodiversity. Philosophical
-Transactions of the Royal Society B, 366, 2426-2437.
+Chiarucci, A., Bacaro, G., Rocchini, D., Ricotta, C., Palmer, M.W. &
+Scheiner, S.M. (2009). Spatially constrained rarefaction: incorporating the
+autocorrelated structure of biological communities into sample-based
+rarefaction. Community Ecology, 10, 209-214.
 }

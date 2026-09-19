@@ -9,12 +9,14 @@ spaccDiversity(
   coords,
   fun,
   ...,
-  method = c("knn", "kncn", "random", "radius", "collector"),
+  method = c("knn", "kncn", "nn_walk", "random", "collector"),
   incidence = FALSE,
   n_seeds = 50L,
   distance = c("euclidean", "haversine"),
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -31,7 +33,7 @@ passed through \code{...}, and must return a single numeric value.}
 \item{...}{Additional arguments passed to \code{fun}.}
 
 \item{method}{Character. Spatial ordering of sites: \code{"knn"} (default),
-\code{"kncn"}, \code{"random"}, \code{"radius"}, or \code{"collector"}.}
+\code{"kncn"}, \code{"nn_walk"}, \code{"random"}, or \code{"collector"}.}
 
 \item{incidence}{Logical. If \code{TRUE}, \code{fun} receives 0/1 incidences instead
 of summed abundances. Default \code{FALSE}.}
@@ -44,6 +46,11 @@ Ignored for \code{"collector"} (a single data-order curve). Default 50.}
 \item{progress}{Logical. Show progress? Default \code{TRUE}.}
 
 \item{seed}{Integer. Random seed for reproducibility.}
+
+\item{focal_points}{Optional focal points passed to the canonical \code{knn}
+ordering. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain passed to \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_diversity} that inherits from \code{spacc}, so
@@ -60,7 +67,7 @@ not implement directly.
 }
 \details{
 The site ordering reuses the same spatial traversals as the built-in
-methods (nearest-neighbour, nearest-centroid, random, distance-rank, or
+methods (fixed-focus, nearest-neighbour walk, nearest-centroid, random, or
 data order), then evaluates \code{fun} on the accumulating community. Because the
 index is an arbitrary R function, this trades the speed of the compiled
 metrics for full flexibility.

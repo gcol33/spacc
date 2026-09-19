@@ -1,23 +1,33 @@
-# spacc 0.9.0
+# spacc 0.10.2
 
 ## API Changes
 
-- `wavefront()` was renamed `spaccWavefront()` so that every spatial-accumulation
-  curve front door shares the `spacc` prefix. The old name is a deprecated thin
-  wrapper and still works. The distance- and area-relationship functions keep
+- `method = "knn"` now implements fixed-focus spatially constrained
+  rarefaction: continuous focal points are sampled from the spatial domain and
+  all sites are ranked by distance from each focus. Supply `focal_domain` for a
+  known polygonal study boundary or `focal_points` for exact focal coordinates.
+  The former greedy current-site traversal is now `method = "nn_walk"`.
+  `method = "radius"` was removed because its observed-site fixed-focus ordering
+  duplicated the corrected `knn` concept. `spaccWavefront()` remains the
+  radius-indexed accumulation front door.
+
+- Diversity, coverage, beta, phylogenetic, functional, endemism, metric, and
+  diversity-area calculations now consume shared site-order matrices. This keeps
+  the selected spatial rule identical across downstream quantities.
+
+- Spatial-accumulation curves use the `spaccWavefront()` front door. The
+  distance- and area-relationship functions keep
   their established names: `distanceDecay()`, `betaDecay()`, `zetaDiversity()`,
   and `dar()`.
 
-- `spaccBeta()` gains `traits` and `tree` arguments and now computes taxonomic,
+- `spaccBeta()` gains `traits` and `tree` arguments and computes taxonomic,
   functional, or phylogenetic beta diversity from a single front door. Supplying
   `traits` gives the trait-weighted Baselga partition; supplying `tree` gives the
-  branch-length-weighted (PhyloSor) partition. `spaccBetaFunc()` and
-  `spaccBetaPhylo()` are deprecated thin wrappers and still work.
+  branch-length-weighted (PhyloSor) partition.
 
-- `diversityProfile()` gains `traits` and `tree` arguments and now computes
+- `diversityProfile()` gains `traits` and `tree` arguments and computes
   taxonomic, functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill
-  profiles from a single front door. `diversityProfileFunc()` and
-  `diversityProfilePhylo()` are deprecated thin wrappers and still work.
+  profiles from a single front door.
 
 ## New Features
 
@@ -120,7 +130,7 @@
 ### Custom Diversity Metrics (v0.8.0)
 - `spaccDiversity()` accumulates any user-supplied index along a spatial
   ordering: at each step the cumulative community is passed to a function that
-  returns a scalar. Supports `knn`, `kncn`, `random`, `radius`, and
+  returns a scalar. Supports `knn`, `kncn`, `nn_walk`, `random`, and
   `collector` orderings, abundance or incidence input, and extra arguments.
 - Returns a `spacc_diversity` object inheriting `spacc`, so the standard
   `summary()`, `plot()`, `as.data.frame()`, and `predict()` methods apply.
@@ -195,7 +205,7 @@
 
 ## Internal Changes
 - New C++ implementations: hill.cpp, beta.cpp, coverage.cpp, phylo.cpp, metrics.cpp
-- `cpp_knn_parallel_seeds()` - kNN with explicit seed indices
+- `cpp_knn_parallel_seeds()` - legacy nearest-neighbour walk with explicit seed indices
 - Added sf, areaOfEffect, ape, iNEXT, betapart to Suggests
 
 ---

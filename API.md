@@ -35,13 +35,15 @@ spacc(
   x,                          # species matrix OR formula
   coords,                     # coordinates (data.frame or matrix)
   data = NULL,                # optional data.frame for formula
-  n_seeds = 50L,              # number of starting points
-  method = "knn",             # "knn", "kncn", "random"
+  n_seeds = 50L,              # number of focal points / orderings
+  method = "knn",             # "knn", "kncn", "nn_walk", "random", ...
   distance = "euclidean",     # "euclidean", "haversine", or spacc_dist object
   parallel = TRUE,            # use parallel processing
   n_cores = NULL,             # NULL = detectCores() - 1
   progress = TRUE,            # show progress bar
-  seed = NULL                 # RNG seed for reproducibility
+  seed = NULL,                # RNG seed for reproducibility
+  focal_points = NULL,        # optional exact continuous focal points
+  focal_domain = NULL         # optional sf polygon for focal sampling
 )
 ```
 
@@ -285,8 +287,7 @@ Use cli package for pretty output:
 
 ```r
 sac <- spacc(species, coords, n_seeds = 100)
-# ℹ Computing distances (5000 × 5000)
-# ℹ Running kNN accumulation
+# ℹ Running knn accumulation
 # ■■■■■■■■■■■■■■■■■■■■ 100% | ETA: 0s
 # ✔ Done in 2.3s
 ```
@@ -299,8 +300,8 @@ sac <- spacc(species, coords, n_seeds = 100)
 # C++ functions (prefixed with cpp_)
 cpp_dist_euclidean()
 cpp_dist_haversine()
-cpp_knn_single()
-cpp_knn_parallel()
+cpp_nn_walk_single()
+cpp_nn_walk_parallel()
 cpp_kncn_single()
 cpp_kncn_parallel()
 cpp_random_single()

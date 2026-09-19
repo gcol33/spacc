@@ -24,10 +24,9 @@ static inline double hc_calc_coverage(const std::vector<int>& abundances) {
 // COMBINED HILL + COVERAGE WORKER
 // ============================================================================
 
-struct HillCoverageKnnWorker : public Worker {
+struct HillCoverageOrderWorker : public Worker {
   const RMatrix<int> species_mat;
-  const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
   const RVector<double> q_values;
 
   // Output matrices
@@ -37,23 +36,21 @@ struct HillCoverageKnnWorker : public Worker {
   const int n_q;
   const int n_sites;
 
-  HillCoverageKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                        const IntegerVector& s, const NumericVector& q,
+  HillCoverageOrderWorker(const IntegerMatrix& sp, const IntegerMatrix& ord,
+                        const NumericVector& q,
                         NumericMatrix& h, NumericMatrix& c,
                         int nq, int ns)
-    : species_mat(sp), dist_mat(dm), seeds(s), q_values(q),
+    : species_mat(sp), orders(ord), q_values(q),
       hills_flat(h), coverage(c), n_q(nq), n_sites(ns) {}
 
   void operator()(std::size_t begin, std::size_t end) {
     int n_species = species_mat.ncol();
 
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::vector<int> cumul_int(n_species, 0);
       std::vector<double> cumul_dbl(n_species, 0.0);
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
 
       // Add first site
       for (int sp = 0; sp < n_species; sp++) {
@@ -68,18 +65,7 @@ struct HillCoverageKnnWorker : public Worker {
       }
 
       for (int step = 1; step < n_sites; step++) {
-        // Find nearest unvisited
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        current = next;
-        visited[current] = true;
+        current = orders(s, step);
 
         // Accumulate
         for (int sp = 0; sp < n_species; sp++) {
@@ -98,27 +84,25 @@ struct HillCoverageKnnWorker : public Worker {
 
 
 // [[Rcpp::export]]
-List cpp_knn_hill_coverage_parallel(IntegerMatrix species_mat,
-                                     NumericMatrix dist_mat,
-                                     int n_seeds,
-                                     NumericVector q_values,
-                                     int n_cores = 1,
-                                     bool progress = false) {
+List cpp_order_hill_coverage_parallel(IntegerMatrix species_mat,
+                                      IntegerMatrix orders,
+                                      NumericVector q_values,
+                                      int n_cores = 1,
+                                      bool progress = false) {
   int n_sites = species_mat.nrow();
   int n_q = q_values.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   NumericMatrix hills_flat(n_seeds * n_q, n_sites);
   NumericMatrix coverage(n_seeds, n_sites);
 
   if (n_cores > 1) {
-    HillCoverageKnnWorker worker(species_mat, dist_mat, seeds, q_values,
+    HillCoverageOrderWorker worker(species_mat, orders, q_values,
                                   hills_flat, coverage, n_q, n_sites);
     parallelFor(0, n_seeds, worker);
   } else {
     // Single-threaded fallback using the worker directly
-    HillCoverageKnnWorker worker(species_mat, dist_mat, seeds, q_values,
+    HillCoverageOrderWorker worker(species_mat, orders, q_values,
                                   hills_flat, coverage, n_q, n_sites);
     worker(0, n_seeds);
   }

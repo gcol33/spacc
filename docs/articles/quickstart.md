@@ -140,9 +140,9 @@ dim(sac$curves)
 #> [1] 30 80
 sac$curves[1:3, 1:6]
 #>      [,1] [,2] [,3] [,4] [,5] [,6]
-#> [1,]    7   13   20   23   27   29
-#> [2,]   12   19   20   25   25   25
-#> [3,]   16   25   29   33   33   36
+#> [1,]   15   20   21   22   29   31
+#> [2,]    3    6   11   11   14   17
+#> [3,]    7   12   13   19   20   21
 ```
 
 [`summary()`](https://rdrr.io/r/base/summary.html) condenses the matrix
@@ -167,8 +167,8 @@ summary(sac)
 #> Sites:            80 
 #> Total species:    40 
 #> Final species:   40.0 (95% CI: 40.0 - 40.0)
-#> Saturation (90%): 21 sites
-#> CV at midpoint:  1.6%
+#> Saturation (90%): 18 sites
+#> CV at midpoint:  0.9%
 ```
 
 The saturation point is the first step where the mean curve reaches 90%
@@ -222,13 +222,13 @@ never drifts from what
 
 sac_df <- as.data.frame(sac)
 head(sac_df)
-#>   sites     mean  lower  upper       sd
-#> 1     1  9.70000  1.000 18.375 4.935096
-#> 2     2 14.83333  1.725 25.550 5.942734
-#> 3     3 17.80000  2.725 29.000 6.364774
-#> 4     4 20.03333  3.000 30.100 6.697829
-#> 5     5 22.20000  9.900 30.825 5.973505
-#> 6     6 23.76667 11.175 33.100 6.344606
+#>   sites     mean  lower upper       sd
+#> 1     1 10.50000  1.725    18 5.230877
+#> 2     2 15.83333  4.900    32 8.292428
+#> 3     3 19.20000  5.900    38 9.278823
+#> 4     4 21.16667  9.000    39 8.952300
+#> 5     5 24.20000 12.175    40 8.735185
+#> 6     6 25.93333 15.000    40 8.115262
 tail(sac_df, 3)
 #>    sites mean lower upper sd
 #> 78    78   40    40    40  0
@@ -246,6 +246,7 @@ ggplot(sac_df, aes(sites, mean)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "#4CAF50") +
   geom_line(linewidth = 1, colour = "#2E7D32") +
   labs(x = "Sites", y = "Cumulative species") +
+  theme_minimal(base_size = 17) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 ```
@@ -257,33 +258,25 @@ Manual ggplot from the summary data frame.
 
 ## Accumulation methods
 
-The walk order is set by `method`. The default `"knn"` always steps to
-the closest unvisited site, tracing a compact, often elongated path.
-`"kncn"` steps to the site closest to the centroid of everything visited
-so far, which grows a rounder, more area-like footprint. `"random"`
-ignores geography entirely and gives the classical effort-based curve.
-spacc also offers `"radius"` (admit every site within a growing distance
-band), `"gaussian"` (probabilistic selection weighted by distance),
-`"cone"` (directional expansion inside an angular wedge), and
-`"collector"` (sites in data order, a single curve with no
-randomization).
+The default `"knn"` method samples a continuous focal point and
+accumulates sites by increasing distance from that fixed point. `"kncn"`
+repeatedly selects the site closest to the centroid of the selected set.
+`"nn_walk"` repeatedly selects the closest unvisited site to the current
+site. `"random"` gives the classical geography-free effort curve.
+`"gaussian"`, `"cone"`, and `"collector"` provide probabilistic,
+directional, and data-order sequences.
 
-The difference between kNN and kNCN is worth dwelling on, because it
-changes the shape of the sampled region and therefore the curve. A kNN
-walk chases the single nearest point, which can string out into a thin
-chain that wanders across the map without ever filling an area. A kNCN
-walk anchors each step to the centre of mass of the visited set, so the
-footprint grows outward in all directions like an inflating disc. When
-the goal is to mimic an expanding survey area, kNCN is the closer match;
-when the goal is to follow whatever local structure the points happen to
-have, kNN is more faithful and runs faster. The radius and gaussian
-methods need a distance matrix and so use the exact backend, while kNN
-and kNCN can switch to a spatial tree for large datasets, chosen
-automatically above 500 sites.
+The three spatial rules represent different geometries. `knn` expands
+around a fixed focus, `kncn` updates a compact centroid-based footprint,
+and `nn_walk` follows a recursive path through local neighbours. The
+spatial-tree backend is available for `kncn` and `nn_walk` on large
+datasets. Fixed-focus `knn` sorts distances from each focal point
+directly.
 
 ``` r
 
 sac_kncn <- spacc(species, coords, n_seeds = 30, method = "kncn", progress = FALSE)
+sac_walk <- spacc(species, coords, n_seeds = 30, method = "nn_walk", progress = FALSE)
 sac_rand <- spacc(species, coords, n_seeds = 30, method = "random", progress = FALSE)
 ```
 
@@ -294,26 +287,17 @@ names supplied become the legend labels.
 
 ``` r
 
-combined <- c(knn = sac, kncn = sac_kncn, random = sac_rand)
+combined <- c(knn = sac, kncn = sac_kncn, nn_walk = sac_walk, random = sac_rand)
 plot(combined)
 ```
 
-![kNN, kNCN, and random accumulation
-compared.](quickstart_files/figure-html/combine-1.svg)
+![Fixed-focus kNN, kNCN, nearest-neighbour walk, and random
+accumulation.](quickstart_files/figure-html/combine-1.svg)
 
-kNN, kNCN, and random accumulation compared.
+Fixed-focus kNN, kNCN, nearest-neighbour walk, and random accumulation.
 
-The random curve rises above both spatial curves at every intermediate
-step. That separation is the spatial signal: random draws pull in
-distant, compositionally different sites early, so they rack up species
-faster than a walk confined to one neighbourhood. The kNN and kNCN
-curves run close together here because the patches are large relative to
-the spacing between sites. With tighter patches the two spatial methods
-would split apart, with kNN lagging further as it traced single-file
-paths through one patch before reaching the next. Reading the three
-curves together turns the plot into a diagnostic: the height of the
-random curve above the spatial pair quantifies how much the spatial
-design constrains discovery.
+The curves show how the selected spatial rule changes the sequence in
+which communities enter the cumulative sample.
 
 ### Custom accumulation order
 
@@ -368,8 +352,8 @@ comp
 #> Comparison: sac_a vs sac_b 
 #> ---------------------------------------- 
 #> Method: permutation (n=199)
-#> AUC difference: -8.6 (p = 0.573)
-#> Saturation: sac_a at 23 sites, sac_b at 19 sites
+#> AUC difference: 19.7 (p = 0.236)
+#> Saturation: sac_a at 16 sites, sac_b at 18 sites
 ```
 
 The printout names the two objects, gives the area-under-curve
@@ -389,10 +373,10 @@ both saturation points, and the \\p\\-value.
 ``` r
 
 as.data.frame(comp)
-#>       comparison    auc_x    auc_y auc_diff saturation_x saturation_y
-#> 1 sac_a vs sac_b 1451.867 1460.467     -8.6           23           19
+#>       comparison    auc_x  auc_y auc_diff saturation_x saturation_y
+#> 1 sac_a vs sac_b 1497.567 1477.9 19.66667           16           18
 #>   saturation_diff   p_value      method
-#> 1               4 0.5728643 permutation
+#> 1              -2 0.2361809 permutation
 ```
 
 ## Extrapolation and prediction
@@ -416,10 +400,10 @@ fit <- extrapolate(sac, model = "lomolino")
 fit
 #> Extrapolation: lomolino 
 #> -------------------------------------- 
-#> Estimated asymptote: 42.7 species
-#> 95% CI (bootstrap):       40.2 - 70.1
-#> Observed:            40.0 species (94% of estimated)
-#> AIC: 165.3   RMSE: 0.65 (1.8% of mean)
+#> Estimated asymptote: 42.2 species
+#> 95% CI (bootstrap):       40.0 - 50.2
+#> Observed:            40.0 species (95% of estimated)
+#> AIC: 164.5   RMSE: 0.64 (1.7% of mean)
 #> Reliable to ~200 sites (2.5x sampled effort of 80)
 #> -------------------------------------- 
 #> Nonparametric:  chao2 = 40.0   iChao2 = 40.0
@@ -466,7 +450,7 @@ the second to forecast.
 predict(fit, n = c(40, 80, 160, 320))
 #> Warning: Predicting beyond ~2.5x the sampled effort (max sampled = 80 sites);
 #> extrapolation is unreliable this far out.
-#> [1] 39.02289 40.86077 41.81017 42.28386
+#> [1] 39.30278 40.78402 41.52269 41.88073
 ```
 
 [`coef()`](https://rdrr.io/r/stats/coef.html) returns the fitted
@@ -478,10 +462,10 @@ asymptote, so its interval is the interval on estimated total richness.
 
 coef(fit)
 #>         a         b         c 
-#> 42.734620  2.864745  4.278227
+#> 42.206105  2.953732  3.608436
 confint(fit, parm = "a")
 #>      2.5 %   97.5 %
-#> a 40.23679 70.13477
+#> a 40.04056 50.19255
 ```
 
 To weigh several model forms at once rather than committing to one,
@@ -501,9 +485,9 @@ cm <- compareModels(sac, models = c("michaelis-menten", "lomolino", "asymptotic"
 cm
 #> SAR Model Comparison
 #> ------------------------------ 
-#>   lomolino             AIC:    165.3  dAIC:    0.0  w: 0.648  S_max:   42.7 *
-#>   michaelis-menten     AIC:    166.5  dAIC:    1.2  w: 0.352  S_max:   43.2
-#>   asymptotic           AIC:    257.1  dAIC:   91.7  w: 0.000  S_max:   39.6
+#>   lomolino             AIC:    164.5  dAIC:    0.0  w: 0.941  S_max:   42.2 *
+#>   michaelis-menten     AIC:    170.0  dAIC:    5.5  w: 0.059  S_max:   42.8
+#>   asymptotic           AIC:    251.0  dAIC:   86.6  w: 0.000  S_max:   39.6
 #> ------------------------------ 
 #> Best model: lomolino
 ```
@@ -582,8 +566,8 @@ colnames(abund) <- colnames(species)
 hill <- spaccHill(abund, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
 tail(as.data.frame(hill), 3)
 #>     sites q     mean    lower    upper          sd
-#> 238    78 2 39.84999 39.83787 39.85988 0.006083326
-#> 239    79 2 39.84926 39.84334 39.85909 0.005067254
+#> 238    78 2 39.84461 39.83415 39.85251 0.007587100
+#> 239    79 2 39.84802 39.84522 39.85350 0.003270283
 #> 240    80 2 39.85458 39.85458 39.85458 0.000000000
 ```
 
@@ -619,13 +603,13 @@ because the new site holds a subset). Their sum is total beta diversity.
 beta <- spaccBeta(species, coords, n_seeds = 20, index = "sorensen", progress = FALSE)
 tail(as.data.frame(beta), 3)
 #>    sites beta_total beta_turnover beta_nestedness beta_total_sd
-#> 77    77  0.7795576             0       0.7795576     0.2029501
-#> 78    78  0.8474036             0       0.8474036     0.1242948
-#> 79    79  0.8598322             0       0.8598322     0.1552436
+#> 77    77  0.7273746             0       0.7273746    0.12564740
+#> 78    78  0.8628698             0       0.8628698    0.09183220
+#> 79    79  0.8953648             0       0.8953648    0.06075466
 #>    beta_turnover_sd beta_nestedness_sd
-#> 77                0          0.2029501
-#> 78                0          0.1242948
-#> 79                0          0.1552436
+#> 77                0         0.12564740
+#> 78                0         0.09183220
+#> 79                0         0.06075466
 ```
 
 ``` r
@@ -669,9 +653,9 @@ tracks richness, individuals, and coverage together along the walk.
 cov <- spaccCoverage(abund, coords, n_seeds = 20, coverage = "chiu", progress = FALSE)
 tail(as.data.frame(cov), 3)
 #>    sites richness individuals coverage richness_sd coverage_sd
-#> 78    78       40      6229.5        1           0           0
-#> 79    79       40      6308.4        1           0           0
-#> 80    80       40      6388.0        1           0           0
+#> 78    78       40     6222.65        1           0           0
+#> 79    79       40     6302.85        1           0           0
+#> 80    80       40     6388.00        1           0           0
 ```
 
 [`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
@@ -683,7 +667,7 @@ used for fair cross-site comparison.
 ic <- interpolateCoverage(cov, target = c(0.90, 0.95))
 colMeans(ic)
 #>      C90      C95 
-#> 39.28706 39.49189
+#> 39.00984 39.21316
 ```
 
 The Chiu (2023) estimator used here is built for plot-based spatial
@@ -799,13 +783,13 @@ m
 #> Method: knn
 #> Metrics: slope_10, half_richness, auc
 head(as.data.frame(m))
-#>    slope_10 half_richness     auc site_id        x        y
-#> 1 1.7500000             3 37.0375       1 91.48060 58.16040
-#> 2 1.6666667             8 35.7125       2 93.70754 15.79052
-#> 3 1.6904762             2 37.6500       3 28.61395 35.90283
-#> 4 1.6904762             4 35.3500       4 83.04476 64.56319
-#> 5 1.8809524             4 36.0875       5 64.17455 77.58234
-#> 6 0.6071429             1 36.9625       6 51.90959 56.36468
+#>   slope_10 half_richness     auc site_id        x        y
+#> 1 1.964286             3 36.7875       1 91.48060 58.16040
+#> 2 1.583333             8 35.7500       2 93.70754 15.79052
+#> 3 3.142857             2 38.6000       3 28.61395 35.90283
+#> 4 2.285714             5 36.6000       4 83.04476 64.56319
+#> 5 2.476190             5 35.7250       5 64.17455 77.58234
+#> 6 1.773810             1 39.2625       6 51.90959 56.36468
 ```
 
 Sites with steep initial slopes sit in species-rich neighbourhoods;
@@ -837,9 +821,9 @@ formula, or a CSV without any object-specific handling.
 print(sac)
 #> spacc: 80 sites, 40 species, 30 seeds (knn)
 head(as.data.frame(sac), 2)
-#>   sites     mean lower  upper       sd
-#> 1     1  9.70000 1.000 18.375 4.935096
-#> 2     2 14.83333 1.725 25.550 5.942734
+#>   sites     mean lower upper       sd
+#> 1     1 10.50000 1.725    18 5.230877
+#> 2     2 15.83333 4.900    32 8.292428
 ```
 
 [`c()`](https://rdrr.io/r/base/c.html) combines objects into a grouped
@@ -915,17 +899,17 @@ m_sf
 #> Bounding box:  xmin: 0.1570554 ymin: 0.02388966 xmax: 98.88917 ymax: 96.2608
 #> CRS:           NA
 #> First 10 features:
-#>     slope_10 half_richness     auc site_id                  geometry
-#> 1  1.7500000             3 37.0375       1   POINT (91.4806 58.1604)
-#> 2  1.6666667             8 35.7125       2 POINT (93.70754 15.79052)
-#> 3  1.6904762             2 37.6500       3 POINT (28.61395 35.90283)
-#> 4  1.6904762             4 35.3500       4 POINT (83.04476 64.56319)
-#> 5  1.8809524             4 36.0875       5 POINT (64.17455 77.58234)
-#> 6  0.6071429             1 36.9625       6 POINT (51.90959 56.36468)
-#> 7  2.7380952             2 38.4250       7 POINT (73.65883 23.37034)
-#> 8  2.5595238             4 37.7750       8 POINT (13.46666 8.998052)
-#> 9  3.6666667             3 37.9250       9 POINT (65.69923 8.561206)
-#> 10 0.8214286             1 37.0125      10 POINT (70.50648 30.52184)
+#>    slope_10 half_richness     auc site_id                  geometry
+#> 1  1.964286             3 36.7875       1   POINT (91.4806 58.1604)
+#> 2  1.583333             8 35.7500       2 POINT (93.70754 15.79052)
+#> 3  3.142857             2 38.6000       3 POINT (28.61395 35.90283)
+#> 4  2.285714             5 36.6000       4 POINT (83.04476 64.56319)
+#> 5  2.476190             5 35.7250       5 POINT (64.17455 77.58234)
+#> 6  1.773810             1 39.2625       6 POINT (51.90959 56.36468)
+#> 7  1.928571             2 38.0125       7 POINT (73.65883 23.37034)
+#> 8  1.750000             6 37.0125       8 POINT (13.46666 8.998052)
+#> 9  3.047619             3 37.5875       9 POINT (65.69923 8.561206)
+#> 10 1.964286             1 38.8000      10 POINT (70.50648 30.52184)
 ```
 
 ## Practical guidance
@@ -955,10 +939,10 @@ The methods suit different questions:
 
 | Method | Walk rule | Footprint | Use when |
 |----|----|----|----|
-| `knn` | nearest unvisited site | elongated path | default; fast, follows local structure |
+| `knn` | distance from one fixed focus | radial expansion | spatially constrained rarefaction |
 | `kncn` | nearest to centroid of visited | rounder, compact | area-like expansion from a focal patch |
+| `nn_walk` | nearest to current site | traversal path | movement through local neighbours |
 | `random` | random order | none (spatial) | classical effort curve, null comparison |
-| `radius` | all sites within a growing band | concentric | modelling outward spread or buffers |
 | `collector` | data order, single curve | fixed | a survey already run in a known sequence |
 
 Sample-size guidance: aim for at least 20 sites before a spatial SAC is

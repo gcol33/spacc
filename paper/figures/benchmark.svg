@@ -87,8 +87,8 @@
 <circle cx='391.96' cy='166.11' r='2.52' style='stroke-width: 0.77; stroke: #00BFC4; fill: #00BFC4;' />
 <line x1='385.05' y1='183.39' x2='398.87' y2='183.39' style='stroke-width: 1.71; stroke: #C77CFF; stroke-linecap: butt;' />
 <circle cx='391.96' cy='183.39' r='2.52' style='stroke-width: 0.77; stroke: #C77CFF; fill: #C77CFF;' />
-<text x='406.58' y='134.98' style='font-size: 9.60px; font-family: "Arial";' textLength='75.14px' lengthAdjust='spacingAndGlyphs'>spacc knn (exact)</text>
-<text x='406.58' y='152.26' style='font-size: 9.60px; font-family: "Arial";' textLength='78.86px' lengthAdjust='spacingAndGlyphs'>spacc knn (kdtree)</text>
+<text x='406.58' y='134.98' style='font-size: 9.60px; font-family: "Arial";' textLength='101.00px' lengthAdjust='spacingAndGlyphs'>spacc nn_walk (exact)</text>
+<text x='406.58' y='152.26' style='font-size: 9.60px; font-family: "Arial";' textLength='105.00px' lengthAdjust='spacingAndGlyphs'>spacc nn_walk (kdtree)</text>
 <text x='406.58' y='169.54' style='font-size: 9.60px; font-family: "Arial";' textLength='60.20px' lengthAdjust='spacingAndGlyphs'>spacc random</text>
 <text x='406.58' y='186.82' style='font-size: 9.60px; font-family: "Arial";' textLength='121.47px' lengthAdjust='spacingAndGlyphs'>vegan::specaccum (random)</text>
 <text x='44.12' y='16.28' style='font-size: 14.40px; font-family: "Arial";' textLength='355.20px' lengthAdjust='spacingAndGlyphs'>spacc vs vegan::specaccum (100 permutations / seeds)</text>

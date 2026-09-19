@@ -9,7 +9,6 @@ Main spatial accumulation functions
 - [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
   : Spatial Accumulation of a Custom Diversity Metric
 - [`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
-  [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
   : Wavefront Expansion Accumulation
 - [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md)
   : Distance-Decay Analysis
@@ -27,8 +26,6 @@ Alpha, beta, and gamma diversity partitioning
 - [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)
   : Alpha-Beta-Gamma Diversity Partitioning
 - [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
   : Diversity Profile
 - [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md)
   : Evenness Profiles
@@ -49,8 +46,6 @@ Diversity accumulation with Hill numbers (q=0,1,2)
 Spatial beta diversity with turnover/nestedness partitioning
 
 - [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
   : Spatial Beta Diversity Accumulation
 
 ## Community Turnover

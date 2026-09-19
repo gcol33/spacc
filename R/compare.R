@@ -190,7 +190,7 @@ plot.spacc_comp <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
     sig_text <- if (x$p_value < 0.001) "p < 0.001" else sprintf("p = %.3f", x$p_value)
     p <- p + ggplot2::annotate(
       "text", x = x$x$n_sites * 0.8, y = max(x$x$n_species, x$y$n_species) * 0.1,
-      label = sig_text, size = 4
+      label = sig_text, size = 4.8
     )
   }
 

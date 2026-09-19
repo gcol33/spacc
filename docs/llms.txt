@@ -14,14 +14,14 @@ coverage](https://codecov.io/gh/gcol33/spacc/graph/badge.svg)](https://app.codec
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Spatial species accumulation curves built by nearest-neighbour
-expansion in C++.**
+**Spatial species accumulation curves built by fixed-focus expansion in
+C++.**
 
-Pick a starting site, then walk outward to its nearest neighbours,
-counting new species as you go. `spacc` does that from many starting
-points (Rcpp/RcppParallel backend), so the curve carries a confidence
-ribbon showing how richness depends on *where* you begin. The classical
-curve in
+Sample a focal point in continuous space, rank every sampling unit by
+its distance from that point, then count new species along the ranking.
+`spacc` repeats this from many focal points (Rcpp/RcppParallel backend),
+so the curve carries a confidence ribbon showing how richness depends on
+*where* expansion begins. The classical curve in
 [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
 shuffles sites in random order, without using their spatial arrangement.
 `spacc` reproduces that random-order curve and adds the spatial one, so
@@ -34,7 +34,7 @@ library(spacc)
 coords  <- data.frame(x = runif(100), y = runif(100))
 species <- matrix(rbinom(100 * 50, 1, 0.3), nrow = 100)
 
-# spatial accumulation: walk outward by nearest neighbour
+# spatial accumulation around continuous focal points
 sac <- spacc(species, coords, method = "knn", n_seeds = 100)
 plot(sac)
 ```
@@ -44,9 +44,9 @@ plot(sac)
 [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
 accumulates sites in random or collector order, so geography drops out.
 [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) keeps
-it: each curve follows nearest-neighbour expansion from a real seed
-site, and the spread across seeds is the spatial signal. Run both and
-compare them directly.
+it: each curve expands around a continuous focal point, and the spread
+across focal points is the spatial signal. Run both and compare them
+directly.
 
 ``` r
 
@@ -57,16 +57,23 @@ comp <- compare(sac, sac_random)   # permutation, bootstrap, or AUC test
 plot(comp)
 ```
 
-Seven expansion methods are available: `knn` and `kncn`
-(nearest-neighbour and nearest-centroid walks), `radius`, `gaussian`,
-and `cone` (distance- and direction-weighted growth), `random` (the
-classical null), and `collector` (data order). Geographic coordinates
-use `distance = "haversine"` with no projection step.
+Seven expansion methods are available: `knn` (fixed-focus spatially
+constrained rarefaction), `kncn` (nearest-centroid expansion), `nn_walk`
+(a greedy nearest-neighbour traversal), `gaussian` and `cone` (distance-
+and direction-weighted growth), `random` (the classical null), and
+`collector` (data order). Geographic coordinates use
+`distance = "haversine"` with no projection step.
+
+By default, continuous focal points are sampled uniformly from the
+convex hull of the eligible sites. Pass an `sf` polygon through
+`focal_domain` when the study boundary is known, or pass exact
+coordinates through `focal_points` for reproducible focal definitions.
 
 ## Backend selection
 
-Nearest-neighbour queries pick a backend by site count, overridable with
-`backend`.
+The `nn_walk` and `kncn` methods pick a nearest-neighbour backend by
+site count, overridable with `backend`. Fixed-focus `knn` ranks
+distances directly.
 
 | Backend | Distance | Cost per query | When |
 |----|----|----|----|
@@ -125,12 +132,12 @@ temporal axis to weight space against time.
 
 ``` r
 
-# same spatial walk, separate curve per group
+# same spatial ordering, separate curve per group
 sac_grouped <- spacc(species, coords, groups = status, seed = 42)
 plot(sac_grouped, facet = TRUE)
 
 # sites sampled across years: weighted space-time distance
-sac_st <- spacc(species, coords, method = "knn",
+sac_st <- spacc(species, coords, method = "nn_walk",
                 time = site_years, w_space = 1, w_time = 0.5)
 ```
 
@@ -222,7 +229,6 @@ Main spatial accumulation functions
 - [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
   : Spatial Accumulation of a Custom Diversity Metric
 - [`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
-  [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
   : Wavefront Expansion Accumulation
 - [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md)
   : Distance-Decay Analysis
@@ -240,8 +246,6 @@ Alpha, beta, and gamma diversity partitioning
 - [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)
   : Alpha-Beta-Gamma Diversity Partitioning
 - [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
   : Diversity Profile
 - [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md)
   : Evenness Profiles
@@ -262,8 +266,6 @@ Diversity accumulation with Hill numbers (q=0,1,2)
 Spatial beta diversity with turnover/nestedness partitioning
 
 - [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
   : Spatial Beta Diversity Accumulation
 
 ## Community Turnover

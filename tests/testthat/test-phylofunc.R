@@ -91,7 +91,7 @@ test_that("spaccFunc returns correct structure", {
 })
 
 
-test_that("FDis increases with more species",
+test_that("FDis reaches the pooled-community value for every ordering",
 {
   skip_on_cran()
 
@@ -104,18 +104,14 @@ test_that("FDis increases with more species",
                       metric = "fdis", n_seeds = 3,
                       parallel = FALSE, progress = FALSE)
 
-  # FDis should generally increase or stay stable as more species added
-  # Just check final > initial for most seeds
-  increases <- 0
-  for (seed in 1:3) {
-    curve <- result$curves$fdis[seed, ]
-    # Find first non-zero value
-    first_nonzero <- which(curve > 0)[1]
-    if (!is.na(first_nonzero) && curve[length(curve)] >= curve[first_nonzero]) {
-      increases <- increases + 1
-    }
-  }
-  expect_true(increases >= 2)
+  pooled <- spacc:::calc_fdis(
+    traits,
+    rep(TRUE, nrow(traits)),
+    colSums(species)
+  )
+
+  expect_equal(result$curves$fdis[, nrow(species)], rep(pooled, 3))
+  expect_true(all(result$curves$fdis >= 0))
 })
 
 

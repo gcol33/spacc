@@ -227,10 +227,10 @@ that are local to the area sampled so far.
 es <- summary(end)
 head(es[, c("sites", "mean_richness", "mean_endemism", "endemism_proportion")], 4)
 #>   sites mean_richness mean_endemism endemism_proportion
-#> 1     1          6.85          0.00         0.000000000
-#> 2     2         10.65          0.05         0.004694836
-#> 3     3         13.35          0.10         0.007490637
-#> 4     4         15.10          0.10         0.006622517
+#> 1     1          8.10          0.00         0.000000000
+#> 2     2         11.90          0.00         0.000000000
+#> 3     3         14.65          0.05         0.003412969
+#> 4     4         16.80          0.05         0.002976190
 ```
 
 ``` r
@@ -279,10 +279,10 @@ sfar_fit
 #> SFAR: Species-Fragmented Area Relationship
 #> -------------------------------------------- 
 #> Fragments: 5
-#> R-squared: 0.977
+#> R-squared: 0.988
 #> 
-#> Model: S = 6.18 * A^0.336 * n^(--0.302)
-#> Fragmentation effect (f): -0.302
+#> Model: S = 7.98 * A^0.268 * n^(--0.309)
+#> Fragmentation effect (f): -0.309
 #>   No additional fragmentation penalty detected
 ```
 
@@ -295,7 +295,7 @@ fragmentation costs richness.
 
 round(sfar_fit$coef, 3)
 #>  log_c      z      f 
-#>  1.822  0.336 -0.302
+#>  2.076  0.268 -0.309
 ```
 
 ``` r
@@ -351,13 +351,13 @@ sesars_fit
 #> SESARS: Sampling Effort Species-Area Relationship
 #> ------------------------------------------------ 
 #> Model: power
-#> R-squared: 0.996
+#> R-squared: 0.995
 #> 
 #> Coefficients:
 #>   log_c       z       w 
-#>  5.6224  2.8860 -2.1304 
+#>  5.2309  2.3476 -1.7298 
 #> 
-#> Interpretation: S = 276.54 * A^2.886 * E^-2.130
+#> Interpretation: S = 186.97 * A^2.348 * E^-1.730
 ```
 
 The coefficients live in `$coef`: `log_c` (or `c` under the additive
@@ -370,9 +370,9 @@ model captures.
 
 round(sesars_fit$coef, 3)
 #>  log_c      z      w 
-#>  5.622  2.886 -2.130
+#>  5.231  2.348 -1.730
 sesars_fit$r_squared
-#> [1] 0.9963704
+#> [1] 0.9954067
 ```
 
 ``` r
@@ -422,9 +422,9 @@ met <- spaccMetrics(species, coords,
                     progress = FALSE)
 summary(met)
 #> Metric summary:
-#>   slope_10: mean=1.55, sd=0.65, range=[0.39, 3.40]
-#>   half_richness: mean=9.56, sd=4.39, range=[2.00, 19.00]
-#>   auc: mean=32.99, sd=1.58, range=[28.74, 36.17]
+#>   slope_10: mean=1.63, sd=0.47, range=[0.64, 2.70]
+#>   half_richness: mean=9.21, sd=4.35, range=[2.00, 19.00]
+#>   auc: mean=32.68, sd=2.12, range=[29.10, 36.59]
 ```
 
 The per-site values are stored in `met$metrics`, a data frame carrying
@@ -434,11 +434,11 @@ mappable and joinable.
 ``` r
 
 head(met$metrics[, c("site_id", "x", "y", "slope_10", "half_richness", "auc")], 4)
-#>   site_id        x        y  slope_10 half_richness     auc
-#> 1       1 91.48060 58.16040 0.9285714            10 34.2625
-#> 2       2 93.70754 15.79052 1.1666667             8 33.6500
-#> 3       3 28.61395 35.90283 1.0952381            11 34.5125
-#> 4       4 83.04476 64.56319 1.0000000            15 31.0625
+#>   site_id        x        y slope_10 half_richness     auc
+#> 1       1 91.48060 58.16040 1.321429            10 33.1875
+#> 2       2 93.70754 15.79052 1.011905             9 33.5625
+#> 3       3 28.61395 35.90283 2.511905             4 34.6125
+#> 4       4 83.04476 64.56319 1.678571             7 32.5375
 ```
 
 ``` r
@@ -541,10 +541,10 @@ part <- spatialPartition(slope, mem)
 part
 #> Spatial Variance Partitioning
 #> ----------------------------------- 
-#> Spatial R-squared: 0.716
-#> Non-spatial:       0.284
-#> MEMs selected:     15
-#> Selected: MEM15, MEM5, MEM2, MEM25, MEM8, MEM23, MEM36, MEM21, MEM14, MEM37, MEM39, MEM41, MEM10, MEM35, MEM33
+#> Spatial R-squared: 0.600
+#> Non-spatial:       0.400
+#> MEMs selected:     9
+#> Selected: MEM6, MEM20, MEM7, MEM13, MEM15, MEM14, MEM24, MEM5, MEM11
 ```
 
 ``` r

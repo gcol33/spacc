@@ -9,13 +9,15 @@ spaccHill(
   coords,
   q = c(0, 1, 2),
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -34,7 +36,7 @@ or a \code{spacc_dist} object from \code{\link[=distances]{distances()}}.}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method: \code{"knn"} (default).}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}
 
@@ -49,6 +51,10 @@ or a \code{spacc_dist} object from \code{\link[=distances]{distances()}}.}
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final Hill numbers for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_hill} containing:

@@ -16,24 +16,6 @@ diversityProfile(
   normalize = TRUE,
   coords = NULL
 )
-
-diversityProfilePhylo(
-  x,
-  tree,
-  q = seq(0, 3, by = 0.1),
-  type = c("both", "per_site", "regional"),
-  coords = NULL
-)
-
-diversityProfileFunc(
-  x,
-  traits,
-  q = seq(0, 3, by = 0.1),
-  type = c("both", "per_site", "regional"),
-  dist_method = c("euclidean", "gower"),
-  normalize = TRUE,
-  coords = NULL
-)
 ```
 
 ## Arguments

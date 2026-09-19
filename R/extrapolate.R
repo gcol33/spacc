@@ -491,7 +491,7 @@ plot.spacc_fit <- function(x, extrapolate_to = NULL, interval = TRUE, ...) {
         x = extrapolate_to * 0.9,
         y = x$asymptote * 1.02,
         label = sprintf("Asymptote: %.0f", x$asymptote),
-        color = "#F44336", size = 3.5, hjust = 1
+        color = "#F44336", size = 4.7, hjust = 1
       )
   }
 

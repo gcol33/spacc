@@ -10,7 +10,7 @@ spacc(
   x,
   coords,
   n_seeds = 50L,
-  method = c("knn", "kncn", "random", "radius", "gaussian", "cone", "collector"),
+  method = c("knn", "kncn", "nn_walk", "random", "gaussian", "cone", "collector"),
   distance = c("euclidean", "haversine"),
   backend = c("auto", "exact", "kdtree"),
   support = NULL,
@@ -25,6 +25,8 @@ spacc(
   w_space = 1,
   w_time = 1,
   seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL,
   order = NULL
 )
 ```
@@ -49,20 +51,21 @@ spacc(
 
 - n_seeds:
 
-  Integer. Number of random starting points for uncertainty
-  quantification. Default 50.
+  Integer. Number of random focal points or starting sites for
+  uncertainty quantification. Default 50.
 
 - method:
 
   Character. Accumulation method:
 
-  - `"knn"`: k-Nearest Neighbor (always visit closest unvisited)
+  - `"knn"`: fixed-focus spatially constrained rarefaction
 
   - `"kncn"`: k-Nearest Centroid Neighbor (visit closest to centroid)
 
-  - `"random"`: Random order (null model)
+  - `"nn_walk"`: nearest-neighbour walk (move from the current site to
+    the closest unvisited site)
 
-  - `"radius"`: Expand by distance from seed
+  - `"random"`: Random order (null model)
 
   - `"gaussian"`: Probabilistic selection weighted by distance
 
@@ -76,7 +79,7 @@ spacc(
 
 - backend:
 
-  Character. Nearest-neighbor backend for `knn` and `kncn`:
+  Character. Nearest-neighbor backend for `nn_walk` and `kncn`:
 
   - `"auto"` (default): Uses exact (brute-force) for \<=500 sites,
     spatial tree for \>500 sites.
@@ -149,7 +152,7 @@ spacc(
   `w_space * d_spatial + w_time * d_temporal` and used for accumulation.
   Forces exact (brute-force) backend since spatial trees cannot handle
   composite distances. Only supported for methods that use a distance
-  matrix: `"knn"`, `"radius"`, `"gaussian"`.
+  matrix: `"nn_walk"`, `"gaussian"`.
 
 - w_space:
 
@@ -164,6 +167,24 @@ spacc(
 - seed:
 
   Integer. Random seed for reproducibility. Default `NULL`.
+
+- focal_points:
+
+  Optional data frame or `sf` point object with `x` and `y` coordinates.
+  For `method = "knn"`, each row is a fixed focal point and sites are
+  accumulated by increasing distance from it. When supplied, `n_seeds`
+  is set to the number of focal points. Default `NULL` samples
+  continuous focal points uniformly from the spatial domain.
+
+- focal_domain:
+
+  Optional `sf` or `sfc` polygon defining the domain from which
+  continuous `knn` focal points are sampled. When omitted, the convex
+  hull of the eligible site coordinates is used. For haversine
+  distances, hull sampling uses a local equal-area projection. Supplying
+  the study polygon preserves concavities, holes, and disconnected
+  components in irregular sampling domains. Its coordinates must use the
+  same coordinate reference system as `coords`.
 
 - order:
 
@@ -202,6 +223,18 @@ When `groups = NULL`, an object of class `spacc` containing:
 
   Total species in dataset
 
+- focal_points:
+
+  Continuous focal points used by `method = "knn"`
+
+## Details
+
+The canonical `knn` method follows Chiarucci et al. (2009): each curve
+uses one fixed focal point and accumulates sites by increasing distance
+from that point. The `nn_walk` method is a greedy traversal whose
+reference point moves to the most recently selected site. The two
+methods represent different spatial sampling models.
+
 ## References
 
 Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
@@ -209,9 +242,10 @@ Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
 Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
 and Biogeography, 12, 441-447.
 
-Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
-in using species diversity for assessing biodiversity. Philosophical
-Transactions of the Royal Society B, 366, 2426-2437.
+Chiarucci, A., Bacaro, G., Rocchini, D., Ricotta, C., Palmer, M.W. &
+Scheiner, S.M. (2009). Spatially constrained rarefaction: incorporating
+the autocorrelated structure of biological communities into sample-based
+rarefaction. Community Ecology, 10, 209-214.
 
 ## Examples
 

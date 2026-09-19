@@ -13,10 +13,11 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
 ```
 
@@ -220,58 +221,42 @@ ggplot(sac_df, aes(sites, mean)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "#4CAF50") +
   geom_line(linewidth = 1, colour = "#2E7D32") +
   labs(x = "Sites", y = "Cumulative species") +
+  theme_minimal(base_size = 17) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 ```
 
 ## Accumulation methods
 
-The walk order is set by `method`. The default `"knn"` always steps to the
-closest unvisited site, tracing a compact, often elongated path. `"kncn"`
-steps to the site closest to the centroid of everything visited so far,
-which grows a rounder, more area-like footprint. `"random"` ignores
-geography entirely and gives the classical effort-based curve. spacc also
-offers `"radius"` (admit every site within a growing distance band),
-`"gaussian"` (probabilistic selection weighted by distance), `"cone"`
-(directional expansion inside an angular wedge), and `"collector"` (sites
-in data order, a single curve with no randomization).
+The default `"knn"` method samples a continuous focal point and accumulates
+sites by increasing distance from that fixed point. `"kncn"` repeatedly selects
+the site closest to the centroid of the selected set. `"nn_walk"` repeatedly
+selects the closest unvisited site to the current site. `"random"` gives the
+classical geography-free effort curve. `"gaussian"`, `"cone"`, and
+`"collector"` provide probabilistic, directional, and data-order sequences.
 
-The difference between kNN and kNCN is worth dwelling on, because it
-changes the shape of the sampled region and therefore the curve. A kNN
-walk chases the single nearest point, which can string out into a thin
-chain that wanders across the map without ever filling an area. A kNCN
-walk anchors each step to the centre of mass of the visited set, so the
-footprint grows outward in all directions like an inflating disc. When the
-goal is to mimic an expanding survey area, kNCN is the closer match; when
-the goal is to follow whatever local structure the points happen to have,
-kNN is more faithful and runs faster. The radius and gaussian methods need
-a distance matrix and so use the exact backend, while kNN and kNCN can
-switch to a spatial tree for large datasets, chosen automatically above
-500 sites.
+The three spatial rules represent different geometries. `knn` expands around a
+fixed focus, `kncn` updates a compact centroid-based footprint, and `nn_walk`
+follows a recursive path through local neighbours. The spatial-tree backend is
+available for `kncn` and `nn_walk` on large datasets. Fixed-focus `knn` sorts
+distances from each focal point directly.
 
 ```{r compare-methods}
 sac_kncn <- spacc(species, coords, n_seeds = 30, method = "kncn", progress = FALSE)
+sac_walk <- spacc(species, coords, n_seeds = 30, method = "nn_walk", progress = FALSE)
 sac_rand <- spacc(species, coords, n_seeds = 30, method = "random", progress = FALSE)
 ```
 
 The `c()` method combines several `spacc` objects into one grouped object,
 which `plot()` overlays. The names supplied become the legend labels.
 
-```{r combine, fig.cap = "kNN, kNCN, and random accumulation compared."}
-combined <- c(knn = sac, kncn = sac_kncn, random = sac_rand)
+```{r combine, fig.cap = "Fixed-focus kNN, kNCN, nearest-neighbour walk, and random accumulation."}
+combined <- c(knn = sac, kncn = sac_kncn, nn_walk = sac_walk, random = sac_rand)
 plot(combined)
 ```
 
-The random curve rises above both spatial curves at every intermediate
-step. That separation is the spatial signal: random draws pull in distant,
-compositionally different sites early, so they rack up species faster than
-a walk confined to one neighbourhood. The kNN and kNCN curves run close
-together here because the patches are large relative to the spacing
-between sites. With tighter patches the two spatial methods would split
-apart, with kNN lagging further as it traced single-file paths through one
-patch before reaching the next. Reading the three curves together turns
-the plot into a diagnostic: the height of the random curve above the
-spatial pair quantifies how much the spatial design constrains discovery.
+The curves show how the selected spatial rule changes the sequence in which
+communities enter the cumulative sample.
 
 ### Custom accumulation order
 
@@ -708,10 +693,10 @@ The methods suit different questions:
 
 | Method        | Walk rule                          | Footprint        | Use when                                  |
 |---------------|------------------------------------|------------------|-------------------------------------------|
-| `knn`         | nearest unvisited site             | elongated path   | default; fast, follows local structure    |
+| `knn`         | distance from one fixed focus      | radial expansion | spatially constrained rarefaction         |
 | `kncn`        | nearest to centroid of visited     | rounder, compact | area-like expansion from a focal patch    |
+| `nn_walk`     | nearest to current site            | traversal path   | movement through local neighbours         |
 | `random`      | random order                       | none (spatial)   | classical effort curve, null comparison   |
-| `radius`      | all sites within a growing band    | concentric       | modelling outward spread or buffers       |
 | `collector`   | data order, single curve           | fixed            | a survey already run in a known sequence  |
 
 Sample-size guidance: aim for at least 20 sites before a spatial SAC is

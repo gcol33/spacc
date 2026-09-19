@@ -31,7 +31,8 @@ for fitting asymptotic models to the curves.
 
 1.  [Terminology](#terminology)
 
-2.  [The spatial walk, concretely](#the-spatial-walk-concretely)
+2.  [Fixed-focus accumulation,
+    concretely](#fixed-focus-accumulation-concretely)
 
 3.  [Problem formulation](#problem-formulation)
 
@@ -41,9 +42,9 @@ for fitting asymptotic models to the curves.
 
 6.  [From theory to implementation](#from-theory-to-implementation)
 
-7.  [The two-tier backend](#the-two-tier-backend)
+7.  [The two-tier traversal backend](#the-two-tier-traversal-backend)
 
-8.  [Seeds and uncertainty](#seeds-and-uncertainty)
+8.  [Focal points and uncertainty](#focal-points-and-uncertainty)
 
 9.  [Relationship to random-order
     curves](#relationship-to-random-order-curves)
@@ -83,15 +84,17 @@ is the number of distinct species recorded across the first \\k\\ sites
 of an ordering. The curve is non-decreasing and saturates at the total
 species count.
 
-**Seed.** The starting site \\\pi_1\\. Spatial methods grow an ordering
-outward from the seed, so the seed determines the curve.
+**Focal point.** A continuous coordinate \\c^\*\\ used by `knn` to rank
+all sites.
+
+**Starting site.** The first site \\\pi_1\\ used by traversal methods.
 
 **Neighbourhood.** The set of unvisited sites considered for the next
 step. For nearest-neighbour expansion it is all unvisited sites; for the
 cone method it is restricted to a directional wedge.
 
-**Seed band.** The set of curves obtained by repeating an expansion from
-many seeds. Its pointwise quantiles form the confidence band.
+**Focal-point band.** The set of curves obtained from many focal points.
+Its pointwise quantiles form the confidence band.
 
 **Backend.** The data structure used to answer nearest-neighbour
 queries: a precomputed distance matrix (exact) or a spatial index (k-d
@@ -99,12 +102,11 @@ tree or ball tree).
 
 ------------------------------------------------------------------------
 
-## The spatial walk, concretely
+## Fixed-focus accumulation, concretely
 
-Start with twenty sites and watch one rule build an ordering. The
-k-nearest-neighbour walk begins at a seed, steps to the closest
-unvisited site, then to the closest site to *that*, and so on. The path
-threads through the point cloud.
+Start with twenty sites and one focal point. The canonical
+k-nearest-neighbour ordering ranks every site by its distance from that
+same point.
 
 ``` r
 
@@ -116,49 +118,33 @@ pts <- data.frame(
 )
 ```
 
-The walk is easy to trace by hand. From the seed, repeatedly pick the
-nearest site that has not yet been visited.
+The ordering is a direct distance sort.
 
 ``` r
 
-knn_order <- function(coords, seed) {
-  n <- nrow(coords); visited <- logical(n); ord <- integer(n)
-  cur <- seed; visited[cur] <- TRUE; ord[1] <- cur
-  for (k in 2:n) {
-    d <- sqrt((coords$x - coords$x[cur])^2 + (coords$y - coords$y[cur])^2)
-    d[visited] <- Inf
-    cur <- which.min(d); visited[cur] <- TRUE; ord[k] <- cur
-  }
-  ord
+knn_order <- function(coords, focus) {
+  order(sqrt((coords$x - focus[1])^2 + (coords$y - focus[2])^2))
 }
-ord <- knn_order(pts, seed = 1)
+focus <- c(3, 2.5)
+ord <- knn_order(pts, focus)
 ```
 
-Drawing the path shows how the ordering hugs the local structure: the
-first steps stay inside one cluster before the walk is forced to jump to
-the next.
+The numbered sites expand outward from the focus.
 
 ``` r
 
 plot(pts$x, pts$y, pch = 19, col = "grey70", cex = 1.4,
-     xlab = "x", ylab = "y", main = "kNN walk from seed (filled = seed)")
-lines(pts$x[ord], pts$y[ord], col = "#2E7D32", lwd = 2)
-points(pts$x[1], pts$y[1], pch = 19, col = "#C62828", cex = 2)
-text(pts$x, pts$y, labels = match(seq_len(nrow(pts)), ord), pos = 3, cex = 0.7)
+     xlab = "x", ylab = "y", main = "Fixed-focus kNN ordering")
+points(focus[1], focus[2], pch = 4, col = "#C62828", cex = 2, lwd = 2)
+text(pts$x, pts$y, labels = match(seq_len(nrow(pts)), ord), pos = 3, cex = 1)
 ```
 
-![Twenty points in the plane with a path connecting them in
-nearest-neighbour visiting order, starting from the lower-left seed. The
-path stays within local clusters before jumping to reach distant
-points.](theory_files/figure-html/toy-knn-plot-1.svg)
+![Twenty points numbered by increasing distance from one fixed focal
+point.](theory_files/figure-html/toy-knn-plot-1.svg)
 
-A different seed gives a different path and a different curve. That
-dependence on the starting point is not noise to be removed; it is the
-spatial signal. When species are aggregated, a walk that starts inside a
-rich cluster climbs steeply, a walk that starts in a sparse corner
-climbs slowly, and the gap between those trajectories measures how much
-composition turns over across the map. The package runs the walk from
-many seeds precisely to capture that spread.
+A different focal point gives a different ordering and curve. `spacc`
+samples continuous focal points across the spatial domain to represent
+that variation.
 
 ------------------------------------------------------------------------
 
@@ -184,11 +170,10 @@ falls. It reaches the total richness \\S\_\pi(n) = \|\bigcup_i
 \mathrm{sp}(i)\|\\ regardless of the ordering, so methods differ only in
 the *shape* of the approach, not the endpoint.
 
-**Seed band.** Run the method from seeds \\s_1, \dots, s_B\\ (sampled
-with replacement from the eligible sites), giving curves \\S^{(1)},
-\dots, S^{(B)}\\ stacked as the \\B \times n\\ matrix returned in
-`$curves`. The summary at step \\k\\ is the across-seed mean and the
-empirical quantiles
+**Focal-point band.** Run the method from focal points \\c^\*\_1, \dots,
+c^\*\_B\\, giving curves \\S^{(1)}, \dots, S^{(B)}\\ stacked as the \\B
+\times n\\ matrix returned in `$curves`. The summary at step \\k\\ is
+the across-focus mean and the empirical quantiles
 
 \\ \bar S(k) = \frac{1}{B} \sum\_{b=1}^{B} S^{(b)}(k), \qquad \hat
 q\_\alpha(k) = \text{quantile}\_\alpha\\\left( S^{(1)}(k), \dots,
@@ -196,28 +181,40 @@ S^{(B)}(k) \right). \\
 
 The \\2.5\\\\ and \\97.5\\\\ quantiles give the default band. The
 interval is not a parametric formula; it is the sampling distribution of
-richness-at-effort induced by varying the starting point.
+richness-at-effort induced by varying the focal point.
 
 ------------------------------------------------------------------------
 
 ## Expansion methods
 
-Each method is a rule for choosing \\\pi\_{k+1}\\ given the sites
-already visited. The seven rules fall into three families: walks that
-chain through the cloud (`knn`, `kncn`, `gaussian`), orderings by
-distance from a fixed seed (`radius`, `cone`), and geography-free
-baselines (`random`, `collector`).
+The seven rules include fixed-focus expansion (`knn`), adaptive
+traversals (`kncn`, `nn_walk`, `gaussian`), directional expansion
+(`cone`), and geography-free baselines (`random`, `collector`).
 
 ### k-nearest neighbour (`knn`)
+
+Sample a focal point \\c^\*\\ in continuous space and rank all sites by
+distance from that point:
+
+\\ \pi \\=\\ \operatorname{argsort}\_j d(c^\*, c_j). \\
+
+This is the fixed-focus spatially constrained rarefaction ordering
+described by Chiarucci et al. (2009). By default, focal points are
+sampled uniformly over the convex hull of eligible sites. An `sf`
+polygon supplied through `focal_domain` represents a known irregular
+boundary, including holes and disconnected parts. Exact coordinates
+supplied through `focal_points` reproduce a specified design.
+
+### Nearest-neighbour walk (`nn_walk`)
 
 From the current site \\\pi_k\\, move to the closest unvisited site:
 
 \\ \pi\_{k+1} \\=\\ \arg\min\_{j \\\notin\\ \\\pi_1,\dots,\pi_k\\}
 d(\pi_k, j). \\
 
-The reference point is the *current* site, so the ordering is a
-connected walk that follows local density. This is the default and the
-curve the other methods are usually compared against.
+The current site changes at every step. The traversal can follow a chain
+through local clusters and cross a larger gap after a cluster is
+exhausted.
 
 ### k-nearest centroid neighbour (`kncn`)
 
@@ -229,30 +226,14 @@ closest to it:
 \\
 
 Because the reference point is the centroid rather than the last site,
-the visited set grows as a compact blob instead of a thread. `kncn`
-resists the long jumps a `knn` walk makes when it exhausts a cluster, so
-its early curve is smoother.
-
-### Expanding radius (`radius`)
-
-Sort every site by its distance from the seed and accumulate in that
-order:
-
-\\ \pi \\=\\ \text{argsort}\_j \\ d(s, j), \qquad s = \text{seed}. \\
-
-The reference point is fixed at the seed for the whole curve, so the
-ordering sweeps out a growing disc centred on the seed. This is the
-cleanest “survey spreading outward from a point” interpretation. The
-related
-[`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
-function parameterises the same idea by radius instead of by site count,
-reporting richness as a function of the disc radius rather than the
-number of sites included.
+the visited set grows as a compact footprint. Its reference point
+updates to the centroid of the selected sites at every step.
 
 ### Gaussian-weighted walk (`gaussian`)
 
-A soft version of `knn`. From the current site, draw the next site at
-random with probability proportional to a Gaussian kernel of distance:
+A probabilistic nearest-neighbour walk. From the current site, draw the
+next site at random with probability proportional to a Gaussian kernel
+of distance:
 
 \\ \Pr(\pi\_{k+1} = j) \\\propto\\ \exp\\\left( -\frac{d(\pi_k,
 j)^2}{2\sigma^2} \right), \qquad j \notin \\\pi_1,\dots,\pi_k\\. \\
@@ -260,7 +241,7 @@ j)^2}{2\sigma^2} \right), \qquad j \notin \\\pi_1,\dots,\pi_k\\. \\
 Nearby sites are favoured but not guaranteed, so the walk explores a
 neighbourhood rather than always taking the single closest site. The
 bandwidth \\\sigma\\ sets how sharp the preference is: small \\\sigma\\
-approaches `knn`, large \\\sigma\\ approaches `random`. By default
+approaches `nn_walk`, large \\\sigma\\ approaches `random`. By default
 \\\sigma\\ is the median of the non-zero pairwise distances.
 
 ### Directional cone (`cone`)
@@ -297,12 +278,23 @@ Colour encodes visiting order from first (dark) to last (light).
 ``` r
 
 pal <- function(o) grDevices::hcl.colors(length(o), "Greens", rev = TRUE)[order(o)]
-radius_order <- function(coords, seed)
-  order(sqrt((coords$x - coords$x[seed])^2 + (coords$y - coords$y[seed])^2))
+nn_walk_order <- function(coords, seed) {
+  n <- nrow(coords); visited <- logical(n); result <- integer(n)
+  current <- seed; visited[current] <- TRUE; result[1] <- current
+  for (step in 2:n) {
+    distances <- sqrt((coords$x - coords$x[current])^2 +
+                      (coords$y - coords$y[current])^2)
+    distances[visited] <- Inf
+    current <- which.min(distances)
+    visited[current] <- TRUE
+    result[step] <- current
+  }
+  result
+}
 
 orders <- list(
-  kNN       = knn_order(pts, 1),
-  radius    = radius_order(pts, 1),
+  kNN       = knn_order(pts, focus),
+  nn_walk   = nn_walk_order(pts, 1),
   random    = sample(nrow(pts)),
   collector = seq_len(nrow(pts))
 )
@@ -315,19 +307,17 @@ for (nm in names(orders)) {
 ```
 
 ![Four panels showing the same twenty points coloured by visiting order
-under kNN, expanding radius, random, and collector rules. The kNN and
-radius panels show smooth spatial gradients of colour; the random panel
-shows no spatial pattern; the collector panel follows data
-order.](theory_files/figure-html/method-schematic-1.svg)
+under fixed-focus kNN, a nearest-neighbour walk, random, and collector
+rules.](theory_files/figure-html/method-schematic-1.svg)
 
 ``` r
 
 par(op)
 ```
 
-The `knn` and `radius` panels show a clear gradient: nearby sites are
-visited at similar times. The `random` panel has no spatial pattern, and
-`collector` follows whatever order the rows happen to be in.
+The `knn` panel expands around one point. The `nn_walk` panel follows
+the current site recursively. The `random` panel has no spatial pattern,
+and `collector` follows the row order.
 
 ------------------------------------------------------------------------
 
@@ -360,7 +350,7 @@ w\_{\text{time}} \\ \|t_i - t_j\|. \\
 The weights `w_space` and `w_time` trade geographic against temporal
 proximity. A composite distance is not a metric a spatial tree can
 index, so this mode always uses the exact backend and is available for
-the methods that accept a distance matrix (`knn`, `radius`, `gaussian`).
+the methods that accept a distance matrix (`nn_walk`, `gaussian`).
 
 ------------------------------------------------------------------------
 
@@ -374,14 +364,15 @@ directly.
 |----|----|----|
 | Ordering rule | `method` | Selects one of the seven expansion rules |
 | Distance \\d\\ | `distance` | `"euclidean"` or `"haversine"` |
-| Number of seeds \\B\\ | `n_seeds` | Curves in the seed band |
+| Number of focal points \\B\\ | `n_seeds` | Curves in the focal-point band |
+| Focal definition | `focal_points`, `focal_domain` | Exact foci or polygonal sampling domain for `knn` |
 | Bandwidth \\\sigma\\ | `sigma` | Gaussian kernel width (default: median distance) |
 | Cone half-width | `cone_width` | Angular wedge for `cone` (default \\\pi/4\\) |
 | Temporal axis | `time`, `w_space`, `w_time` | Switches to composite distance |
 | Fixed ordering | `order` | Supplies \\\pi\\ directly, bypassing `method` |
 | Species split | `groups` | One curve per group, same site ordering |
-| Spatial support | `support`, `include_halo` | Seeds drawn from core sites only |
-| Query backend | `backend` | `"auto"`, `"exact"`, or `"kdtree"` |
+| Spatial support | `support`, `include_halo` | Focal domain restricted to core sites |
+| Query backend | `backend` | Nearest-neighbour engine for `nn_walk` and `kncn` |
 
 A typical call states the rule, the metric, and the number of seeds:
 
@@ -411,11 +402,12 @@ sac_user$n_seeds
 
 ------------------------------------------------------------------------
 
-## The two-tier backend
+## The two-tier traversal backend
 
-The cost of an accumulation walk is dominated by nearest-neighbour
-queries. Two backends answer them, and `backend = "auto"` chooses
-between them by site count.
+The `nn_walk` and `kncn` traversals repeatedly issue nearest-neighbour
+queries. Two backends answer them, and `backend = "auto"` chooses by
+site count. Fixed-focus `knn` computes and sorts distances from each
+focal point directly.
 
 **Exact.** Precompute the full \\n \times n\\ distance matrix once, then
 answer each query by scanning a row. The matrix costs \\O(n^2)\\ memory
@@ -442,9 +434,9 @@ only the speed differs.
 
 ``` r
 
-e <- spacc(species, coords, method = "knn", backend = "exact",
+e <- spacc(species, coords, method = "nn_walk", backend = "exact",
            n_seeds = 30, progress = FALSE, seed = 7)
-k <- spacc(species, coords, method = "knn", backend = "kdtree",
+k <- spacc(species, coords, method = "nn_walk", backend = "kdtree",
            n_seeds = 30, progress = FALSE, seed = 7)
 c(exact_mean_end = mean(e$curves[, ncol(e$curves)]),
   kdtree_mean_end = mean(k$curves[, ncol(k$curves)]))
@@ -452,21 +444,18 @@ c(exact_mean_end = mean(e$curves[, ncol(e$curves)]),
 #>              40              40
 ```
 
-The `radius`, `gaussian`, and `cone` methods always use coordinates or a
-distance matrix directly, and the spatiotemporal composite forces the
-exact backend because a summed space-time distance has no tree to index.
+The `gaussian` and `cone` methods use coordinates or a distance matrix
+directly. The spatiotemporal composite uses the exact backend.
 
 ------------------------------------------------------------------------
 
-## Seeds and uncertainty
+## Focal points and uncertainty
 
-A single spatial curve is one realisation. The uncertainty comes from
-the choice of starting point, so `spacc` repeats the expansion from
-`n_seeds` seeds and reads the spread off the resulting band. Each seed
-is an independent walk with no shared state, which makes the computation
-embarrassingly parallel: the seeds are distributed across threads by
-RcppParallel, and the per-step quantiles are taken after all walks
-finish.
+A single spatial curve is one realisation. For `knn`, `spacc` repeats
+the expansion from `n_seeds` continuous focal points and reads the
+spread from the resulting band. Each ordering is independent, so
+RcppParallel distributes them across threads and the per-step quantiles
+are taken after all curves finish.
 
 ``` r
 
@@ -479,13 +468,10 @@ region where the choice of starting site matters
 most.](theory_files/figure-html/seed-band-1.svg)
 
 The band is widest early and narrows as the curves converge on the
-shared endpoint. Early on, the seed dominates: a walk that starts in a
-rich patch and one that starts in a poor patch disagree most after a
-handful of sites. By the time most of the map is covered, every walk has
-seen nearly every species, so the curves meet. More seeds tighten the
-*estimate* of the band but do not change its shape; the band reflects
-real across-start variability, not Monte Carlo error that vanishes with
-more replicates.
+shared endpoint. Early focal locations can rank different local
+communities first. The curves converge as most sites enter each
+ordering. More focal points improve the Monte Carlo estimate of this
+spatial distribution.
 
 ``` r
 
@@ -541,10 +527,9 @@ enter the same plotting and comparison machinery.
 
 ## From curves to other diversity measures
 
-The expansion rule fixes an ordering; what is counted at each step is
-free to change. The downstream functions reuse the spatial walk and
-replace the quantity accumulated, so the spatial logic in this vignette
-carries through unchanged.
+The expansion rule fixes an ordering. The downstream functions reuse
+that ordering and change the diversity quantity accumulated at each
+step.
 
 - [`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md)
   accumulates Hill numbers of order \\q = 0, 1, 2\\ (richness, the
@@ -575,18 +560,17 @@ lowest.](theory_files/figure-html/downstream-taste-1.svg)
 
 Each of these has its own vignette; the point here is that they share
 the accumulation core. Choosing a `method` and `distance` configures the
-walk once, and every diversity measure inherits it.
+ordering once, and every diversity measure inherits it.
 
 ------------------------------------------------------------------------
 
 ## Design notes
 
-**Why several expansion methods?** No single ordering rule is correct
-for every question. A growing disc (`radius`) matches a survey expanding
-from a point; a chained walk (`knn`) matches a surveyor moving to the
-nearest accessible site; a directional cone matches a transect along a
-bearing. Offering the rules as one argument lets the analysis state its
-sampling model explicitly rather than defaulting to the random null.
+**Why several expansion methods?** Each rule represents a sampling
+model. Fixed-focus `knn` represents spatially constrained rarefaction,
+`kncn` represents centroid-based compact expansion, `nn_walk` represents
+a nearest-neighbour traversal, and `cone` represents directional
+accumulation.
 
 **Why percentile bands instead of a parametric interval?** The
 uncertainty in a spatial curve is dominated by where the survey starts,
@@ -616,9 +600,10 @@ Arrhenius, O. (1921). Species and area. *Journal of Ecology*, 9, 95-99.
 Scheiner, S. M. (2003). Six types of species-area curves. *Global
 Ecology and Biogeography*, 12, 441-447.
 
-Chiarucci, A., Bacaro, G., & Scheiner, S. M. (2011). Old and new
-challenges in using species diversity for assessing biodiversity.
-*Philosophical Transactions of the Royal Society B*, 366, 2426-2437.
+Chiarucci, A., Bacaro, G., Rocchini, D., Ricotta, C., Palmer, M. W., &
+Scheiner, S. M. (2009). Spatially constrained rarefaction: incorporating
+the autocorrelated structure of biological communities into sample-based
+rarefaction. *Community Ecology*, 10, 209-214.
 
 Gotelli, N. J., & Colwell, R. K. (2001). Quantifying biodiversity:
 procedures and pitfalls in the measurement and comparison of species
@@ -697,7 +682,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] spacc_0.9.0
+#> [1] spacc_0.10.2
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     dplyr_1.2.1        compiler_4.6.1    

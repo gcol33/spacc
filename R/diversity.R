@@ -754,16 +754,6 @@ calc_hill_phylo_site <- function(abundances, tree, T_max, q) {
 }
 
 
-#' @rdname diversityProfile
-#' @export
-diversityProfilePhylo <- function(x, tree, q = seq(0, 3, by = 0.1),
-                                   type = c("both", "per_site", "regional"),
-                                   coords = NULL) {
-  .Deprecated("diversityProfile(tree = ...)")
-  diversityProfile(x, q = q, type = type, tree = tree, coords = coords)
-}
-
-
 # ============================================================================
 # FUNCTIONAL DIVERSITY PROFILE
 # ============================================================================
@@ -795,14 +785,3 @@ calc_hill_func_site <- function(abundances, Z, q) {
 }
 
 
-#' @rdname diversityProfile
-#' @export
-diversityProfileFunc <- function(x, traits, q = seq(0, 3, by = 0.1),
-                                  type = c("both", "per_site", "regional"),
-                                  dist_method = c("euclidean", "gower"),
-                                  normalize = TRUE, coords = NULL) {
-  .Deprecated("diversityProfile(traits = ...)")
-  diversityProfile(x, q = q, type = type, traits = traits,
-                   dist_method = dist_method, normalize = normalize,
-                   coords = coords)
-}

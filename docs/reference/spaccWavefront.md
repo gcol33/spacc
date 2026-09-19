@@ -17,18 +17,6 @@ spaccWavefront(
   progress = TRUE,
   seed = NULL
 )
-
-wavefront(
-  x,
-  coords,
-  n_seeds = 50L,
-  r0 = 0,
-  dr = NULL,
-  n_steps = 50L,
-  distance = c("euclidean", "haversine"),
-  progress = TRUE,
-  seed = NULL
-)
 ```
 
 ## Arguments

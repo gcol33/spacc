@@ -362,7 +362,8 @@ df <- rbind(
 )
 ggplot2::ggplot(df, ggplot2::aes(sites, S, color = kind)) +
   ggplot2::geom_line(linewidth = 0.9) +
-  ggplot2::labs(x = "Sites", y = "Species", color = NULL) + transparent
+  ggplot2::labs(x = "Sites", y = "Species", color = NULL) +
+  ggplot2::theme_minimal(base_size = 17) + transparent
 ```
 
 ![](rarefaction-standardization_files/figure-html/analytical-plot-1.svg)
@@ -413,10 +414,10 @@ uncertainty introduced by the choice of starting point.
 interp <- interpolateCoverage(cov_result, target = c(0.90, 0.95, 0.99))
 round(colMeans(interp), 2)
 #>   C90   C95   C99 
-#> 18.63 19.13 19.66
+#> 18.70 19.20 19.77
 round(apply(interp, 2, sd), 3)
 #>   C90   C95   C99 
-#> 1.490 1.273 1.031
+#> 1.323 0.770 0.315
 ```
 
 The across-seed standard deviation widens toward higher coverage
@@ -459,12 +460,12 @@ print(extrap)
 #> Observed richness: 20.0
 #> 
 #> Extrapolated richness:
-#>   C=95%: 19.1 (+/- 1.3)
-#>   C=99%: 19.7 (+/- 1.0)
+#>   C=95%: 19.2 (+/- 0.8)
+#>   C=99%: 19.8 (+/- 0.3)
 summary(extrap)
 #>     target_coverage mean_richness       sd    lower upper
-#> C95            0.95      19.13281 1.273474 15.00000    20
-#> C99            0.99      19.65881 1.030564 16.50835    20
+#> C95            0.95      19.20405 0.769666 17.82051    20
+#> C99            0.99      19.76802 0.314623 19.00000    20
 ```
 
 ``` r
@@ -509,7 +510,7 @@ stable, the expected ordering \\{}^{0}D \ge {}^{1}D \ge {}^{2}D\\.
 
 sapply(hc$standardized, mean)
 #>     q0.0     q1.0     q2.0 
-#> 19.04151 16.88006 15.42177
+#> 18.26128 16.36272 15.13016
 ```
 
 ``` r
@@ -575,7 +576,8 @@ df_thin <- transform(as.data.frame(thin), set = "Thinned (grid)")
 ggplot2::ggplot(rbind(df_full, df_thin),
                 ggplot2::aes(sites, mean, color = set)) +
   ggplot2::geom_line(linewidth = 1) +
-  ggplot2::labs(x = "Sites", y = "Species", color = NULL) + transparent
+  ggplot2::labs(x = "Sites", y = "Species", color = NULL) +
+  ggplot2::theme_minimal(base_size = 17) + transparent
 ```
 
 ![](rarefaction-standardization_files/figure-html/thinned-plot-1.svg)
@@ -644,7 +646,7 @@ S_lo_c <- mean(interpolateCoverage(co_lo, target = 0.9)[, 1])
 S_hi_c <- mean(interpolateCoverage(co_hi, target = 0.9)[, 1])
 c(low = round(S_lo_c, 1), high = round(S_hi_c, 1))
 #>  low high 
-#> 17.1 19.9
+#> 15.6 20.0
 ```
 
 Collecting the three views into one table makes the shift in conclusion
@@ -662,9 +664,9 @@ data.frame(
   row.names = NULL
 )
 #>           standardization  low high
-#> 1            Raw richness 20.0 20.0
-#> 2     Matched individuals 20.0 20.0
-#> 3 Matched coverage (0.90) 17.1 19.9
+#> 1            Raw richness 20.0   20
+#> 2     Matched individuals 20.0   20
+#> 3 Matched coverage (0.90) 15.6   20
 ```
 
 The lesson is that a richness comparison is only as meaningful as the

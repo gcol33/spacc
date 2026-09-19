@@ -30,7 +30,7 @@ visualizing spatial patterns in diversity, and understanding edge effects."><scr
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,7 +93,7 @@ visualizing spatial patterns in diversity, and understanding edge effects.</p>
 <span>  <span class="va">x</span>,</span>
 <span>  <span class="va">coords</span>,</span>
 <span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slope_10"</span>, <span class="st">"half_richness"</span>, <span class="st">"auc"</span><span class="op">)</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"kncn"</span>, <span class="st">"random"</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"kncn"</span>, <span class="st">"nn_walk"</span>, <span class="st">"random"</span><span class="op">)</span>,</span>
 <span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -127,7 +127,8 @@ or a <code>spacc_dist</code> object from <code><a href="distances.html">distance
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Character. Accumulation method: <code>"knn"</code>, <code>"kncn"</code>, <code>"random"</code>.
+<dd><p>Character. Accumulation method: <code>"knn"</code>, <code>"kncn"</code>,
+<code>"nn_walk"</code>, or <code>"random"</code>.
 Default <code>"knn"</code>.</p></dd>
 
 

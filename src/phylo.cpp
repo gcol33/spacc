@@ -175,10 +175,9 @@ double calc_faith_pd(IntegerMatrix edge,
 
 
 // [[Rcpp::export]]
-List cpp_phylo_knn_single(NumericMatrix species_pa,
-                          NumericMatrix site_dist_mat,
+List cpp_phylo_order_single(NumericMatrix species_pa,
+                          IntegerVector order,
                           NumericMatrix phylo_dist_mat,
-                          int seed,
                           CharacterVector metrics,
                           Rcpp::Nullable<IntegerMatrix> tree_edge = R_NilValue,
                           Rcpp::Nullable<NumericVector> tree_edge_length = R_NilValue,
@@ -199,12 +198,10 @@ List cpp_phylo_knn_single(NumericMatrix species_pa,
   // Output matrices: one row per metric
   NumericMatrix results(n_metrics, n_sites);
 
-  std::vector<bool> visited(n_sites, false);
   std::vector<double> cumulative(n_species, 0.0);
   LogicalVector species_present(n_species);
 
-  int current = seed;
-  visited[current] = true;
+  int current = order[0];
 
   // Add first site
   for (int sp = 0; sp < n_species; sp++) {
@@ -229,18 +226,7 @@ List cpp_phylo_knn_single(NumericMatrix species_pa,
   }
 
   for (int step = 1; step < n_sites; step++) {
-    // Find nearest unvisited
-    double min_dist = R_PosInf;
-    int next = -1;
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j] && site_dist_mat(current, j) < min_dist) {
-        min_dist = site_dist_mat(current, j);
-        next = j;
-      }
-    }
-
-    current = next;
-    visited[current] = true;
+    current = order[step];
 
     // Accumulate
     for (int sp = 0; sp < n_species; sp++) {
@@ -280,14 +266,11 @@ List cpp_phylo_knn_single(NumericMatrix species_pa,
 }
 
 
-// Worker struct for parallel phylo kNN
-// Uses a single packed RMatrix<double> for output (n_seeds * n_metrics rows, n_sites cols)
-// to match the working KnnWorker pattern exactly.
-struct PhyloKnnWorker : public Worker {
+// Worker for parallel phylogenetic accumulation along supplied site orders.
+struct PhyloOrderWorker : public Worker {
   const RMatrix<double> species_pa;
-  const RMatrix<double> site_dist_mat;
   const RMatrix<double> phylo_dist_mat;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
   RMatrix<double> results;  // packed: row = s * n_metrics + m
 
   bool do_mpd;
@@ -305,18 +288,16 @@ struct PhyloKnnWorker : public Worker {
   const RVector<double> edge_len;
   const int tree_n_tips;
 
-  PhyloKnnWorker(const NumericMatrix& species_pa_,
-                 const NumericMatrix& site_dist_mat_,
+  PhyloOrderWorker(const NumericMatrix& species_pa_,
                  const NumericMatrix& phylo_dist_mat_,
-                 const IntegerVector& seeds_,
+                 const IntegerMatrix& orders_,
                  const std::vector<std::string>& metric_names_,
                  NumericMatrix& results_,
                  bool has_tree_,
                  const IntegerMatrix& edge_mat_,
                  const NumericVector& edge_len_,
                  int tree_n_tips_)
-    : species_pa(species_pa_), site_dist_mat(site_dist_mat_),
-      phylo_dist_mat(phylo_dist_mat_), seeds(seeds_),
+    : species_pa(species_pa_), phylo_dist_mat(phylo_dist_mat_), orders(orders_),
       results(results_),
       do_mpd(false), do_mntd(false), do_pd(false), do_rao(false),
       mpd_idx(-1), mntd_idx(-1), pd_idx(-1), rao_idx(-1),
@@ -334,15 +315,11 @@ struct PhyloKnnWorker : public Worker {
   void operator()(std::size_t begin, std::size_t end) {
     int n_sites = species_pa.nrow();
     int n_species = species_pa.ncol();
-    const double INF = std::numeric_limits<double>::infinity();
-
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::vector<bool> species_present(n_species, false);
       std::vector<double> cumulative(n_species, 0.0);
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
 
       for (int sp = 0; sp < n_species; sp++) {
         cumulative[sp] += species_pa(current, sp);
@@ -355,17 +332,7 @@ struct PhyloKnnWorker : public Worker {
       if (do_rao) results(s * n_metrics + rao_idx, 0) = calc_rao_internal(cumulative, n_species);
 
       for (int step = 1; step < n_sites; step++) {
-        double min_dist = INF;
-        int next_site = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && site_dist_mat(current, j) < min_dist) {
-            min_dist = site_dist_mat(current, j);
-            next_site = j;
-          }
-        }
-
-        current = next_site;
-        visited[current] = true;
+        current = orders(s, step);
 
         for (int sp = 0; sp < n_species; sp++) {
           cumulative[sp] += species_pa(current, sp);
@@ -474,10 +441,9 @@ private:
 
 
 // [[Rcpp::export]]
-List cpp_phylo_knn_parallel(NumericMatrix species_pa,
-                            NumericMatrix site_dist_mat,
+List cpp_phylo_order_parallel(NumericMatrix species_pa,
+                            IntegerMatrix orders,
                             NumericMatrix phylo_dist_mat,
-                            int n_seeds,
                             CharacterVector metrics,
                             int n_cores = 1,
                             bool progress = false,
@@ -486,8 +452,7 @@ List cpp_phylo_knn_parallel(NumericMatrix species_pa,
                             int tree_n_tips = 0) {
   int n_sites = species_pa.nrow();
   int n_metrics = metrics.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   // Check if tree data is available
   bool has_tree = tree_edge.isNotNull() && tree_edge_length.isNotNull();
@@ -512,15 +477,16 @@ List cpp_phylo_knn_parallel(NumericMatrix species_pa,
   NumericMatrix packed_results(n_seeds * n_metrics, n_sites);
 
   if (n_cores > 1) {
-    PhyloKnnWorker worker(species_pa, site_dist_mat, phylo_dist_mat,
-                          seeds, metric_names, packed_results,
+    PhyloOrderWorker worker(species_pa, phylo_dist_mat,
+                          orders, metric_names, packed_results,
                           has_tree, edge_mat, edge_len, tree_n_tips);
     parallelFor(0, n_seeds, worker, 1, n_cores);
   } else {
     // Sequential fallback
     for (int s = 0; s < n_seeds; s++) {
-      List single = cpp_phylo_knn_single(species_pa, site_dist_mat,
-                                          phylo_dist_mat, seeds[s], metrics,
+      IntegerVector order = orders(s, _);
+      List single = cpp_phylo_order_single(species_pa, order,
+                                          phylo_dist_mat, metrics,
                                           tree_edge, tree_edge_length, tree_n_tips);
       for (int m = 0; m < n_metrics; m++) {
         NumericVector curve = single[m];
@@ -668,10 +634,9 @@ double calc_rao_traits(NumericMatrix traits, NumericVector abundances) {
 
 
 // [[Rcpp::export]]
-List cpp_func_knn_single(NumericMatrix species_mat,
-                         NumericMatrix site_dist_mat,
+List cpp_func_order_single(NumericMatrix species_mat,
+                         IntegerVector order,
                          NumericMatrix traits,
-                         int seed,
                          CharacterVector metrics) {
   int n_sites = species_mat.nrow();
   int n_species = species_mat.ncol();
@@ -679,13 +644,11 @@ List cpp_func_knn_single(NumericMatrix species_mat,
 
   NumericMatrix results(n_metrics, n_sites);
 
-  std::vector<bool> visited(n_sites, false);
   std::vector<double> cumulative(n_species, 0.0);
   LogicalVector species_present(n_species);
   NumericVector abundances(n_species);
 
-  int current = seed;
-  visited[current] = true;
+  int current = order[0];
 
   for (int sp = 0; sp < n_species; sp++) {
     cumulative[sp] += species_mat(current, sp);
@@ -707,17 +670,7 @@ List cpp_func_knn_single(NumericMatrix species_mat,
   }
 
   for (int step = 1; step < n_sites; step++) {
-    double min_dist = R_PosInf;
-    int next = -1;
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j] && site_dist_mat(current, j) < min_dist) {
-        min_dist = site_dist_mat(current, j);
-        next = j;
-      }
-    }
-
-    current = next;
-    visited[current] = true;
+    current = order[step];
 
     for (int sp = 0; sp < n_species; sp++) {
       cumulative[sp] += species_mat(current, sp);
@@ -753,13 +706,11 @@ List cpp_func_knn_single(NumericMatrix species_mat,
 }
 
 
-// Worker struct for parallel functional kNN
-// Uses a single packed RMatrix<double> for output to match KnnWorker pattern.
-struct FuncKnnWorker : public Worker {
+// Worker for parallel functional accumulation along supplied site orders.
+struct FuncOrderWorker : public Worker {
   const RMatrix<double> species_mat;
-  const RMatrix<double> site_dist_mat;
   const RMatrix<double> traits;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
   RMatrix<double> results;  // packed: row = s * n_metrics + m
 
   bool do_fdis;
@@ -770,14 +721,12 @@ struct FuncKnnWorker : public Worker {
   int rao_idx;
   int n_metrics;
 
-  FuncKnnWorker(const NumericMatrix& species_mat_,
-                const NumericMatrix& site_dist_mat_,
+  FuncOrderWorker(const NumericMatrix& species_mat_,
                 const NumericMatrix& traits_,
-                const IntegerVector& seeds_,
+                const IntegerMatrix& orders_,
                 const std::vector<std::string>& metric_names_,
                 NumericMatrix& results_)
-    : species_mat(species_mat_), site_dist_mat(site_dist_mat_),
-      traits(traits_), seeds(seeds_), results(results_),
+    : species_mat(species_mat_), traits(traits_), orders(orders_), results(results_),
       do_fdis(false), do_fric(false), do_rao(false),
       fdis_idx(-1), fric_idx(-1), rao_idx(-1),
       n_metrics(metric_names_.size()) {
@@ -792,16 +741,12 @@ struct FuncKnnWorker : public Worker {
     int n_sites = species_mat.nrow();
     int n_species = species_mat.ncol();
     int n_traits = traits.ncol();
-    const double INF = std::numeric_limits<double>::infinity();
-
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::vector<double> cumulative(n_species, 0.0);
       std::vector<bool> species_present(n_species, false);
       std::vector<double> abundances(n_species, 0.0);
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
 
       for (int sp = 0; sp < n_species; sp++) {
         cumulative[sp] += species_mat(current, sp);
@@ -814,17 +759,7 @@ struct FuncKnnWorker : public Worker {
       if (do_rao) results(s * n_metrics + rao_idx, 0) = calc_rao_traits_internal(abundances, n_species, n_traits);
 
       for (int step = 1; step < n_sites; step++) {
-        double min_dist = INF;
-        int next_site = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && site_dist_mat(current, j) < min_dist) {
-            min_dist = site_dist_mat(current, j);
-            next_site = j;
-          }
-        }
-
-        current = next_site;
-        visited[current] = true;
+        current = orders(s, step);
 
         for (int sp = 0; sp < n_species; sp++) {
           cumulative[sp] += species_mat(current, sp);
@@ -930,17 +865,15 @@ private:
 
 
 // [[Rcpp::export]]
-List cpp_func_knn_parallel(NumericMatrix species_mat,
-                           NumericMatrix site_dist_mat,
+List cpp_func_order_parallel(NumericMatrix species_mat,
+                           IntegerMatrix orders,
                            NumericMatrix traits,
-                           int n_seeds,
                            CharacterVector metrics,
                            int n_cores = 1,
                            bool progress = false) {
   int n_sites = species_mat.nrow();
   int n_metrics = metrics.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   std::vector<std::string> metric_names(n_metrics);
   for (int m = 0; m < n_metrics; m++) {
@@ -951,13 +884,14 @@ List cpp_func_knn_parallel(NumericMatrix species_mat,
   NumericMatrix packed_results(n_seeds * n_metrics, n_sites);
 
   if (n_cores > 1) {
-    FuncKnnWorker worker(species_mat, site_dist_mat, traits,
-                         seeds, metric_names, packed_results);
+    FuncOrderWorker worker(species_mat, traits,
+                         orders, metric_names, packed_results);
     parallelFor(0, n_seeds, worker, 1, n_cores);
   } else {
     for (int s = 0; s < n_seeds; s++) {
-      List single = cpp_func_knn_single(species_mat, site_dist_mat,
-                                         traits, seeds[s], metrics);
+      IntegerVector order = orders(s, _);
+      List single = cpp_func_order_single(species_mat, order,
+                                         traits, metrics);
       for (int m = 0; m < n_metrics; m++) {
         NumericVector curve = single[m];
         for (int st = 0; st < n_sites; st++) {

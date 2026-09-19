@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' ?>
-<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='360.00pt' viewBox='0 0 504.00 360.00'>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00'>
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
@@ -28,51 +28,51 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
-  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA='>
-    <rect x='0.00' y='0.00' width='504.00' height='360.00' />
+  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='504.00' height='360.00' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
-  <clipPath id='cpMzguNjV8NDk4LjAyfDQyLjM4fDMyNS42NQ=='>
-    <rect x='38.65' y='42.38' width='459.38' height='283.28' />
+  <clipPath id='cpNjEuMjR8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
+    <rect x='61.24' y='67.13' width='397.30' height='238.48' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpMzguNjV8NDk4LjAyfDQyLjM4fDMyNS42NQ==)'>
-<rect x='38.65' y='42.38' width='459.38' height='283.28' style='stroke-width: 1.16; stroke: none;' /> fill: #F5F6F8;' />
-<polygon points='59.53,55.25 105.93,147.38 152.33,185.95 198.73,204.31 245.13,250.63 291.53,267.18 337.94,271.96 384.34,283.54 430.74,289.45 477.14,288.16 477.14,310.16 430.74,312.78 384.34,311.53 337.94,312.05 291.53,308.39 245.13,303.47 198.73,278.92 152.33,275.16 105.93,258.45 59.53,180.85 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
-<polyline points='59.53,55.25 105.93,147.38 152.33,185.95 198.73,204.31 245.13,250.63 291.53,267.18 337.94,271.96 384.34,283.54 430.74,289.45 477.14,288.16 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='477.14,310.16 430.74,312.78 384.34,311.53 337.94,312.05 291.53,308.39 245.13,303.47 198.73,278.92 152.33,275.16 105.93,258.45 59.53,180.85 ' style='stroke-width: 1.16; stroke: none; stroke-linecap: butt;' />
-<polyline points='59.53,118.05 105.93,202.92 152.33,230.56 198.73,241.61 245.13,277.05 291.53,287.78 337.94,292.01 384.34,297.54 430.74,301.11 477.14,299.16 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
-<circle cx='59.53' cy='118.05' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='105.93' cy='202.92' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='152.33' cy='230.56' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='198.73' cy='241.61' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='245.13' cy='277.05' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='291.53' cy='287.78' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='337.94' cy='292.01' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='384.34' cy='297.54' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='430.74' cy='301.11' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
-<circle cx='477.14' cy='299.16' r='2.52' style='stroke-width: 0.77; stroke: #4CAF50; fill: #4CAF50;' />
+<g clip-path='url(#cpNjEuMjR8NDU4LjU0fDY3LjEzfDMwNS42MQ==)'>
+<rect x='61.24' y='67.13' width='397.30' height='238.48' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+<polygon points='79.29,77.97 119.43,155.53 159.56,188.00 199.69,203.45 239.82,242.45 279.95,256.38 320.08,260.41 360.21,270.15 400.35,275.13 440.48,274.05 440.48,292.56 400.35,294.77 360.21,293.72 320.08,294.16 279.95,291.07 239.82,286.93 199.69,266.26 159.56,263.10 119.43,249.03 79.29,183.71 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
+<polyline points='79.29,77.97 119.43,155.53 159.56,188.00 199.69,203.45 239.82,242.45 279.95,256.38 320.08,260.41 360.21,270.15 400.35,275.13 440.48,274.05 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
+<polyline points='440.48,292.56 400.35,294.77 360.21,293.72 320.08,294.16 279.95,291.07 239.82,286.93 199.69,266.26 159.56,263.10 119.43,249.03 79.29,183.71 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
+<polyline points='79.29,130.84 119.43,202.28 159.56,225.55 199.69,234.85 239.82,264.69 279.95,273.72 320.08,277.28 360.21,281.94 400.35,284.95 440.48,283.30 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
+<circle cx='79.29' cy='130.84' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='119.43' cy='202.28' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='159.56' cy='225.55' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='199.69' cy='234.85' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='239.82' cy='264.69' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='279.95' cy='273.72' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='320.08' cy='277.28' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='360.21' cy='281.94' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='400.35' cy='284.95' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='440.48' cy='283.30' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
 </g>
-<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwzNjAuMDA=)'>
-<text x='33.27' y='310.07' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
-<text x='33.27' y='228.79' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>5</text>
-<text x='33.27' y='147.50' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
-<text x='33.27' y='66.21' text-anchor='end' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>15</text>
-<text x='129.13' y='337.90' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2.5</text>
-<text x='245.13' y='337.90' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>5.0</text>
-<text x='361.14' y='337.90' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>7.5</text>
-<text x='477.14' y='337.90' text-anchor='middle' style='font-size: 0.96em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10.0</text>
-<text x='268.33' y='351.50' text-anchor='middle' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Order (k)</text>
-<text transform='translate(14.57,188.76) rotate(-90)' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>ζ</text>
-<text transform='translate(17.10,183.47) rotate(-90)' style='font-size: 0.84em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>k</text>
-<text x='38.65' y='33.88' style='font-size: 1.2em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60 sites, knn method</text>
-<text x='38.65' y='16.28' style='font-size: 1.44em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Zeta Diversity Decline</text>
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<text x='52.72' y='295.04' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='52.72' y='226.60' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>5</text>
+<text x='52.72' y='158.17' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
+<text x='52.72' y='89.74' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>15</text>
+<text x='139.49' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2.5</text>
+<text x='239.82' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>5.0</text>
+<text x='340.15' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>7.5</text>
+<text x='440.48' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10.0</text>
+<text x='259.89' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Order (k)</text>
+<text transform='translate(23.07,193.88) rotate(-90)' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>ζ</text>
+<text transform='translate(27.07,185.50) rotate(-90)' style='font-size: 1.33em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>k</text>
+<text x='61.24' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60 sites, knn method</text>
+<text x='61.24' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Zeta Diversity Decline</text>
 </g>
 </g>
 </svg>

@@ -17,6 +17,9 @@
 #' @param n_cores Integer. Number of cores. Default `NULL` uses all minus one.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed for reproducibility.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_hill_coverage` containing:
 #'   \item{hills}{Named list of n_seeds x n_sites matrices (one per q)}
@@ -76,8 +79,12 @@ spaccHillCoverage <- function(x,
                                parallel = TRUE,
                                n_cores = NULL,
                                progress = TRUE,
-                               seed = NULL) {
+                               seed = NULL,
+                               method = c("knn", "nn_walk"),
+                               focal_points = NULL,
+                               focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   if (!is.null(seed)) set.seed(seed)
   n_cores <- resolve_cores(n_cores, parallel)
@@ -115,7 +122,11 @@ spaccHillCoverage <- function(x,
   if (progress) cli_info(sprintf("Computing Hill numbers + coverage (q = %s, %d seeds)",
                                   paste(q, collapse = ", "), n_seeds))
 
-  result <- cpp_knn_hill_coverage_parallel(x, dist_mat, n_seeds, q, n_cores, progress)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
+  result <- cpp_order_hill_coverage_parallel(x, ordering$orders - 1L, q,
+                                             n_cores, progress)
 
   if (progress) cli_success("Done")
 
@@ -151,6 +162,8 @@ spaccHillCoverage <- function(x,
       n_sites = n_sites,
       n_species = n_species,
       distance = distance,
+      method = method,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_hill_coverage"

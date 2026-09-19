@@ -198,8 +198,6 @@ export(distanceDecay)
 export(distances)
 export(diversityPartition)
 export(diversityProfile)
-export(diversityProfileFunc)
-export(diversityProfilePhylo)
 export(evenness)
 export(extrapolate)
 export(extrapolateArea)
@@ -216,8 +214,6 @@ export(sesars)
 export(sfar)
 export(spacc)
 export(spaccBeta)
-export(spaccBetaFunc)
-export(spaccBetaPhylo)
 export(spaccCoverage)
 export(spaccDiversity)
 export(spaccEndemism)
@@ -232,24 +228,25 @@ export(spatialEigenvectors)
 export(spatialPartition)
 export(spatialRarefaction)
 export(subsample)
-export(wavefront)
 export(zetaDiversity)
 importFrom(Rcpp,sourceCpp)
 importFrom(RcppParallel,RcppParallelLibs)
 importFrom(parallel,detectCores)
-importFrom(stats,AIC)
-importFrom(stats,BIC)
-importFrom(stats,anova)
-importFrom(stats,approx)
-importFrom(stats,coef)
-importFrom(stats,confint)
-importFrom(stats,dist)
-importFrom(stats,lm)
-importFrom(stats,median)
-importFrom(stats,nls)
-importFrom(stats,nls.control)
-importFrom(stats,predict)
-importFrom(stats,quantile)
-importFrom(stats,runif)
-importFrom(stats,sd)
+importFrom(stats,
+  AIC,
+  BIC,
+  anova,
+  approx,
+  coef,
+  confint,
+  dist,
+  lm,
+  median,
+  nls,
+  nls.control,
+  predict,
+  quantile,
+  runif,
+  sd
+)
 useDynLib(spacc, .registration = TRUE)

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,27 +77,29 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.0" id="spacc-090">spacc 0.9.0<a class="anchor" aria-label="anchor" href="#spacc-090"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.10.2" id="spacc-0102">spacc 0.10.2<a class="anchor" aria-label="anchor" href="#spacc-0102"></a></h2>
 <div class="section level3">
-<h3 id="api-changes-0-9-0">API Changes<a class="anchor" aria-label="anchor" href="#api-changes-0-9-0"></a></h3>
-<ul><li><p><code><a href="../reference/spaccWavefront.html">wavefront()</a></code> was renamed <code><a href="../reference/spaccWavefront.html">spaccWavefront()</a></code> so that every spatial-accumulation curve front door shares the <code>spacc</code> prefix. The old name is a deprecated thin wrapper and still works. The distance- and area-relationship functions keep their established names: <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code>, <code><a href="../reference/betaDecay.html">betaDecay()</a></code>, <code><a href="../reference/zetaDiversity.html">zetaDiversity()</a></code>, and <code><a href="../reference/dar.html">dar()</a></code>.</p></li>
-<li><p><code><a href="../reference/spaccBeta.html">spaccBeta()</a></code> gains <code>traits</code> and <code>tree</code> arguments and now computes taxonomic, functional, or phylogenetic beta diversity from a single front door. Supplying <code>traits</code> gives the trait-weighted Baselga partition; supplying <code>tree</code> gives the branch-length-weighted (PhyloSor) partition. <code><a href="../reference/spaccBeta.html">spaccBetaFunc()</a></code> and <code><a href="../reference/spaccBeta.html">spaccBetaPhylo()</a></code> are deprecated thin wrappers and still work.</p></li>
-<li><p><code><a href="../reference/diversityProfile.html">diversityProfile()</a></code> gains <code>traits</code> and <code>tree</code> arguments and now computes taxonomic, functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill profiles from a single front door. <code><a href="../reference/diversityProfile.html">diversityProfileFunc()</a></code> and <code><a href="../reference/diversityProfile.html">diversityProfilePhylo()</a></code> are deprecated thin wrappers and still work.</p></li>
+<h3 id="api-changes-0-10-2">API Changes<a class="anchor" aria-label="anchor" href="#api-changes-0-10-2"></a></h3>
+<ul><li><p><code>method = "knn"</code> now implements fixed-focus spatially constrained rarefaction: continuous focal points are sampled from the spatial domain and all sites are ranked by distance from each focus. Supply <code>focal_domain</code> for a known polygonal study boundary or <code>focal_points</code> for exact focal coordinates. The former greedy current-site traversal is now <code>method = "nn_walk"</code>. <code>method = "radius"</code> was removed because its observed-site fixed-focus ordering duplicated the corrected <code>knn</code> concept. <code><a href="../reference/spaccWavefront.html">spaccWavefront()</a></code> remains the radius-indexed accumulation front door.</p></li>
+<li><p>Diversity, coverage, beta, phylogenetic, functional, endemism, metric, and diversity-area calculations now consume shared site-order matrices. This keeps the selected spatial rule identical across downstream quantities.</p></li>
+<li><p>Spatial-accumulation curves use the <code><a href="../reference/spaccWavefront.html">spaccWavefront()</a></code> front door. The distance- and area-relationship functions keep their established names: <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code>, <code><a href="../reference/betaDecay.html">betaDecay()</a></code>, <code><a href="../reference/zetaDiversity.html">zetaDiversity()</a></code>, and <code><a href="../reference/dar.html">dar()</a></code>.</p></li>
+<li><p><code><a href="../reference/spaccBeta.html">spaccBeta()</a></code> gains <code>traits</code> and <code>tree</code> arguments and computes taxonomic, functional, or phylogenetic beta diversity from a single front door. Supplying <code>traits</code> gives the trait-weighted Baselga partition; supplying <code>tree</code> gives the branch-length-weighted (PhyloSor) partition.</p></li>
+<li><p><code><a href="../reference/diversityProfile.html">diversityProfile()</a></code> gains <code>traits</code> and <code>tree</code> arguments and computes taxonomic, functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill profiles from a single front door.</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="new-features-0-9-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-9-0"></a></h3>
+<h3 id="new-features-0-10-2">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-10-2"></a></h3>
 <ul><li><p><code><a href="../reference/extrapolateArea.html">extrapolateArea()</a></code> extrapolates richness to a spatial extent larger than the one sampled, using the total-species (T-S) curve of Ugland, Gray &amp; Ellingsen (2003): sites are partitioned into spatial subareas, the expected total richness of random subarea combinations is plotted against their convex-hull area, and an asymptotic model is fitted and extended to a target area with a median-bias-corrected site-bootstrap interval. New <code>spacc_area</code> class with <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>/<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>/<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>/<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>/<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> methods.</p></li>
 <li><p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> gains a calibrated <code>interval = "bootstrap"</code> (now the default) that refits the chosen model across resampled seed curves and returns percentile bounds, replacing the over-confident <code>nls</code> profile interval as the default. <code>predict(fit, interval = "bootstrap")</code> returns a prediction band, and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> draws it. <code>interval = "profile"</code> recovers the old behaviour.</p></li>
 <li><p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> now reports goodness of fit (residual RMSE over the observed range), an extrapolation-range note, and the nonparametric <code><a href="../reference/chao2.html">chao2()</a></code>/<code><a href="../reference/iChao2.html">iChao2()</a></code> estimates alongside the asymptote. It warns when the asymptote exceeds the observed richness by more than <code>warn_ratio</code> (default 2), when it disagrees with <code><a href="../reference/chao2.html">chao2()</a></code> by more than 50%, and when <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> is evaluated beyond ~2.5x the sampled effort.</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-0-9-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-0"></a></h3>
+<h3 id="bug-fixes-0-10-2">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-10-2"></a></h3>
 <ul><li><p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> on a <code>spacc_endemism</code> object no longer lists “Endemic species” twice in the legend. The confidence-band fill was drawn as its own guide because the ribbon covered only the endemism series; that fill guide is now suppressed so a single line-colour legend remains.</p></li>
 <li><p>Removed a stray blank line beneath the y-axis title in <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> for <code>spacc_beta</code> objects.</p></li>
 <li><p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> asymptote confidence intervals are no longer over-confident. The previous <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> used an <code>nls</code> profile interval on the (ultra-smooth) mean curve, ignoring across-seed variability; it could exclude the truth in every replicate of a recovery simulation. <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> now returns the calibrated bootstrap interval by default (<code>method = "profile"</code> is still available). The documentation notes that the parametric asymptote can be biased high on clustered or under-sampled data and points to the nonparametric estimators for calibrated total-richness intervals (<a href="https://github.com/gcol33/spacc/issues/1" class="external-link">#1</a>, <a href="https://github.com/gcol33/spacc/issues/3" class="external-link">#3</a>, <a href="https://github.com/gcol33/spacc/issues/5" class="external-link">#5</a>).</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="testing-0-9-0">Testing<a class="anchor" aria-label="anchor" href="#testing-0-9-0"></a></h3>
+<h3 id="testing-0-10-2">Testing<a class="anchor" aria-label="anchor" href="#testing-0-10-2"></a></h3>
 <ul><li>Added parameter-recovery and CI-coverage tests on data simulated with a known truth: richness estimators recover the true pool size (jackknife intervals at ~nominal coverage; chao/iChao near-unbiased), <code><a href="../reference/extrapolate.html">extrapolate()</a></code> recovers truth on near-saturation data, <code><a href="../reference/extrapolateArea.html">extrapolateArea()</a></code> interpolates the observed area, and the Hill, phylogenetic, functional, and coverage accumulation endpoints match their defining formulae (<a href="https://github.com/gcol33/spacc/issues/2" class="external-link">#2</a>).</li>
 </ul></div>
 </div>
@@ -105,7 +107,7 @@
 <h2 class="pkg-version" data-toc-text="0.8.3" id="spacc-083">spacc 0.8.3<a class="anchor" aria-label="anchor" href="#spacc-083"></a></h2><p class="text-muted">CRAN release: 2026-06-20</p>
 <div class="section level3">
 <h3 id="documentation-0-8-3">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-8-3"></a></h3>
-<ul><li>Expanded all seven vignettes from brief overviews into full worked guides (quickstart, diversity, rarefaction/standardization, community assembly, spatial analysis, extrapolation, richness estimation). Each now covers the underlying model, simulation with known ground truth, fitting, uncertainty, prediction/comparison, and practical guidance, and exercises the full exported API (including <code><a href="../reference/evenness.html">evenness()</a></code>, <code><a href="../reference/diversityProfile.html">diversityProfile()</a></code>, <code><a href="../reference/spatialEigenvectors.html">spatialEigenvectors()</a></code>/<code><a href="../reference/spatialPartition.html">spatialPartition()</a></code>, <code><a href="../reference/spaccWavefront.html">wavefront()</a></code>, and <code><a href="../reference/compareModels.html">compareModels()</a></code>).</li>
+<ul><li>Expanded all seven vignettes from brief overviews into full worked guides (quickstart, diversity, rarefaction/standardization, community assembly, spatial analysis, extrapolation, richness estimation). Each now covers the underlying model, simulation with known ground truth, fitting, uncertainty, prediction/comparison, and practical guidance, and exercises the full exported API (including <code><a href="../reference/evenness.html">evenness()</a></code>, <code><a href="../reference/diversityProfile.html">diversityProfile()</a></code>, <code><a href="../reference/spatialEigenvectors.html">spatialEigenvectors()</a></code>/<code><a href="../reference/spatialPartition.html">spatialPartition()</a></code>, <code>wavefront()</code>, and <code><a href="../reference/compareModels.html">compareModels()</a></code>).</li>
 </ul></div>
 </div>
     <div class="section level2">
@@ -139,7 +141,7 @@
 <div class="section level4">
 <h4 id="custom-diversity-metrics-v080-0-8-0">Custom Diversity Metrics (v0.8.0)<a class="anchor" aria-label="anchor" href="#custom-diversity-metrics-v080-0-8-0"></a></h4>
 <ul><li>
-<code><a href="../reference/spaccDiversity.html">spaccDiversity()</a></code> accumulates any user-supplied index along a spatial ordering: at each step the cumulative community is passed to a function that returns a scalar. Supports <code>knn</code>, <code>kncn</code>, <code>random</code>, <code>radius</code>, and <code>collector</code> orderings, abundance or incidence input, and extra arguments.</li>
+<code><a href="../reference/spaccDiversity.html">spaccDiversity()</a></code> accumulates any user-supplied index along a spatial ordering: at each step the cumulative community is passed to a function that returns a scalar. Supports <code>knn</code>, <code>kncn</code>, <code>nn_walk</code>, <code>random</code>, and <code>collector</code> orderings, abundance or incidence input, and extra arguments.</li>
 <li>Returns a <code>spacc_diversity</code> object inheriting <code>spacc</code>, so the standard <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>, and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> methods apply.</li>
 </ul></div>
 <div class="section level4">
@@ -243,7 +245,7 @@
 <h3 id="internal-changes-0-7-0">Internal Changes<a class="anchor" aria-label="anchor" href="#internal-changes-0-7-0"></a></h3>
 <ul><li>New C++ implementations: hill.cpp, beta.cpp, coverage.cpp, phylo.cpp, metrics.cpp</li>
 <li>
-<code>cpp_knn_parallel_seeds()</code> - kNN with explicit seed indices</li>
+<code>cpp_knn_parallel_seeds()</code> - legacy nearest-neighbour walk with explicit seed indices</li>
 <li>Added sf, areaOfEffect, ape, iNEXT, betapart to Suggests</li>
 </ul><hr></div>
 </div>
@@ -275,7 +277,7 @@
 <div class="section level4">
 <h4 id="additional-accumulation-methods-0-1-0">Additional Accumulation Methods<a class="anchor" aria-label="anchor" href="#additional-accumulation-methods-0-1-0"></a></h4>
 <ul><li>
-<code><a href="../reference/spaccWavefront.html">wavefront()</a></code> - Expanding radius accumulation</li>
+<code>wavefront()</code> - Expanding radius accumulation</li>
 <li>
 <code><a href="../reference/distanceDecay.html">distanceDecay()</a></code> - Distance-decay relationships</li>
 </ul></div>

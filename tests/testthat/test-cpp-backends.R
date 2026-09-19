@@ -100,7 +100,7 @@ test_that("spacc with kdtree backend works", {
   coords <- data.frame(x = runif(30), y = runif(30))
   species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   backend = "kdtree",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -116,7 +116,7 @@ test_that("spacc with exact backend works", {
   coords <- data.frame(x = runif(30), y = runif(30))
   species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   backend = "exact",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -132,7 +132,7 @@ test_that("spacc with auto backend works", {
   coords <- data.frame(x = runif(30), y = runif(30))
   species <- matrix(rbinom(30 * 15, 1, 0.3), nrow = 30)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   backend = "auto",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -148,10 +148,10 @@ test_that("exact and kdtree backends give same results", {
   coords <- data.frame(x = runif(25), y = runif(25))
   species <- matrix(rbinom(25 * 12, 1, 0.3), nrow = 25)
 
-  result_exact <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result_exact <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                         backend = "exact",
                         parallel = FALSE, progress = FALSE, seed = 1)
-  result_tree <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result_tree <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                        backend = "kdtree",
                        parallel = FALSE, progress = FALSE, seed = 1)
 

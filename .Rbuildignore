@@ -8,6 +8,8 @@
 ^\.claude$
 ^cran-comments\.md$
 ^LICENSE\.md$
+^CONTRIBUTING\.md$
+^CODE_OF_CONDUCT\.md$
 ^README\.Rmd$
 ^data-raw$
 ^\.lintr$

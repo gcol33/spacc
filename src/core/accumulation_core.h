@@ -39,7 +39,7 @@ inline void accumulate_abundances(
   }
 }
 
-// Run kNN accumulation from a single seed
+// Run a nearest-neighbour walk from a single seed
 // Returns curve of cumulative species richness at each step
 inline Curve knn_accumulate_single(
     const SiteSpeciesMatrix& species_pa,
@@ -153,7 +153,7 @@ inline Curve kncn_accumulate_single(
   return curve;
 }
 
-// Run multiple kNN curves and return matrix
+// Run multiple nearest-neighbour walks and return a matrix
 inline CurveMatrix knn_accumulate_multi(
     const SiteSpeciesMatrix& species_pa,
     const DistanceMatrix& dist_mat,

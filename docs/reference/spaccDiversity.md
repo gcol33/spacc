@@ -14,12 +14,14 @@ spaccDiversity(
   coords,
   fun,
   ...,
-  method = c("knn", "kncn", "random", "radius", "collector"),
+  method = c("knn", "kncn", "nn_walk", "random", "collector"),
   incidence = FALSE,
   n_seeds = 50L,
   distance = c("euclidean", "haversine"),
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 ```
 
@@ -49,7 +51,7 @@ spaccDiversity(
 - method:
 
   Character. Spatial ordering of sites: `"knn"` (default), `"kncn"`,
-  `"random"`, `"radius"`, or `"collector"`.
+  `"nn_walk"`, `"random"`, or `"collector"`.
 
 - incidence:
 
@@ -73,6 +75,16 @@ spaccDiversity(
 
   Integer. Random seed for reproducibility.
 
+- focal_points:
+
+  Optional focal points passed to the canonical `knn` ordering. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
+
+- focal_domain:
+
+  Optional polygonal focal domain passed to
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
+
 ## Value
 
 An object of class `spacc_diversity` that inherits from `spacc`, so the
@@ -86,10 +98,10 @@ accumulation.
 ## Details
 
 The site ordering reuses the same spatial traversals as the built-in
-methods (nearest-neighbour, nearest-centroid, random, distance-rank, or
-data order), then evaluates `fun` on the accumulating community. Because
-the index is an arbitrary R function, this trades the speed of the
-compiled metrics for full flexibility.
+methods (fixed-focus, nearest-neighbour walk, nearest-centroid, random,
+or data order), then evaluates `fun` on the accumulating community.
+Because the index is an arbitrary R function, this trades the speed of
+the compiled metrics for full flexibility.
 
 ## See also
 

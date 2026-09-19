@@ -441,6 +441,7 @@ ggplot(conv, aes(sites)) +
   geom_hline(yintercept = S_true, linetype = "dashed") +
   labs(x = "Sampling units", y = "Richness",
        title = "Chao1 estimate (green) and observed count (grey) vs effort") +
+  theme_minimal(base_size = 17) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 ```

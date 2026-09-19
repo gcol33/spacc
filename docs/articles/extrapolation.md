@@ -228,8 +228,6 @@ fit:
 
 models <- c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic")
 fits <- lapply(models, function(m) extrapolate(sac, model = m, interval = "none"))
-#> Warning: Model fitting failed: Missing value or an infinity produced when
-#> evaluating the model
 names(fits) <- models
 
 # Compare AIC
@@ -239,11 +237,11 @@ data.frame(
   AIC = sapply(fits, function(f) round(f$aic, 1))
 )
 #>                             model asymptote   AIC
-#> michaelis-menten michaelis-menten      51.8 271.8
-#> lomolino                 lomolino      51.8 273.8
-#> asymptotic             asymptotic      49.6 390.8
-#> weibull                   weibull        NA    NA
-#> logistic                 logistic      49.9 157.3
+#> michaelis-menten michaelis-menten      51.3 222.9
+#> lomolino                 lomolino      51.8 215.1
+#> asymptotic             asymptotic      49.4 411.8
+#> weibull                   weibull      50.3  95.8
+#> logistic                 logistic      49.9 185.2
 ```
 
 The asymptote estimates spread across models even when all fit the same
@@ -287,9 +285,9 @@ fit_evt
 #> Extrapolation: evt 
 #> -------------------------------------- 
 #> Estimated asymptote: 50.0 species
-#> 95% CI (bootstrap):       49.9 - 51.2
+#> 95% CI (bootstrap):       49.9 - 52.7
 #> Observed:            50.0 species (100% of estimated)
-#> AIC: 50.9   RMSE: 0.29 (0.6% of mean)
+#> AIC: -193.2   RMSE: 0.09 (0.2% of mean)
 #> Reliable to ~250 sites (2.5x sampled effort of 100)
 #> -------------------------------------- 
 #> Nonparametric:  chao2 = 50.0   iChao2 = 50.0
@@ -398,7 +396,7 @@ estimates, and an effort range within which predictions are reasonable:
 best$gof$rmse
 #> NULL
 best
-#> Extrapolation: logistic 
+#> Extrapolation: weibull 
 #> -------------------------------------- 
 #> Model fitting failed
 ```
@@ -460,7 +458,7 @@ sapply(c(5, 20, 50), function(k) {
   s <- spacc(pa, coords, n_seeds = k, progress = FALSE)
   round(extrapolate(s, model = "michaelis-menten")$asymptote, 1)
 })
-#> [1] 51.6 51.2 51.1
+#> [1] 51.6 51.1 50.9
 ```
 
 The estimate stabilises as seeds accumulate; the gain from 20 to 50 is
@@ -489,9 +487,9 @@ ext
 #> Observed richness: 50.0
 #> 
 #> Extrapolated richness:
-#>   C=95%: 33.5 (+/- 6.9)
-#>   C=99%: 44.1 (+/- 2.7)
-#>   C=100%: 48.9 (+/- 1.8)
+#>   C=95%: 34.9 (+/- 7.1)
+#>   C=99%: 42.1 (+/- 4.5)
+#>   C=100%: 49.5 (+/- 0.5)
 ```
 
 Targets below the observed coverage are interpolated; targets above it

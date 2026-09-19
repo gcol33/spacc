@@ -54,10 +54,9 @@ double calc_chiu_coverage(NumericVector abundances,
 
 // coverage_type: 0 = Chao-Jost (individual-based), 1 = Chiu (sample-based)
 // [[Rcpp::export]]
-List cpp_knn_coverage_single(IntegerMatrix species_mat,
-                              NumericMatrix dist_mat,
-                              int seed,
-                              int coverage_type = 0) {
+List cpp_order_coverage_single(IntegerMatrix species_mat,
+                               IntegerVector order,
+                               int coverage_type = 0) {
   int n_sites = species_mat.nrow();
   int n_species = species_mat.ncol();
 
@@ -65,12 +64,10 @@ List cpp_knn_coverage_single(IntegerMatrix species_mat,
   IntegerVector individuals(n_sites);
   NumericVector coverage(n_sites);
 
-  std::vector<bool> visited(n_sites, false);
   std::vector<int> cumulative(n_species, 0);
   std::vector<int> incidence(n_species, 0);  // per-species site count
 
-  int current = seed;
-  visited[current] = true;
+  int current = order[0];
   int T_accum = 1;  // number of accumulated sites
 
   // Add first site
@@ -92,18 +89,7 @@ List cpp_knn_coverage_single(IntegerMatrix species_mat,
   }
 
   for (int step = 1; step < n_sites; step++) {
-    // Find nearest unvisited
-    double min_dist = R_PosInf;
-    int next = -1;
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j] && dist_mat(current, j) < min_dist) {
-        min_dist = dist_mat(current, j);
-        next = j;
-      }
-    }
-
-    current = next;
-    visited[current] = true;
+    current = order[step];
     T_accum++;
 
     // Accumulate
@@ -133,21 +119,19 @@ List cpp_knn_coverage_single(IntegerMatrix species_mat,
 
 
 // Worker for parallel coverage accumulation
-struct CoverageKnnWorker : public Worker {
+struct CoverageOrderWorker : public Worker {
   const RMatrix<int> species_mat;
-  const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
 
   RMatrix<int> richness;
   RMatrix<int> individuals;
   RMatrix<double> coverage;
   int coverage_type;  // 0 = Chao-Jost, 1 = Chiu
 
-  CoverageKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                    const IntegerVector& s,
+  CoverageOrderWorker(const IntegerMatrix& sp, const IntegerMatrix& ord,
                     IntegerMatrix& r, IntegerMatrix& ind, NumericMatrix& c,
                     int cov_type = 0)
-    : species_mat(sp), dist_mat(dm), seeds(s),
+    : species_mat(sp), orders(ord),
       richness(r), individuals(ind), coverage(c),
       coverage_type(cov_type) {}
 
@@ -156,12 +140,10 @@ struct CoverageKnnWorker : public Worker {
     int n_species = species_mat.ncol();
 
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::vector<int> cumulative(n_species, 0);
       std::vector<int> incidence(n_species, 0);
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
       int T_accum = 1;
 
       int total_ind = 0;
@@ -182,17 +164,7 @@ struct CoverageKnnWorker : public Worker {
       }
 
       for (int step = 1; step < n_sites; step++) {
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        current = next;
-        visited[current] = true;
+        current = orders(s, step);
         T_accum++;
 
         total_sp = 0;
@@ -218,29 +190,27 @@ struct CoverageKnnWorker : public Worker {
 
 // coverage_type: 0 = Chao-Jost (individual-based), 1 = Chiu (sample-based)
 // [[Rcpp::export]]
-List cpp_knn_coverage_parallel(IntegerMatrix species_mat,
-                                NumericMatrix dist_mat,
-                                int n_seeds,
-                                int n_cores = 1,
-                                bool progress = false,
-                                int coverage_type = 0) {
+List cpp_order_coverage_parallel(IntegerMatrix species_mat,
+                                 IntegerMatrix orders,
+                                 int n_cores = 1,
+                                 bool progress = false,
+                                 int coverage_type = 0) {
   int n_sites = species_mat.nrow();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   IntegerMatrix richness(n_seeds, n_sites);
   IntegerMatrix individuals(n_seeds, n_sites);
   NumericMatrix coverage(n_seeds, n_sites);
 
   if (n_cores > 1) {
-    CoverageKnnWorker worker(species_mat, dist_mat, seeds,
+    CoverageOrderWorker worker(species_mat, orders,
                              richness, individuals, coverage,
                              coverage_type);
     parallelFor(0, n_seeds, worker);
   } else {
     for (int s = 0; s < n_seeds; s++) {
-      List single = cpp_knn_coverage_single(species_mat, dist_mat, seeds[s],
-                                            coverage_type);
+      IntegerVector order = orders(s, _);
+      List single = cpp_order_coverage_single(species_mat, order, coverage_type);
       IntegerVector r = single["richness"];
       IntegerVector ind = single["individuals"];
       NumericVector c = single["coverage"];

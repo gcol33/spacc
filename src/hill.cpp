@@ -27,20 +27,17 @@ inline double calc_hill_internal(const std::vector<double>& abundances, double q
 
 
 // [[Rcpp::export]]
-NumericMatrix cpp_knn_hill_single(IntegerMatrix species_mat,
-                                   NumericMatrix dist_mat,
-                                   int seed,
-                                   NumericVector q_values) {
+NumericMatrix cpp_order_hill_single(IntegerMatrix species_mat,
+                                    IntegerVector order,
+                                    NumericVector q_values) {
   int n_sites = species_mat.nrow();
   int n_species = species_mat.ncol();
   int n_q = q_values.size();
 
   NumericMatrix curves(n_q, n_sites);
-  std::vector<bool> visited(n_sites, false);
   std::vector<double> cumulative(n_species, 0.0);
 
-  int current = seed;
-  visited[current] = true;
+  int current = order[0];
 
   // Add first site abundances
   for (int sp = 0; sp < n_species; sp++) {
@@ -53,18 +50,7 @@ NumericMatrix cpp_knn_hill_single(IntegerMatrix species_mat,
   }
 
   for (int step = 1; step < n_sites; step++) {
-    // Find nearest unvisited
-    double min_dist = R_PosInf;
-    int next = -1;
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j] && dist_mat(current, j) < min_dist) {
-        min_dist = dist_mat(current, j);
-        next = j;
-      }
-    }
-
-    current = next;
-    visited[current] = true;
+    current = order[step];
 
     // Accumulate abundances
     for (int sp = 0; sp < n_species; sp++) {
@@ -82,30 +68,27 @@ NumericMatrix cpp_knn_hill_single(IntegerMatrix species_mat,
 
 
 // Worker for parallel Hill number accumulation
-struct HillKnnWorker : public Worker {
+struct HillOrderWorker : public Worker {
   const RMatrix<int> species_mat;
-  const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
   const RVector<double> q_values;
   RMatrix<double> curves;  // 3D flattened: (n_seeds * n_q) x n_sites
   const int n_q;
   const int n_sites;
 
-  HillKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                const IntegerVector& s, const NumericVector& q,
+  HillOrderWorker(const IntegerMatrix& sp, const IntegerMatrix& ord,
+                const NumericVector& q,
                 NumericMatrix& c, int nq, int ns)
-    : species_mat(sp), dist_mat(dm), seeds(s), q_values(q),
+    : species_mat(sp), orders(ord), q_values(q),
       curves(c), n_q(nq), n_sites(ns) {}
 
   void operator()(std::size_t begin, std::size_t end) {
     int n_species = species_mat.ncol();
 
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::vector<double> cumulative(n_species, 0.0);
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
 
       for (int sp = 0; sp < n_species; sp++) {
         cumulative[sp] += species_mat(current, sp);
@@ -116,17 +99,7 @@ struct HillKnnWorker : public Worker {
       }
 
       for (int step = 1; step < n_sites; step++) {
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        current = next;
-        visited[current] = true;
+        current = orders(s, step);
 
         for (int sp = 0; sp < n_species; sp++) {
           cumulative[sp] += species_mat(current, sp);
@@ -142,28 +115,26 @@ struct HillKnnWorker : public Worker {
 
 
 // [[Rcpp::export]]
-List cpp_knn_hill_parallel(IntegerMatrix species_mat,
-                           NumericMatrix dist_mat,
-                           int n_seeds,
-                           NumericVector q_values,
-                           int n_cores = 1,
-                           bool progress = false) {
+List cpp_order_hill_parallel(IntegerMatrix species_mat,
+                             IntegerMatrix orders,
+                             NumericVector q_values,
+                             int n_cores = 1,
+                             bool progress = false) {
   int n_sites = species_mat.nrow();
   int n_q = q_values.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   // Flattened output: (n_seeds * n_q) x n_sites
   NumericMatrix curves_flat(n_seeds * n_q, n_sites);
 
   if (n_cores > 1) {
-    HillKnnWorker worker(species_mat, dist_mat, seeds, q_values,
+    HillOrderWorker worker(species_mat, orders, q_values,
                          curves_flat, n_q, n_sites);
     parallelFor(0, n_seeds, worker);
   } else {
     for (int s = 0; s < n_seeds; s++) {
-      NumericMatrix single = cpp_knn_hill_single(species_mat, dist_mat,
-                                                  seeds[s], q_values);
+      IntegerVector order = orders(s, _);
+      NumericMatrix single = cpp_order_hill_single(species_mat, order, q_values);
       for (int qi = 0; qi < n_q; qi++) {
         for (int st = 0; st < n_sites; st++) {
           curves_flat(s * n_q + qi, st) = single(qi, st);
@@ -201,10 +172,9 @@ List cpp_knn_hill_parallel(IntegerMatrix species_mat,
 // ============================================================================
 
 // Worker for parallel Hill beta accumulation
-struct HillBetaKnnWorker : public Worker {
+struct HillBetaOrderWorker : public Worker {
   const RMatrix<int> species_mat;
-  const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
   const RVector<double> q_values;
 
   // Output: flattened (n_seeds * 3 * n_q) x n_sites
@@ -213,17 +183,16 @@ struct HillBetaKnnWorker : public Worker {
   const int n_q;
   const int n_sites;
 
-  HillBetaKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                    const IntegerVector& s, const NumericVector& q,
+  HillBetaOrderWorker(const IntegerMatrix& sp, const IntegerMatrix& ord,
+                    const NumericVector& q,
                     NumericMatrix& c, int nq, int ns)
-    : species_mat(sp), dist_mat(dm), seeds(s), q_values(q),
+    : species_mat(sp), orders(ord), q_values(q),
       curves(c), n_q(nq), n_sites(ns) {}
 
   void operator()(std::size_t begin, std::size_t end) {
     int n_species = species_mat.ncol();
 
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::vector<double> pooled(n_species, 0.0);
 
       // Track per-site Hill numbers for alpha computation
@@ -231,8 +200,7 @@ struct HillBetaKnnWorker : public Worker {
       // For q=1: sum of log(hill_i), for q!=1: sum of hill_i^(1-q)
       std::vector<double> alpha_accum(n_q, 0.0);
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
 
       // Add first site
       std::vector<double> site_abund(n_species, 0.0);
@@ -266,18 +234,7 @@ struct HillBetaKnnWorker : public Worker {
       }
 
       for (int step = 1; step < n_sites; step++) {
-        // Find nearest unvisited
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        current = next;
-        visited[current] = true;
+        current = orders(s, step);
 
         // Compute per-site abundances and accumulate pooled
         std::fill(site_abund.begin(), site_abund.end(), 0.0);
@@ -319,26 +276,24 @@ struct HillBetaKnnWorker : public Worker {
 
 
 // [[Rcpp::export]]
-List cpp_knn_hill_beta_parallel(IntegerMatrix species_mat,
-                                 NumericMatrix dist_mat,
-                                 int n_seeds,
-                                 NumericVector q_values,
-                                 int n_cores = 1,
-                                 bool progress = false) {
+List cpp_order_hill_beta_parallel(IntegerMatrix species_mat,
+                                  IntegerMatrix orders,
+                                  NumericVector q_values,
+                                  int n_cores = 1,
+                                  bool progress = false) {
   int n_sites = species_mat.nrow();
   int n_q = q_values.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   // Flattened: (n_seeds * 3 * n_q) x n_sites
   NumericMatrix curves_flat(n_seeds * 3 * n_q, n_sites);
 
   if (n_cores > 1) {
-    HillBetaKnnWorker worker(species_mat, dist_mat, seeds, q_values,
+    HillBetaOrderWorker worker(species_mat, orders, q_values,
                               curves_flat, n_q, n_sites);
     parallelFor(0, n_seeds, worker);
   } else {
-    HillBetaKnnWorker worker(species_mat, dist_mat, seeds, q_values,
+    HillBetaOrderWorker worker(species_mat, orders, q_values,
                               curves_flat, n_q, n_sites);
     worker(0, n_seeds);
   }

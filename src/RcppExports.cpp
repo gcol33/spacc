@@ -10,33 +10,33 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// cpp_beta_knn_single
-List cpp_beta_knn_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed, bool use_jaccard);
-RcppExport SEXP _spacc_cpp_beta_knn_single(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedSEXP, SEXP use_jaccardSEXP) {
+// cpp_beta_order_single
+List cpp_beta_order_single(IntegerMatrix species_pa, NumericMatrix dist_mat, IntegerVector order, bool use_jaccard);
+RcppExport SEXP _spacc_cpp_beta_order_single(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP orderSEXP, SEXP use_jaccardSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type order(orderSEXP);
     Rcpp::traits::input_parameter< bool >::type use_jaccard(use_jaccardSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_beta_knn_single(species_pa, dist_mat, seed, use_jaccard));
+    rcpp_result_gen = Rcpp::wrap(cpp_beta_order_single(species_pa, dist_mat, order, use_jaccard));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_beta_knn_parallel
-List cpp_beta_knn_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, int n_seeds, bool use_jaccard, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_beta_knn_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP use_jaccardSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_beta_order_parallel
+List cpp_beta_order_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, IntegerMatrix orders, bool use_jaccard, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_beta_order_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP ordersSEXP, SEXP use_jaccardSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< bool >::type use_jaccard(use_jaccardSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_beta_knn_parallel(species_pa, dist_mat, n_seeds, use_jaccard, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_beta_order_parallel(species_pa, dist_mat, orders, use_jaccard, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -64,33 +64,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_coverage_single
-List cpp_knn_coverage_single(IntegerMatrix species_mat, NumericMatrix dist_mat, int seed, int coverage_type);
-RcppExport SEXP _spacc_cpp_knn_coverage_single(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP seedSEXP, SEXP coverage_typeSEXP) {
+// cpp_order_coverage_single
+List cpp_order_coverage_single(IntegerMatrix species_mat, IntegerVector order, int coverage_type);
+RcppExport SEXP _spacc_cpp_order_coverage_single(SEXP species_matSEXP, SEXP orderSEXP, SEXP coverage_typeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type order(orderSEXP);
     Rcpp::traits::input_parameter< int >::type coverage_type(coverage_typeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_coverage_single(species_mat, dist_mat, seed, coverage_type));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_coverage_single(species_mat, order, coverage_type));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_coverage_parallel
-List cpp_knn_coverage_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, int n_cores, bool progress, int coverage_type);
-RcppExport SEXP _spacc_cpp_knn_coverage_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP coverage_typeSEXP) {
+// cpp_order_coverage_parallel
+List cpp_order_coverage_parallel(IntegerMatrix species_mat, IntegerMatrix orders, int n_cores, bool progress, int coverage_type);
+RcppExport SEXP _spacc_cpp_order_coverage_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP coverage_typeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
     Rcpp::traits::input_parameter< int >::type coverage_type(coverage_typeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_coverage_parallel(species_mat, dist_mat, n_seeds, n_cores, progress, coverage_type));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_coverage_parallel(species_mat, orders, n_cores, progress, coverage_type));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -132,65 +130,61 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_hill_single
-NumericMatrix cpp_knn_hill_single(IntegerMatrix species_mat, NumericMatrix dist_mat, int seed, NumericVector q_values);
-RcppExport SEXP _spacc_cpp_knn_hill_single(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP seedSEXP, SEXP q_valuesSEXP) {
+// cpp_order_hill_single
+NumericMatrix cpp_order_hill_single(IntegerMatrix species_mat, IntegerVector order, NumericVector q_values);
+RcppExport SEXP _spacc_cpp_order_hill_single(SEXP species_matSEXP, SEXP orderSEXP, SEXP q_valuesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type order(orderSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_hill_single(species_mat, dist_mat, seed, q_values));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_hill_single(species_mat, order, q_values));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_hill_parallel
-List cpp_knn_hill_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, NumericVector q_values, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_hill_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_order_hill_parallel
+List cpp_order_hill_parallel(IntegerMatrix species_mat, IntegerMatrix orders, NumericVector q_values, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_order_hill_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_hill_parallel(species_mat, dist_mat, n_seeds, q_values, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_hill_parallel(species_mat, orders, q_values, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_hill_beta_parallel
-List cpp_knn_hill_beta_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, NumericVector q_values, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_hill_beta_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_order_hill_beta_parallel
+List cpp_order_hill_beta_parallel(IntegerMatrix species_mat, IntegerMatrix orders, NumericVector q_values, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_order_hill_beta_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_hill_beta_parallel(species_mat, dist_mat, n_seeds, q_values, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_hill_beta_parallel(species_mat, orders, q_values, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_hill_coverage_parallel
-List cpp_knn_hill_coverage_parallel(IntegerMatrix species_mat, NumericMatrix dist_mat, int n_seeds, NumericVector q_values, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_hill_coverage_parallel(SEXP species_matSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_order_hill_coverage_parallel
+List cpp_order_hill_coverage_parallel(IntegerMatrix species_mat, IntegerMatrix orders, NumericVector q_values, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_order_hill_coverage_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_hill_coverage_parallel(species_mat, dist_mat, n_seeds, q_values, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_hill_coverage_parallel(species_mat, orders, q_values, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -256,22 +250,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_single
-IntegerVector cpp_knn_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed);
-RcppExport SEXP _spacc_cpp_knn_single(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedSEXP) {
+// cpp_nn_walk_single
+IntegerVector cpp_nn_walk_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed);
+RcppExport SEXP _spacc_cpp_nn_walk_single(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_single(species_pa, dist_mat, seed));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_single(species_pa, dist_mat, seed));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_parallel
-IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, int n_seeds, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_nn_walk_parallel
+IntegerMatrix cpp_nn_walk_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, int n_seeds, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_nn_walk_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -280,13 +274,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_parallel(species_pa, dist_mat, n_seeds, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_parallel(species_pa, dist_mat, n_seeds, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_parallel_seeds
-IntegerMatrix cpp_knn_parallel_seeds(IntegerMatrix species_pa, NumericMatrix dist_mat, IntegerVector seeds, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_parallel_seeds(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_nn_walk_parallel_seeds
+IntegerMatrix cpp_nn_walk_parallel_seeds(IntegerMatrix species_pa, NumericMatrix dist_mat, IntegerVector seeds, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_nn_walk_parallel_seeds(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -295,13 +289,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type seeds(seedsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_parallel_seeds(species_pa, dist_mat, seeds, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_parallel_seeds(species_pa, dist_mat, seeds, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_kdtree_single
-IntegerVector cpp_knn_kdtree_single(IntegerMatrix species_pa, NumericVector x, NumericVector y, int seed, std::string distance);
-RcppExport SEXP _spacc_cpp_knn_kdtree_single(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedSEXP, SEXP distanceSEXP) {
+// cpp_nn_walk_kdtree_single
+IntegerVector cpp_nn_walk_kdtree_single(IntegerMatrix species_pa, NumericVector x, NumericVector y, int seed, std::string distance);
+RcppExport SEXP _spacc_cpp_nn_walk_kdtree_single(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedSEXP, SEXP distanceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -310,13 +304,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_kdtree_single(species_pa, x, y, seed, distance));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_kdtree_single(species_pa, x, y, seed, distance));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_kdtree_parallel
-IntegerMatrix cpp_knn_kdtree_parallel(IntegerMatrix species_pa, NumericVector x, NumericVector y, int n_seeds, int n_cores, bool progress, std::string distance);
-RcppExport SEXP _spacc_cpp_knn_kdtree_parallel(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
+// cpp_nn_walk_kdtree_parallel
+IntegerMatrix cpp_nn_walk_kdtree_parallel(IntegerMatrix species_pa, NumericVector x, NumericVector y, int n_seeds, int n_cores, bool progress, std::string distance);
+RcppExport SEXP _spacc_cpp_nn_walk_kdtree_parallel(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -327,13 +321,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
     Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_kdtree_parallel(species_pa, x, y, n_seeds, n_cores, progress, distance));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_kdtree_parallel(species_pa, x, y, n_seeds, n_cores, progress, distance));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_kdtree_parallel_seeds
-IntegerMatrix cpp_knn_kdtree_parallel_seeds(IntegerMatrix species_pa, NumericVector x, NumericVector y, IntegerVector seeds, int n_cores, bool progress, std::string distance);
-RcppExport SEXP _spacc_cpp_knn_kdtree_parallel_seeds(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
+// cpp_nn_walk_kdtree_parallel_seeds
+IntegerMatrix cpp_nn_walk_kdtree_parallel_seeds(IntegerMatrix species_pa, NumericVector x, NumericVector y, IntegerVector seeds, int n_cores, bool progress, std::string distance);
+RcppExport SEXP _spacc_cpp_nn_walk_kdtree_parallel_seeds(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP distanceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -344,7 +338,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
     Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_kdtree_parallel_seeds(species_pa, x, y, seeds, n_cores, progress, distance));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_kdtree_parallel_seeds(species_pa, x, y, seeds, n_cores, progress, distance));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -423,34 +417,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_radius_single
-IntegerVector cpp_radius_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed);
-RcppExport SEXP _spacc_cpp_radius_single(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP seedSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_radius_single(species_pa, dist_mat, seed));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cpp_radius_parallel
-IntegerMatrix cpp_radius_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, int n_seeds, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_radius_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP n_seedsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix >::type species_pa(species_paSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
-    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
-    Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_radius_parallel(species_pa, dist_mat, n_seeds, n_cores, progress));
-    return rcpp_result_gen;
-END_RCPP
-}
 // cpp_cone_single
 IntegerVector cpp_cone_single(IntegerMatrix species_pa, NumericVector x, NumericVector y, int seed, double angle, double width);
 RcppExport SEXP _spacc_cpp_cone_single(SEXP species_paSEXP, SEXP xSEXP, SEXP ySEXP, SEXP seedSEXP, SEXP angleSEXP, SEXP widthSEXP) {
@@ -514,9 +480,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_metrics_parallel
-IntegerMatrix cpp_knn_metrics_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_knn_metrics_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_nn_walk_metrics_parallel
+IntegerMatrix cpp_nn_walk_metrics_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_nn_walk_metrics_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -524,7 +490,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_metrics_parallel(species_pa, dist_mat, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_metrics_parallel(species_pa, dist_mat, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -543,15 +509,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_knn_order
-IntegerMatrix cpp_knn_order(NumericMatrix dist_mat, IntegerVector seeds);
-RcppExport SEXP _spacc_cpp_knn_order(SEXP dist_matSEXP, SEXP seedsSEXP) {
+// cpp_nn_walk_order
+IntegerMatrix cpp_nn_walk_order(NumericMatrix dist_mat, IntegerVector seeds);
+RcppExport SEXP _spacc_cpp_nn_walk_order(SEXP dist_matSEXP, SEXP seedsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type dist_mat(dist_matSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type seeds(seedsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_knn_order(dist_mat, seeds));
+    rcpp_result_gen = Rcpp::wrap(cpp_nn_walk_order(dist_mat, seeds));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_focal_order
+IntegerMatrix cpp_focal_order(NumericVector x, NumericVector y, NumericVector focus_x, NumericVector focus_y, std::string distance);
+RcppExport SEXP _spacc_cpp_focal_order(SEXP xSEXP, SEXP ySEXP, SEXP focus_xSEXP, SEXP focus_ySEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type focus_x(focus_xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type focus_y(focus_ySEXP);
+    Rcpp::traits::input_parameter< std::string >::type distance(distanceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_focal_order(x, y, focus_x, focus_y, distance));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -622,41 +603,39 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_phylo_knn_single
-List cpp_phylo_knn_single(NumericMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int seed, CharacterVector metrics, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
-RcppExport SEXP _spacc_cpp_phylo_knn_single(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP seedSEXP, SEXP metricsSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
+// cpp_phylo_order_single
+List cpp_phylo_order_single(NumericMatrix species_pa, IntegerVector order, NumericMatrix phylo_dist_mat, CharacterVector metrics, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
+RcppExport SEXP _spacc_cpp_phylo_order_single(SEXP species_paSEXP, SEXP orderSEXP, SEXP phylo_dist_matSEXP, SEXP metricsSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type species_pa(species_paSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type order(orderSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type phylo_dist_mat(phylo_dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<IntegerMatrix> >::type tree_edge(tree_edgeSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<NumericVector> >::type tree_edge_length(tree_edge_lengthSEXP);
     Rcpp::traits::input_parameter< int >::type tree_n_tips(tree_n_tipsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_phylo_knn_single(species_pa, site_dist_mat, phylo_dist_mat, seed, metrics, tree_edge, tree_edge_length, tree_n_tips));
+    rcpp_result_gen = Rcpp::wrap(cpp_phylo_order_single(species_pa, order, phylo_dist_mat, metrics, tree_edge, tree_edge_length, tree_n_tips));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_phylo_knn_parallel
-List cpp_phylo_knn_parallel(NumericMatrix species_pa, NumericMatrix site_dist_mat, NumericMatrix phylo_dist_mat, int n_seeds, CharacterVector metrics, int n_cores, bool progress, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
-RcppExport SEXP _spacc_cpp_phylo_knn_parallel(SEXP species_paSEXP, SEXP site_dist_matSEXP, SEXP phylo_dist_matSEXP, SEXP n_seedsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
+// cpp_phylo_order_parallel
+List cpp_phylo_order_parallel(NumericMatrix species_pa, IntegerMatrix orders, NumericMatrix phylo_dist_mat, CharacterVector metrics, int n_cores, bool progress, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
+RcppExport SEXP _spacc_cpp_phylo_order_parallel(SEXP species_paSEXP, SEXP ordersSEXP, SEXP phylo_dist_matSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type species_pa(species_paSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type phylo_dist_mat(phylo_dist_matSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<IntegerMatrix> >::type tree_edge(tree_edgeSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<NumericVector> >::type tree_edge_length(tree_edge_lengthSEXP);
     Rcpp::traits::input_parameter< int >::type tree_n_tips(tree_n_tipsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_phylo_knn_parallel(species_pa, site_dist_mat, phylo_dist_mat, n_seeds, metrics, n_cores, progress, tree_edge, tree_edge_length, tree_n_tips));
+    rcpp_result_gen = Rcpp::wrap(cpp_phylo_order_parallel(species_pa, orders, phylo_dist_mat, metrics, n_cores, progress, tree_edge, tree_edge_length, tree_n_tips));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -697,35 +676,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_func_knn_single
-List cpp_func_knn_single(NumericMatrix species_mat, NumericMatrix site_dist_mat, NumericMatrix traits, int seed, CharacterVector metrics);
-RcppExport SEXP _spacc_cpp_func_knn_single(SEXP species_matSEXP, SEXP site_dist_matSEXP, SEXP traitsSEXP, SEXP seedSEXP, SEXP metricsSEXP) {
+// cpp_func_order_single
+List cpp_func_order_single(NumericMatrix species_mat, IntegerVector order, NumericMatrix traits, CharacterVector metrics);
+RcppExport SEXP _spacc_cpp_func_order_single(SEXP species_matSEXP, SEXP orderSEXP, SEXP traitsSEXP, SEXP metricsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type order(orderSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
-    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_func_knn_single(species_mat, site_dist_mat, traits, seed, metrics));
+    rcpp_result_gen = Rcpp::wrap(cpp_func_order_single(species_mat, order, traits, metrics));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_func_knn_parallel
-List cpp_func_knn_parallel(NumericMatrix species_mat, NumericMatrix site_dist_mat, NumericMatrix traits, int n_seeds, CharacterVector metrics, int n_cores, bool progress);
-RcppExport SEXP _spacc_cpp_func_knn_parallel(SEXP species_matSEXP, SEXP site_dist_matSEXP, SEXP traitsSEXP, SEXP n_seedsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
+// cpp_func_order_parallel
+List cpp_func_order_parallel(NumericMatrix species_mat, IntegerMatrix orders, NumericMatrix traits, CharacterVector metrics, int n_cores, bool progress);
+RcppExport SEXP _spacc_cpp_func_order_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP traitsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type species_mat(species_matSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type site_dist_mat(site_dist_matSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
-    Rcpp::traits::input_parameter< int >::type n_seeds(n_seedsSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_func_knn_parallel(species_mat, site_dist_mat, traits, n_seeds, metrics, n_cores, progress));
+    rcpp_result_gen = Rcpp::wrap(cpp_func_order_parallel(species_mat, orders, traits, metrics, n_cores, progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -771,55 +748,54 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_spacc_cpp_beta_knn_single", (DL_FUNC) &_spacc_cpp_beta_knn_single, 4},
-    {"_spacc_cpp_beta_knn_parallel", (DL_FUNC) &_spacc_cpp_beta_knn_parallel, 6},
+    {"_spacc_cpp_beta_order_single", (DL_FUNC) &_spacc_cpp_beta_order_single, 4},
+    {"_spacc_cpp_beta_order_parallel", (DL_FUNC) &_spacc_cpp_beta_order_parallel, 6},
     {"_spacc_calc_coverage", (DL_FUNC) &_spacc_calc_coverage, 1},
     {"_spacc_calc_chiu_coverage", (DL_FUNC) &_spacc_calc_chiu_coverage, 3},
-    {"_spacc_cpp_knn_coverage_single", (DL_FUNC) &_spacc_cpp_knn_coverage_single, 4},
-    {"_spacc_cpp_knn_coverage_parallel", (DL_FUNC) &_spacc_cpp_knn_coverage_parallel, 6},
+    {"_spacc_cpp_order_coverage_single", (DL_FUNC) &_spacc_cpp_order_coverage_single, 3},
+    {"_spacc_cpp_order_coverage_parallel", (DL_FUNC) &_spacc_cpp_order_coverage_parallel, 5},
     {"_spacc_interpolate_at_coverage", (DL_FUNC) &_spacc_interpolate_at_coverage, 3},
     {"_spacc_cpp_distance_matrix", (DL_FUNC) &_spacc_cpp_distance_matrix, 3},
     {"_spacc_calc_hill_number", (DL_FUNC) &_spacc_calc_hill_number, 2},
-    {"_spacc_cpp_knn_hill_single", (DL_FUNC) &_spacc_cpp_knn_hill_single, 4},
-    {"_spacc_cpp_knn_hill_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_parallel, 6},
-    {"_spacc_cpp_knn_hill_beta_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_beta_parallel, 6},
-    {"_spacc_cpp_knn_hill_coverage_parallel", (DL_FUNC) &_spacc_cpp_knn_hill_coverage_parallel, 6},
+    {"_spacc_cpp_order_hill_single", (DL_FUNC) &_spacc_cpp_order_hill_single, 3},
+    {"_spacc_cpp_order_hill_parallel", (DL_FUNC) &_spacc_cpp_order_hill_parallel, 5},
+    {"_spacc_cpp_order_hill_beta_parallel", (DL_FUNC) &_spacc_cpp_order_hill_beta_parallel, 5},
+    {"_spacc_cpp_order_hill_coverage_parallel", (DL_FUNC) &_spacc_cpp_order_hill_coverage_parallel, 5},
     {"_spacc_cpp_kncn_single", (DL_FUNC) &_spacc_cpp_kncn_single, 4},
     {"_spacc_cpp_kncn_parallel", (DL_FUNC) &_spacc_cpp_kncn_parallel, 6},
     {"_spacc_cpp_kncn_kdtree_single", (DL_FUNC) &_spacc_cpp_kncn_kdtree_single, 5},
     {"_spacc_cpp_kncn_kdtree_parallel", (DL_FUNC) &_spacc_cpp_kncn_kdtree_parallel, 7},
-    {"_spacc_cpp_knn_single", (DL_FUNC) &_spacc_cpp_knn_single, 3},
-    {"_spacc_cpp_knn_parallel", (DL_FUNC) &_spacc_cpp_knn_parallel, 5},
-    {"_spacc_cpp_knn_parallel_seeds", (DL_FUNC) &_spacc_cpp_knn_parallel_seeds, 5},
-    {"_spacc_cpp_knn_kdtree_single", (DL_FUNC) &_spacc_cpp_knn_kdtree_single, 5},
-    {"_spacc_cpp_knn_kdtree_parallel", (DL_FUNC) &_spacc_cpp_knn_kdtree_parallel, 7},
-    {"_spacc_cpp_knn_kdtree_parallel_seeds", (DL_FUNC) &_spacc_cpp_knn_kdtree_parallel_seeds, 7},
+    {"_spacc_cpp_nn_walk_single", (DL_FUNC) &_spacc_cpp_nn_walk_single, 3},
+    {"_spacc_cpp_nn_walk_parallel", (DL_FUNC) &_spacc_cpp_nn_walk_parallel, 5},
+    {"_spacc_cpp_nn_walk_parallel_seeds", (DL_FUNC) &_spacc_cpp_nn_walk_parallel_seeds, 5},
+    {"_spacc_cpp_nn_walk_kdtree_single", (DL_FUNC) &_spacc_cpp_nn_walk_kdtree_single, 5},
+    {"_spacc_cpp_nn_walk_kdtree_parallel", (DL_FUNC) &_spacc_cpp_nn_walk_kdtree_parallel, 7},
+    {"_spacc_cpp_nn_walk_kdtree_parallel_seeds", (DL_FUNC) &_spacc_cpp_nn_walk_kdtree_parallel_seeds, 7},
     {"_spacc_cpp_collector_single", (DL_FUNC) &_spacc_cpp_collector_single, 1},
     {"_spacc_cpp_gaussian_single", (DL_FUNC) &_spacc_cpp_gaussian_single, 4},
     {"_spacc_cpp_gaussian_parallel", (DL_FUNC) &_spacc_cpp_gaussian_parallel, 6},
     {"_spacc_cpp_wavefront_single", (DL_FUNC) &_spacc_cpp_wavefront_single, 6},
     {"_spacc_cpp_wavefront_parallel", (DL_FUNC) &_spacc_cpp_wavefront_parallel, 8},
-    {"_spacc_cpp_radius_single", (DL_FUNC) &_spacc_cpp_radius_single, 3},
-    {"_spacc_cpp_radius_parallel", (DL_FUNC) &_spacc_cpp_radius_parallel, 5},
     {"_spacc_cpp_cone_single", (DL_FUNC) &_spacc_cpp_cone_single, 6},
     {"_spacc_cpp_cone_parallel", (DL_FUNC) &_spacc_cpp_cone_parallel, 7},
     {"_spacc_cpp_distance_decay_single", (DL_FUNC) &_spacc_cpp_distance_decay_single, 4},
     {"_spacc_cpp_distance_decay_parallel", (DL_FUNC) &_spacc_cpp_distance_decay_parallel, 6},
-    {"_spacc_cpp_knn_metrics_parallel", (DL_FUNC) &_spacc_cpp_knn_metrics_parallel, 4},
+    {"_spacc_cpp_nn_walk_metrics_parallel", (DL_FUNC) &_spacc_cpp_nn_walk_metrics_parallel, 4},
     {"_spacc_cpp_kncn_metrics_parallel", (DL_FUNC) &_spacc_cpp_kncn_metrics_parallel, 5},
-    {"_spacc_cpp_knn_order", (DL_FUNC) &_spacc_cpp_knn_order, 2},
+    {"_spacc_cpp_nn_walk_order", (DL_FUNC) &_spacc_cpp_nn_walk_order, 2},
+    {"_spacc_cpp_focal_order", (DL_FUNC) &_spacc_cpp_focal_order, 5},
     {"_spacc_cpp_kncn_order", (DL_FUNC) &_spacc_cpp_kncn_order, 3},
     {"_spacc_calc_mpd", (DL_FUNC) &_spacc_calc_mpd, 4},
     {"_spacc_calc_mntd", (DL_FUNC) &_spacc_calc_mntd, 4},
     {"_spacc_calc_rao", (DL_FUNC) &_spacc_calc_rao, 2},
     {"_spacc_calc_faith_pd", (DL_FUNC) &_spacc_calc_faith_pd, 4},
-    {"_spacc_cpp_phylo_knn_single", (DL_FUNC) &_spacc_cpp_phylo_knn_single, 8},
-    {"_spacc_cpp_phylo_knn_parallel", (DL_FUNC) &_spacc_cpp_phylo_knn_parallel, 10},
+    {"_spacc_cpp_phylo_order_single", (DL_FUNC) &_spacc_cpp_phylo_order_single, 7},
+    {"_spacc_cpp_phylo_order_parallel", (DL_FUNC) &_spacc_cpp_phylo_order_parallel, 9},
     {"_spacc_calc_fdis", (DL_FUNC) &_spacc_calc_fdis, 3},
     {"_spacc_calc_fric_approx", (DL_FUNC) &_spacc_calc_fric_approx, 2},
     {"_spacc_calc_rao_traits", (DL_FUNC) &_spacc_calc_rao_traits, 2},
-    {"_spacc_cpp_func_knn_single", (DL_FUNC) &_spacc_cpp_func_knn_single, 5},
-    {"_spacc_cpp_func_knn_parallel", (DL_FUNC) &_spacc_cpp_func_knn_parallel, 7},
+    {"_spacc_cpp_func_order_single", (DL_FUNC) &_spacc_cpp_func_order_single, 4},
+    {"_spacc_cpp_func_order_parallel", (DL_FUNC) &_spacc_cpp_func_order_parallel, 6},
     {"_spacc_cpp_random_single", (DL_FUNC) &_spacc_cpp_random_single, 2},
     {"_spacc_cpp_random_parallel", (DL_FUNC) &_spacc_cpp_random_parallel, 4},
     {"_spacc_cpp_order_parallel", (DL_FUNC) &_spacc_cpp_order_parallel, 4},

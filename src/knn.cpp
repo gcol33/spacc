@@ -11,11 +11,11 @@ using namespace RcppParallel;
 
 
 // ============================================================================
-// EXACT (brute-force) kNN — uses precomputed distance matrix
+// EXACT NEAREST-NEIGHBOUR WALK
 // ============================================================================
 
 // [[Rcpp::export]]
-IntegerVector cpp_knn_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed) {
+IntegerVector cpp_nn_walk_single(IntegerMatrix species_pa, NumericMatrix dist_mat, int seed) {
   int n_sites = species_pa.nrow();
   int n_species = species_pa.ncol();
 
@@ -64,14 +64,14 @@ IntegerVector cpp_knn_single(IntegerMatrix species_pa, NumericMatrix dist_mat, i
 }
 
 
-// Worker struct for parallel exact kNN
-struct KnnWorker : public Worker {
+// Worker for parallel exact nearest-neighbour walks
+struct NnWalkWorker : public Worker {
   const RMatrix<int> species_pa;
   const RMatrix<double> dist_mat;
   const RVector<int> seeds;
   RMatrix<int> curves;
 
-  KnnWorker(const IntegerMatrix& species_pa_,
+  NnWalkWorker(const IntegerMatrix& species_pa_,
             const NumericMatrix& dist_mat_,
             const IntegerVector& seeds_,
             IntegerMatrix& curves_)
@@ -123,7 +123,7 @@ struct KnnWorker : public Worker {
 
 
 // [[Rcpp::export]]
-IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa,
+IntegerMatrix cpp_nn_walk_parallel(IntegerMatrix species_pa,
                                NumericMatrix dist_mat,
                                int n_seeds,
                                int n_cores = 1,
@@ -131,15 +131,15 @@ IntegerMatrix cpp_knn_parallel(IntegerMatrix species_pa,
   int n_sites = species_pa.nrow();
   IntegerMatrix curves(n_seeds, n_sites);
   IntegerVector seeds = sample_seeds(n_sites, n_seeds);
-  KnnWorker worker(species_pa, dist_mat, seeds, curves);
+  NnWalkWorker worker(species_pa, dist_mat, seeds, curves);
   dispatch_parallel(n_seeds, n_cores, worker, curves,
-    [&](int s) { return cpp_knn_single(species_pa, dist_mat, seeds[s]); });
+    [&](int s) { return cpp_nn_walk_single(species_pa, dist_mat, seeds[s]); });
   return curves;
 }
 
 
 // [[Rcpp::export]]
-IntegerMatrix cpp_knn_parallel_seeds(IntegerMatrix species_pa,
+IntegerMatrix cpp_nn_walk_parallel_seeds(IntegerMatrix species_pa,
                                       NumericMatrix dist_mat,
                                       IntegerVector seeds,
                                       int n_cores = 1,
@@ -147,15 +147,15 @@ IntegerMatrix cpp_knn_parallel_seeds(IntegerMatrix species_pa,
   int n_sites = species_pa.nrow();
   int n_seeds = seeds.size();
   IntegerMatrix curves(n_seeds, n_sites);
-  KnnWorker worker(species_pa, dist_mat, seeds, curves);
+  NnWalkWorker worker(species_pa, dist_mat, seeds, curves);
   dispatch_parallel(n_seeds, n_cores, worker, curves,
-    [&](int s) { return cpp_knn_single(species_pa, dist_mat, seeds[s]); });
+    [&](int s) { return cpp_nn_walk_single(species_pa, dist_mat, seeds[s]); });
   return curves;
 }
 
 
 // ============================================================================
-// SPATIAL TREE kNN — k-d tree (Euclidean) or ball tree (haversine)
+// SPATIAL-TREE NEAREST-NEIGHBOUR WALK
 // No precomputed distance matrix needed.
 // ============================================================================
 
@@ -170,11 +170,11 @@ inline void fill_coords(std::vector<double>& vx, std::vector<double>& vy,
   }
 }
 
-// Run a single kNN accumulation curve using a spatial tree.
+// Run a single nearest-neighbour walk using a spatial tree.
 // qx/qy for the query are taken from the coordinate arrays.
 // find_nn is a lambda: (double qx, double qy, visited) -> int nearest
 template<typename FindNN>
-IntegerVector knn_tree_single_impl(const IntegerMatrix& species_pa,
+IntegerVector nn_walk_tree_single_impl(const IntegerMatrix& species_pa,
                                     const std::vector<double>& px,
                                     const std::vector<double>& py,
                                     int seed, FindNN find_nn) {
@@ -209,7 +209,7 @@ IntegerVector knn_tree_single_impl(const IntegerMatrix& species_pa,
 
 
 // [[Rcpp::export]]
-IntegerVector cpp_knn_kdtree_single(IntegerMatrix species_pa,
+IntegerVector cpp_nn_walk_kdtree_single(IntegerMatrix species_pa,
                                      NumericVector x, NumericVector y,
                                      int seed,
                                      std::string distance = "euclidean") {
@@ -221,7 +221,7 @@ IntegerVector cpp_knn_kdtree_single(IntegerMatrix species_pa,
 
   if (use_haversine) {
     BallTree btree(vx, vy);
-    return knn_tree_single_impl(species_pa, vx, vy, seed,
+    return nn_walk_tree_single_impl(species_pa, vx, vy, seed,
       [&](double qx, double qy, const std::vector<bool>& vis) {
         return btree.find_nearest_unvisited(qx, qy, vis);
       });
@@ -230,7 +230,7 @@ IntegerVector cpp_knn_kdtree_single(IntegerMatrix species_pa,
     cloud.pts_x = vx;
     cloud.pts_y = vy;
     KDTree2D* tree = build_kdtree(cloud);
-    auto result = knn_tree_single_impl(species_pa, vx, vy, seed,
+    auto result = nn_walk_tree_single_impl(species_pa, vx, vy, seed,
       [&](double qx, double qy, const std::vector<bool>& vis) {
         return find_nearest_unvisited(*tree, qx, qy, vis, n_sites);
       });
@@ -240,14 +240,14 @@ IntegerVector cpp_knn_kdtree_single(IntegerMatrix species_pa,
 }
 
 
-// Parallel worker for k-d tree (Euclidean) kNN
-struct KnnKdtreeWorker : public Worker {
+// Parallel worker for k-d tree (Euclidean) nearest-neighbour walks
+struct NnWalkKdtreeWorker : public Worker {
   const RMatrix<int> species_pa;
   const PointCloud2D& cloud;
   const RVector<int> seeds;
   RMatrix<int> curves;
 
-  KnnKdtreeWorker(const IntegerMatrix& sp,
+  NnWalkKdtreeWorker(const IntegerMatrix& sp,
                   const PointCloud2D& cl,
                   const IntegerVector& s,
                   IntegerMatrix& c)
@@ -290,15 +290,15 @@ struct KnnKdtreeWorker : public Worker {
 };
 
 
-// Parallel worker for ball tree (haversine) kNN
-struct KnnBalltreeWorker : public Worker {
+// Parallel worker for ball tree (haversine) nearest-neighbour walks
+struct NnWalkBalltreeWorker : public Worker {
   const RMatrix<int> species_pa;
   const std::vector<double>& px;
   const std::vector<double>& py;
   const RVector<int> seeds;
   RMatrix<int> curves;
 
-  KnnBalltreeWorker(const IntegerMatrix& sp,
+  NnWalkBalltreeWorker(const IntegerMatrix& sp,
                     const std::vector<double>& x,
                     const std::vector<double>& y,
                     const IntegerVector& s,
@@ -340,7 +340,7 @@ struct KnnBalltreeWorker : public Worker {
 
 
 // [[Rcpp::export]]
-IntegerMatrix cpp_knn_kdtree_parallel(IntegerMatrix species_pa,
+IntegerMatrix cpp_nn_walk_kdtree_parallel(IntegerMatrix species_pa,
                                        NumericVector x, NumericVector y,
                                        int n_seeds,
                                        int n_cores = 1,
@@ -356,11 +356,11 @@ IntegerMatrix cpp_knn_kdtree_parallel(IntegerMatrix species_pa,
 
   if (use_haversine) {
     if (n_cores > 1) {
-      KnnBalltreeWorker worker(species_pa, vx, vy, seeds, curves);
+      NnWalkBalltreeWorker worker(species_pa, vx, vy, seeds, curves);
       parallelFor(0, n_seeds, worker);
     } else {
       for (int s = 0; s < n_seeds; s++) {
-        IntegerVector curve = cpp_knn_kdtree_single(species_pa, x, y, seeds[s], distance);
+        IntegerVector curve = cpp_nn_walk_kdtree_single(species_pa, x, y, seeds[s], distance);
         curves(s, _) = curve;
       }
     }
@@ -370,11 +370,11 @@ IntegerMatrix cpp_knn_kdtree_parallel(IntegerMatrix species_pa,
     cloud.pts_y = vy;
 
     if (n_cores > 1) {
-      KnnKdtreeWorker worker(species_pa, cloud, seeds, curves);
+      NnWalkKdtreeWorker worker(species_pa, cloud, seeds, curves);
       parallelFor(0, n_seeds, worker);
     } else {
       for (int s = 0; s < n_seeds; s++) {
-        IntegerVector curve = cpp_knn_kdtree_single(species_pa, x, y, seeds[s], distance);
+        IntegerVector curve = cpp_nn_walk_kdtree_single(species_pa, x, y, seeds[s], distance);
         curves(s, _) = curve;
       }
     }
@@ -385,7 +385,7 @@ IntegerMatrix cpp_knn_kdtree_parallel(IntegerMatrix species_pa,
 
 
 // [[Rcpp::export]]
-IntegerMatrix cpp_knn_kdtree_parallel_seeds(IntegerMatrix species_pa,
+IntegerMatrix cpp_nn_walk_kdtree_parallel_seeds(IntegerMatrix species_pa,
                                              NumericVector x, NumericVector y,
                                              IntegerVector seeds,
                                              int n_cores = 1,
@@ -401,11 +401,11 @@ IntegerMatrix cpp_knn_kdtree_parallel_seeds(IntegerMatrix species_pa,
 
   if (use_haversine) {
     if (n_cores > 1) {
-      KnnBalltreeWorker worker(species_pa, vx, vy, seeds, curves);
+      NnWalkBalltreeWorker worker(species_pa, vx, vy, seeds, curves);
       parallelFor(0, n_seeds, worker);
     } else {
       for (int s = 0; s < n_seeds; s++) {
-        IntegerVector curve = cpp_knn_kdtree_single(species_pa, x, y, seeds[s], distance);
+        IntegerVector curve = cpp_nn_walk_kdtree_single(species_pa, x, y, seeds[s], distance);
         curves(s, _) = curve;
       }
     }
@@ -415,11 +415,11 @@ IntegerMatrix cpp_knn_kdtree_parallel_seeds(IntegerMatrix species_pa,
     cloud.pts_y = vy;
 
     if (n_cores > 1) {
-      KnnKdtreeWorker worker(species_pa, cloud, seeds, curves);
+      NnWalkKdtreeWorker worker(species_pa, cloud, seeds, curves);
       parallelFor(0, n_seeds, worker);
     } else {
       for (int s = 0; s < n_seeds; s++) {
-        IntegerVector curve = cpp_knn_kdtree_single(species_pa, x, y, seeds[s], distance);
+        IntegerVector curve = cpp_nn_walk_kdtree_single(species_pa, x, y, seeds[s], distance);
         curves(s, _) = curve;
       }
     }

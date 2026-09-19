@@ -13,10 +13,11 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
 ```
 
@@ -328,7 +329,8 @@ df <- rbind(
 )
 ggplot2::ggplot(df, ggplot2::aes(sites, S, color = kind)) +
   ggplot2::geom_line(linewidth = 0.9) +
-  ggplot2::labs(x = "Sites", y = "Species", color = NULL) + transparent
+  ggplot2::labs(x = "Sites", y = "Species", color = NULL) +
+  ggplot2::theme_minimal(base_size = 17) + transparent
 ```
 
 The Mao Tau and Coleman expectations are the sample-based analogue of Hurlbert's
@@ -482,7 +484,8 @@ df_thin <- transform(as.data.frame(thin), set = "Thinned (grid)")
 ggplot2::ggplot(rbind(df_full, df_thin),
                 ggplot2::aes(sites, mean, color = set)) +
   ggplot2::geom_line(linewidth = 1) +
-  ggplot2::labs(x = "Sites", y = "Species", color = NULL) + transparent
+  ggplot2::labs(x = "Sites", y = "Species", color = NULL) +
+  ggplot2::theme_minimal(base_size = 17) + transparent
 ```
 
 The thinned curve reaches a similar asymptote with fewer sites, since the

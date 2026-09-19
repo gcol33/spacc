@@ -489,8 +489,8 @@ print(result)
 #> Input class: spacc
 #> Metric: richness
 #> Null model: curveball (19 permutations)
-#> SES range: [-7.59, 1.13]
-#> Mean SES: -0.48
+#> SES range: [-2.26, 0.75]
+#> Mean SES: -0.15
 #> Significant (p < 0.05): 0 / 60 values (0%)
 ```
 
@@ -555,7 +555,7 @@ res_freq <- ses(sac, species, coords,
                 progress = FALSE, seed = 1)
 c(curveball = mean(result$ses), frequency = mean(res_freq$ses))
 #>  curveball  frequency 
-#> -0.4835156 -0.6467084
+#> -0.1455350 -0.3139387
 ```
 
 The `frequency` null yields a more strongly negative mean SES than

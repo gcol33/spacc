@@ -8,13 +8,15 @@ spaccEndemism(
   x,
   coords,
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   map = FALSE,
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -39,6 +41,10 @@ enabling \code{plot(type = "map")} and \code{\link[=as_sf]{as_sf()}}. Default \c
 \item{progress}{Logical. Show progress? Default \code{TRUE}.}
 
 \item{seed}{Integer. Random seed.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_endemism} containing:

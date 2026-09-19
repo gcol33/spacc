@@ -13,42 +13,16 @@ spaccBeta(
   traits = NULL,
   tree = NULL,
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   index = c("sorensen", "jaccard"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
-)
-
-spaccBetaFunc(
-  x,
-  coords,
-  traits,
-  n_seeds = 50L,
-  method = "knn",
-  index = c("sorensen", "jaccard"),
-  distance = c("euclidean", "haversine"),
-  parallel = TRUE,
-  n_cores = NULL,
-  progress = TRUE,
-  seed = NULL
-)
-
-spaccBetaPhylo(
-  x,
-  coords,
-  tree,
-  n_seeds = 50L,
-  method = "knn",
-  index = c("sorensen", "jaccard"),
-  distance = c("euclidean", "haversine"),
-  parallel = TRUE,
-  n_cores = NULL,
-  progress = TRUE,
-  seed = NULL
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 ```
 
@@ -79,7 +53,7 @@ spaccBetaPhylo(
 
 - method:
 
-  Character. Accumulation method. Default `"knn"`.
+  Character. Accumulation method: `"knn"` or `"nn_walk"`.
 
 - index:
 
@@ -111,6 +85,16 @@ spaccBetaPhylo(
   per-site final beta values for spatial mapping. Enables
   [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) and
   `plot(type = "map")`. Default `FALSE`.
+
+- focal_points:
+
+  Optional focal points for `method = "knn"`. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
+
+- focal_domain:
+
+  Optional polygonal focal domain. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
 
 ## Value
 

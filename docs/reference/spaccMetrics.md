@@ -12,7 +12,7 @@ spaccMetrics(
   x,
   coords,
   metrics = c("slope_10", "half_richness", "auc"),
-  method = c("knn", "kncn", "random"),
+  method = c("knn", "kncn", "nn_walk", "random"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
@@ -44,8 +44,8 @@ spaccMetrics(
 
 - method:
 
-  Character. Accumulation method: `"knn"`, `"kncn"`, `"random"`. Default
-  `"knn"`.
+  Character. Accumulation method: `"knn"`, `"kncn"`, `"nn_walk"`, or
+  `"random"`. Default `"knn"`.
 
 - distance:
 

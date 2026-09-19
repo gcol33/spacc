@@ -1,40 +1,45 @@
 # Changelog
 
-## spacc 0.9.0
+## spacc 0.10.2
 
 ### API Changes
 
-- [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
-  was renamed
+- `method = "knn"` now implements fixed-focus spatially constrained
+  rarefaction: continuous focal points are sampled from the spatial
+  domain and all sites are ranked by distance from each focus. Supply
+  `focal_domain` for a known polygonal study boundary or `focal_points`
+  for exact focal coordinates. The former greedy current-site traversal
+  is now `method = "nn_walk"`. `method = "radius"` was removed because
+  its observed-site fixed-focus ordering duplicated the corrected `knn`
+  concept.
   [`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
-  so that every spatial-accumulation curve front door shares the `spacc`
-  prefix. The old name is a deprecated thin wrapper and still works. The
-  distance- and area-relationship functions keep their established
-  names:
+  remains the radius-indexed accumulation front door.
+
+- Diversity, coverage, beta, phylogenetic, functional, endemism, metric,
+  and diversity-area calculations now consume shared site-order
+  matrices. This keeps the selected spatial rule identical across
+  downstream quantities.
+
+- Spatial-accumulation curves use the
+  [`spaccWavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md)
+  front door. The distance- and area-relationship functions keep their
+  established names:
   [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md),
   [`betaDecay()`](https://gillescolling.com/spacc/reference/betaDecay.md),
   [`zetaDiversity()`](https://gillescolling.com/spacc/reference/zetaDiversity.md),
   and [`dar()`](https://gillescolling.com/spacc/reference/dar.md).
 
 - [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  gains `traits` and `tree` arguments and now computes taxonomic,
+  gains `traits` and `tree` arguments and computes taxonomic,
   functional, or phylogenetic beta diversity from a single front door.
   Supplying `traits` gives the trait-weighted Baselga partition;
   supplying `tree` gives the branch-length-weighted (PhyloSor)
   partition.
-  [`spaccBetaFunc()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  and
-  [`spaccBetaPhylo()`](https://gillescolling.com/spacc/reference/spaccBeta.md)
-  are deprecated thin wrappers and still work.
 
 - [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  gains `traits` and `tree` arguments and now computes taxonomic,
-  functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill
-  profiles from a single front door.
-  [`diversityProfileFunc()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  and
-  [`diversityProfilePhylo()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
-  are deprecated thin wrappers and still work.
+  gains `traits` and `tree` arguments and computes taxonomic, functional
+  (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill profiles from a
+  single front door.
 
 ### New Features
 
@@ -124,8 +129,7 @@ CRAN release: 2026-06-20
   [`evenness()`](https://gillescolling.com/spacc/reference/evenness.md),
   [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md),
   [`spatialEigenvectors()`](https://gillescolling.com/spacc/reference/spatialEigenvectors.md)/[`spatialPartition()`](https://gillescolling.com/spacc/reference/spatialPartition.md),
-  [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md),
-  and
+  `wavefront()`, and
   [`compareModels()`](https://gillescolling.com/spacc/reference/compareModels.md)).
 
 ## spacc 0.8.2
@@ -174,7 +178,7 @@ CRAN release: 2026-06-20
 - [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md)
   accumulates any user-supplied index along a spatial ordering: at each
   step the cumulative community is passed to a function that returns a
-  scalar. Supports `knn`, `kncn`, `random`, `radius`, and `collector`
+  scalar. Supports `knn`, `kncn`, `nn_walk`, `random`, and `collector`
   orderings, abundance or incidence input, and extra arguments.
 - Returns a `spacc_diversity` object inheriting `spacc`, so the standard
   [`summary()`](https://rdrr.io/r/base/summary.html),
@@ -273,7 +277,8 @@ CRAN release: 2026-06-20
 
 - New C++ implementations: hill.cpp, beta.cpp, coverage.cpp, phylo.cpp,
   metrics.cpp
-- `cpp_knn_parallel_seeds()` - kNN with explicit seed indices
+- `cpp_knn_parallel_seeds()` - legacy nearest-neighbour walk with
+  explicit seed indices
 - Added sf, areaOfEffect, ape, iNEXT, betapart to Suggests
 
 ------------------------------------------------------------------------
@@ -298,8 +303,7 @@ Initial release.
 
 #### Additional Accumulation Methods
 
-- [`wavefront()`](https://gillescolling.com/spacc/reference/spaccWavefront.md) -
-  Expanding radius accumulation
+- `wavefront()` - Expanding radius accumulation
 - [`distanceDecay()`](https://gillescolling.com/spacc/reference/distanceDecay.md) -
   Distance-decay relationships
 

@@ -43,7 +43,7 @@
 
     <a class="navbar-brand me-2" href="index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,33 +101,34 @@
 </h1></div>
 <p><em>species accumulating in the neighbourhood</em></p>
 <p><a href="https://CRAN.R-project.org/package=spacc" class="external-link"><img src="https://www.r-pkg.org/badges/version/spacc" alt="CRAN status"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/spacc" alt="CRAN downloads"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/spacc" alt="Monthly downloads"></a> <a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
-<p><strong>Spatial species accumulation curves built by nearest-neighbour expansion in C++.</strong></p>
-<p>Pick a starting site, then walk outward to its nearest neighbours, counting new species as you go. <code>spacc</code> does that from many starting points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> you begin. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order, without using their spatial arrangement. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
+<p><strong>Spatial species accumulation curves built by fixed-focus expansion in C++.</strong></p>
+<p>Sample a focal point in continuous space, rank every sampling unit by its distance from that point, then count new species along the ranking. <code>spacc</code> repeats this from many focal points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> expansion begins. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order, without using their spatial arrangement. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">coords</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># spatial accumulation: walk outward by nearest neighbour</span></span>
+<span><span class="co"># spatial accumulation around continuous focal points</span></span>
 <span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="spatial-order-not-random-order">Spatial order, not random order<a class="anchor" aria-label="anchor" href="#spatial-order-not-random-order"></a>
 </h2>
-<p><code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> accumulates sites in random or collector order, so geography drops out. <code><a href="reference/spacc.html">spacc()</a></code> keeps it: each curve follows nearest-neighbour expansion from a real seed site, and the spread across seeds is the spatial signal. Run both and compare them directly.</p>
+<p><code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> accumulates sites in random or collector order, so geography drops out. <code><a href="reference/spacc.html">spacc()</a></code> keeps it: each curve expands around a continuous focal point, and the spread across focal points is the spatial signal. Run both and compare them directly.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac</span>        <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>,    n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="va">sac_random</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"random"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">sac_random</span><span class="op">)</span>   <span class="co"># permutation, bootstrap, or AUC test</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">comp</span><span class="op">)</span></span></code></pre></div>
-<p>Seven expansion methods are available: <code>knn</code> and <code>kncn</code> (nearest-neighbour and nearest-centroid walks), <code>radius</code>, <code>gaussian</code>, and <code>cone</code> (distance- and direction-weighted growth), <code>random</code> (the classical null), and <code>collector</code> (data order). Geographic coordinates use <code>distance = "haversine"</code> with no projection step.</p>
+<p>Seven expansion methods are available: <code>knn</code> (fixed-focus spatially constrained rarefaction), <code>kncn</code> (nearest-centroid expansion), <code>nn_walk</code> (a greedy nearest-neighbour traversal), <code>gaussian</code> and <code>cone</code> (distance- and direction-weighted growth), <code>random</code> (the classical null), and <code>collector</code> (data order). Geographic coordinates use <code>distance = "haversine"</code> with no projection step.</p>
+<p>By default, continuous focal points are sampled uniformly from the convex hull of the eligible sites. Pass an <code>sf</code> polygon through <code>focal_domain</code> when the study boundary is known, or pass exact coordinates through <code>focal_points</code> for reproducible focal definitions.</p>
 </div>
 <div class="section level2">
 <h2 id="backend-selection">Backend selection<a class="anchor" aria-label="anchor" href="#backend-selection"></a>
 </h2>
-<p>Nearest-neighbour queries pick a backend by site count, overridable with <code>backend</code>.</p>
+<p>The <code>nn_walk</code> and <code>kncn</code> methods pick a nearest-neighbour backend by site count, overridable with <code>backend</code>. Fixed-focus <code>knn</code> ranks distances directly.</p>
 <table class="table">
 <colgroup>
 <col width="25%">
@@ -196,12 +197,12 @@
 </h2>
 <p>Split species into groups (native vs alien, families, any factor) and accumulate each under the <strong>same</strong> spatial site ordering, or add a temporal axis to weight space against time.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># same spatial walk, separate curve per group</span></span>
+<code class="sourceCode R"><span><span class="co"># same spatial ordering, separate curve per group</span></span>
 <span><span class="va">sac_grouped</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, groups <span class="op">=</span> <span class="va">status</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac_grouped</span>, facet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># sites sampled across years: weighted space-time distance</span></span>
-<span><span class="va">sac_st</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>,</span>
+<span><span class="va">sac_st</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"nn_walk"</span>,</span>
 <span>                time <span class="op">=</span> <span class="va">site_years</span>, w_space <span class="op">=</span> <span class="fl">1</span>, w_time <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -287,6 +288,13 @@
 </ul>
 </div>
 
+<div class="community">
+<h2 data-toc-skip>Community</h2>
+<ul class="list-unstyled">
+<li><a href="CONTRIBUTING.html">Contributing guide</a></li>
+<li><a href="CODE_OF_CONDUCT.html">Code of conduct</a></li>
+</ul>
+</div>
 
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>

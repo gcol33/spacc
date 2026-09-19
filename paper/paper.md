@@ -3,10 +3,10 @@ DRAFT — Methods in Ecology and Evolution, Application article (target 3,000-4,
 Modelled on Hsieh, Ma & Chao (2016) iNEXT and Revell (2012) phytools.
 
 STATUS: case study (Mafragh), benchmark, and mobr cross-check are real (Figures 1-4).
-Provenance resolved: kNN/kNCN = Chiarucci et al. (2009); richness sSBR = mobr (McGlinn
-et al. 2019); taxonomic/functional/phylogenetic spatially explicit rarefaction = Rarefy
-(Thouverai et al. 2025). spacc is framed as complementary: scale + integrated area-based
-and conservation outputs.
+Provenance resolved: fixed-focus kNN and centroid-based kNCN = Chiarucci et al. (2009);
+richness sSBR = mobr (McGlinn et al. 2019); taxonomic/functional/phylogenetic spatially
+explicit rarefaction = Rarefy (Thouverai et al. 2025); nearest-neighbour walk = `spacc`
+extension.
 
 STRATEGIC (see A1 at end): the rarefaction core is not novel, so a high-novelty
 MEE/Ecography "new method" angle is weak; JOSS (eligible ~late July) or a complementary
@@ -29,9 +29,9 @@ ORCID: 0000-0003-3070-6066. Email: gilles.colling051@gmail.com
 
 1. The species accumulation curve is a core descriptor of how richness grows with sampling. Conventional curves accumulate samples in random or arrival order and so discard the geographic arrangement of the sites. Where sampling is spatially structured, the order in which space is traversed carries ecological information that the random curve averages away.
 
-2. Spatially constrained rarefaction addresses this by accumulating sites in spatial order, and is implemented for taxonomic, functional, and phylogenetic diversity in existing R packages (mobr, Rarefy). `spacc` reimplements the same orderings with a parallel C++ backend and joins them to the area-based and conservation quantities built on the spatial accumulation: Hill-number and beta (turnover and nestedness) profiles, coverage standardisation, the diversity-area relationship, endemism-area curves, fragmentation- and effort-corrected species-area models, asymptotic and extreme-value extrapolation, and per-site prioritisation.
+2. Spatially constrained rarefaction addresses this by accumulating sites around a fixed spatial focus or the centroid of the sampled set, and is implemented for taxonomic, functional, and phylogenetic diversity in existing R packages (mobr, Rarefy). `spacc` implements these established orderings and additional spatial traversal models, then joins them to the area-based and conservation quantities built on the spatial accumulation: Hill-number and beta (turnover and nestedness) profiles, coverage standardisation, the diversity-area relationship, endemism-area curves, fragmentation- and effort-corrected species-area models, asymptotic and extreme-value extrapolation, and per-site prioritisation.
 
-3. Curves are computed from many focal sites in parallel through a C++ (`Rcpp`/`RcppParallel`) backend, and the spread across starting points gives a percentile uncertainty band without distributional assumptions. A two-tier backend (a precomputed distance matrix for small problems, spatial trees for large ones) keeps the method usable from tens to tens of thousands of sites; at 20,000 sites a 100-seed spatial curve completes in about 3 seconds on a 32-core workstation. On a Mediterranean plant community the framework reproduces mobr's spatial rarefaction to within 0.7 species and shows functional diversity saturating after 37% of accumulated sites against 63% for taxonomic richness.
+3. Curves are computed from many spatial foci in parallel through a C++ (`Rcpp`/`RcppParallel`) backend, and the spread across foci gives a percentile uncertainty band without distributional assumptions. Fixed-focus kNN sorts sites directly by distance to each focus. The recursive `nn_walk` and kNCN methods use a precomputed distance matrix for small problems and spatial trees for large ones; at 20,000 sites a 100-focus `nn_walk` curve completes in about 3 seconds on a 32-core workstation. On a Mediterranean plant community the framework reproduces mobr's spatial rarefaction to within 0.7 species and shows functional diversity saturating after 37% of accumulated sites against 63% for taxonomic richness.
 
 4. `spacc` is on CRAN (version 0.8.3) under an MIT licence, with worked vignettes and a documentation site. It complements the existing spatial-rarefaction packages by adding scale and an integrated set of biodiversity-scaling and conservation tools.
 
@@ -47,7 +47,7 @@ That assumption is convenient and, for many designs, defensible. It also discard
 
 The diversity toolkit itself has grown well beyond richness. Hill numbers place richness, Shannon, and Simpson diversity on one axis indexed by an order $q$ (Jost 2007; Chao et al. 2014), and `iNEXT` standardises them by sample size or coverage (Hsieh, Ma & Chao 2016). Beta diversity is partitioned into turnover and nestedness (Baselga 2010), implemented in `betapart`. Phylogenetic and functional diversity add evolutionary or trait distance (Faith 1992). These tools are mature, but each treats accumulation, if at all, in the conventional non-spatial way, and they are distributed across packages with different data conventions.
 
-`spacc` builds on spatially constrained rarefaction (Chiarucci et al. 2009) and adds two things to the existing tools: a parallel C++ backend that scales the orderings to tens of thousands of sites, and an integrated set of area-based and conservation-oriented relationships computed along the same spatial accumulation. It applies the kNN and kNCN orderings across the diversity facets above and returns every result as a typed object with shared `print()`, `summary()`, `plot()`, and `as.data.frame()` methods. Curves are computed from many focal sites in parallel, and the variation across focal sites supplies an uncertainty band. The method is taxon-agnostic: it requires only a site-by-species matrix and site coordinates. This paper describes the spatial-accumulation method, the package structure, performance, and a worked example, and positions `spacc` relative to existing tools.
+`spacc` builds on spatially constrained rarefaction (Chiarucci et al. 2009) and adds a parallel C++ implementation, additional spatial traversal models, and an integrated set of area-based and conservation-oriented relationships computed along the same spatial accumulation. It applies fixed-focus kNN and centroid-based kNCN across the diversity facets above. The `nn_walk`, Gaussian, and cone methods represent `spacc`-specific traversal models. Every result is returned as a typed object with shared `print()`, `summary()`, `plot()`, and `as.data.frame()` methods. Curves are computed from many spatial foci in parallel, and variation across foci supplies an uncertainty band. The method is taxon-agnostic: it requires only a site-by-species matrix and site coordinates. This paper describes the spatial-accumulation method, the package structure, performance, and a worked example, and positions `spacc` relative to existing tools.
 
 ## 2. Spatial accumulation
 
@@ -55,17 +55,29 @@ The diversity toolkit itself has grown well beyond richness. Hill numbers place 
 
 Let $S$ sites carry coordinates $\mathbf{x}_1,\dots,\mathbf{x}_S$ and a site-by-species matrix $\mathbf{Y}$. An accumulation curve is a sequence of site indices $\pi = (\pi_1,\dots,\pi_S)$ together with the cumulative diversity after each site is added. `spacc` constructs $\pi$ from the geometry rather than at random.
 
-Two spatial orderings are central. The **nearest-neighbour (kNN)** ordering starts at a focal site $\pi_1$ and, at each step, appends the unvisited site closest to the site just added, tracing a greedy nearest-neighbour path outward from the focus. The **nearest-centroid-neighbour (kNCN)** ordering instead appends, at each step, the unvisited site closest to the centroid of the sites already visited, so the visited set grows as a compact, roughly circular patch rather than a chain. Both orderings are those of spatially constrained rarefaction (Chiarucci et al. 2009); `spacc` reimplements them with a parallel backend and extends them beyond richness. For comparison and null modelling, `spacc` also provides random ordering (the conventional expected curve), radius-based expansion from the focus, and collector (data) order. A user-supplied ordering can be passed directly through the `order` argument, which accommodates an elevational gradient, a survey date, or any externally defined sequence.
+The **fixed-focus nearest-neighbour (kNN)** ordering draws a focal point $c^*$ in continuous space and sorts every sampling unit by its distance from that same point,
 
-The distinction between kNN and kNCN matters at intermediate scales. The chain that kNN follows can leave a cluster and cross a gap, briefly sampling a distant patch before returning; kNCN keeps the sampled area contiguous. The two therefore answer slightly different questions about how richness fills space, and reporting both is informative when the sampling layout is irregular.
+$$
+\pi = \operatorname{argsort}_j d(c^*, x_j).
+$$
 
-### 2.2 Uncertainty from focal sites
+This is the spatially constrained rarefaction ordering described by Chiarucci et al. (2009). By default, `spacc` samples $c^*$ uniformly from the convex hull of the site coordinates. The convex hull defines an explicit reproducible domain from the available sampling geometry. For study regions with concavities, holes, or unsampled areas inside that hull, users can supply the sampling-domain polygon through `focal_domain`. Supplied focal points can be passed through `focal_points` for exact reproduction of a design or cross-package comparison.
 
-A single focal site gives one curve. Because the focus is arbitrary, `spacc` draws many focal sites (the `n_seeds` argument), computes one curve per focus, and summarises the ensemble by its pointwise mean and percentile interval (by default the 2.5th and 97.5th percentiles across foci). The width of that band is itself a result: a wide band means richness accumulates very differently depending on where sampling begins, which is the signature of strong spatial structure. This resampling-over-foci approach needs no parametric assumption about the curve.
+The **nearest-centroid-neighbour (kNCN)** ordering starts from an observed site and repeatedly appends the unvisited site closest to the centroid of the selected sites. It is the compact-expansion alternative described by Chiarucci et al. (2009). The **nearest-neighbour walk (`nn_walk`)** also starts from an observed site and applies
+
+$$
+\pi_{k+1} = \arg\min_{j \notin V_k} d(\pi_k,j).
+$$
+
+The walk follows the nearest unvisited site from the current site. It can trace a chain through the sampling layout and make a long transition after exhausting a local cluster. `spacc` treats this as a separate traversal model. Random ordering supplies the geography-free baseline, and Gaussian and cone methods define further `spacc` traversal models. Collector order follows the input rows. A user-supplied ordering can be passed directly through the `order` argument, which accommodates an elevational gradient, a survey date, or any externally defined sequence.
+
+### 2.2 Uncertainty from spatial foci
+
+A single spatial focus gives one curve. Because the focus is arbitrary, `spacc` draws many continuous focal points for kNN and many observed starting sites for kNCN and `nn_walk`. It computes one curve per focus and summarises the ensemble by its pointwise mean and percentile interval (by default the 2.5th and 97.5th percentiles across foci). The width of that band records how strongly accumulation changes across the study region. This resampling-over-foci approach needs no parametric assumption about the curve.
 
 ### 2.3 Implementation
 
-Each focal site is independent, so the foci are distributed across threads with `RcppParallel`; there is no shared state between workers. Distance handling uses two tiers. For small problems the pairwise distance matrix is precomputed once and reused (selected automatically at or below 500 sites). For larger problems `spacc` builds a spatial tree (k-d tree for projected coordinates, ball tree for great-circle distance) and queries nearest neighbours on demand, avoiding the quadratic memory of a full matrix. The backend is chosen automatically by problem size and can be overridden. Under CRAN's check environment the worker count is capped at two cores. Section 5 reports timings; the tree backend computes a 20,000-site spatial curve in about 3 s, where the matrix backend exceeds available memory.
+Each focus is independent, so foci are distributed across threads with `RcppParallel`. Fixed-focus kNN evaluates the distance from each continuous focus to every site and sorts the resulting vector. Recursive kNCN and `nn_walk` calculations use two distance backends. For small problems the pairwise distance matrix is precomputed once and reused. For larger problems `spacc` builds a spatial tree (k-d tree for projected coordinates, ball tree for great-circle distance) and queries nearest neighbours on demand. The backend is chosen automatically by problem size and can be overridden for kNCN and `nn_walk`. Under CRAN's check environment the worker count is capped at two cores. Section 5 reports timings for the `nn_walk` backends.
 
 ## 3. The spacc package
 
@@ -84,7 +96,7 @@ A single front-door verb, `spacc()`, builds the spatial curve; downstream verbs 
 
 | Function | Purpose |
 |---|---|
-| `spacc()` | Spatial accumulation curve (`knn`, `kncn`, `random`, `radius`, `collector`, or user `order`) with multi-focus uncertainty |
+| `spacc()` | Spatial accumulation curve (`knn`, `kncn`, `nn_walk`, `random`, Gaussian, cone, collector, or user `order`) with multi-focus uncertainty |
 | `extrapolate()` | Asymptotic richness from a curve (Michaelis-Menten, Lomolino, Weibull, logistic, and an extreme-value-theory model; Borda-de-Agua et al. 2025) |
 | `spaccHill()` | Hill-number accumulation for orders $q = 0, 1, 2$ (Chao et al. 2014) |
 | `spaccBeta()` | Beta-diversity accumulation partitioned into turnover and nestedness (Baselga 2010) |
@@ -123,18 +135,18 @@ Correctness and timing were assessed on simulated landscapes (100 species, prese
 
 **Correctness.** The mean of `spacc` random-order curves matches the analytical expected curve of `vegan::specaccum(method = "exact")` to within 0.52 species at $S = 200$ and 0.49 species at $S = 1{,}000$ (relative error below 0.6%), the agreement expected from Monte Carlo averaging over seeds. The Hill, beta, coverage, phylogenetic, and functional backends are checked against their defining formulae in the package test suite.
 
-**Scaling (Table 2, Figure 1).** On the matched random-order task `spacc` is faster than `vegan::specaccum` at every size, by about 13-fold at 5,000 sites (0.09 s vs 1.17 s) and 11-fold at 20,000 sites (0.34 s vs 3.89 s). For the spatial kNN curve the two-tier backend behaves as intended: the precomputed-matrix ("exact") backend is competitive to about 1,000 sites but degrades to 11.6 s by 5,000, while the spatial-tree backend scales smoothly to 20,000 sites (3.2 s), where the matrix backend is not feasible in memory. Part of the advantage over `vegan` reflects parallel seeds across 32 cores; a single-thread comparison (AUTHOR ACTION A2b) should accompany the final version so the C++ contribution is separated from parallelism.
+**Scaling (Table 2, Figure 1).** On the matched random-order task `spacc` is faster than `vegan::specaccum` at every size, by about 13-fold at 5,000 sites (0.09 s vs 1.17 s) and 11-fold at 20,000 sites (0.34 s vs 3.89 s). For the `nn_walk` curve, the precomputed-matrix ("exact") backend is competitive to about 1,000 sites and reaches 11.6 s by 5,000, while the spatial-tree backend scales to 20,000 sites (3.2 s), where the matrix backend is not feasible in memory. Part of the advantage over `vegan` reflects parallel seeds across 32 cores; a single-thread comparison (AUTHOR ACTION A2b) should accompany the final version so the C++ contribution is separated from parallelism.
 
 **Table 2.** Median wall-clock time (seconds) for a 100-seed (or 100-permutation) curve; hardware as above.
 
-| Sites | vegan (random) | spacc (random) | spacc kNN (tree) | spacc kNN (exact) |
+| Sites | vegan (random) | spacc (random) | spacc `nn_walk` (tree) | spacc `nn_walk` (exact) |
 |---:|---:|---:|---:|---:|
 | 200 | 0.03 | 0.02 | 0.02 | 0.03 |
 | 1,000 | 0.22 | 0.03 | 0.05 | 0.19 |
 | 5,000 | 1.17 | 0.09 | 0.32 | 11.6 |
 | 20,000 | 3.89 | 0.34 | 3.24 | not feasible |
 
-**Sensitivity.** The percentile band narrows as `n_seeds` increases and is stable beyond roughly 30-50 seeds for these landscapes [confirm with a band-width-versus-seeds figure for the final version]. As spatial clustering strengthens, the gap between the spatial (kNN/kNCN) and random curves widens, the behaviour the method is designed to expose [quantify across a clustering gradient for the final version].
+**Sensitivity.** The percentile band narrows as `n_seeds` increases and is stable beyond roughly 30-50 seeds for these landscapes [confirm with a band-width-versus-seeds figure for the final version]. As spatial clustering strengthens, the gap between the spatial (kNN/kNCN/`nn_walk`) and random curves widens, the behaviour the methods are designed to expose [quantify across a clustering gradient for the final version].
 
 ## 6. Case study: a Mediterranean plant community
 
@@ -144,7 +156,7 @@ abundances, site coordinates, four plant-trait tables, and a phylogeny for the s
 dataset carries everything the framework needs (coordinates, abundances, traits, a tree), so
 the analysis below is fully reproducible.
 
-**Spatial versus random richness (Figure 2).** The spatial (kNN) curve accumulates more
+**Spatial versus random richness (Figure 2).** The spatial (`nn_walk`) curve accumulates more
 slowly than the random curve and carries a wider band: at 30% of sites it reaches 39.6
 species against 48.4 for the random curve (82%). Spatially adjacent sites share species, so
 expanding outward from a focus finds fewer new species than a random draw of equal size; the
@@ -175,7 +187,7 @@ initial accumulation slope, separating species-dense sites (upper-left of the st
 from the species-poorer central valley. Ranking sites by this slope yields a spatial
 prioritisation layer that a single regional richness figure cannot provide.
 
-![Figure 2. Random versus spatial (kNN) species accumulation on the Mafragh data, with
+![Figure 2. Random versus spatial (`nn_walk`) species accumulation on the Mafragh data, with
 percentile bands.](figures/fig2_random_vs_spatial.svg)
 
 ![Figure 3. Facet saturation along the spatial ordering: each curve normalised to its value
@@ -187,7 +199,7 @@ at full extent.](figures/fig3_facets.svg)
 
 ## 7. Discussion
 
-`spacc` sits in a crowded, active neighbourhood and is meant to complement it. Chiarucci et al. (2009) introduced spatially constrained rarefaction and the kNN/kNCN orderings; mobr (McGlinn et al. 2019) implements richness sSBR with the MoB decomposition of diversity change; Rarefy (Thouverai et al. 2025) computes spatially explicit taxonomic, functional, and phylogenetic rarefaction curves for arbitrary indices. `spacc` does not improve on the rarefaction curves these tools provide. Its contribution is twofold: a parallel C++ backend that takes the same orderings to tens of thousands of sites (Section 5), and an integrated set of area-based and conservation quantities computed along the spatial accumulation that the rarefaction-focused packages do not include, namely endemism-area curves, the species-fragmented (SFAR) and sampling-effort-corrected (SESARS) species-area models, the diversity-area relationship, asymptotic and extreme-value extrapolation, per-site prioritisation metrics, zeta diversity, distance decay, and Moran-eigenvector partitioning, all under one object model. `vegan` provides random and collector accumulation but no spatial ordering (Oksanen et al. 2022); `iNEXT` standardises Hill numbers by size and coverage but is not spatial (Hsieh et al. 2016); `betapart` partitions beta diversity without an accumulation framework (Baselga 2010).
+`spacc` sits in a crowded, active neighbourhood and is meant to complement it. Chiarucci et al. (2009) introduced spatially constrained rarefaction and the fixed-focus kNN and centroid-based kNCN orderings; mobr (McGlinn et al. 2019) implements richness sSBR with the MoB decomposition of diversity change; Rarefy (Thouverai et al. 2025) computes spatially explicit taxonomic, functional, and phylogenetic rarefaction curves for arbitrary indices. `spacc` implements these established orderings and identifies `nn_walk`, Gaussian, and cone accumulation as package-specific spatial traversal models. Its contribution is a parallel C++ implementation and an integrated set of area-based and conservation quantities computed along spatial accumulation, namely endemism-area curves, the species-fragmented (SFAR) and sampling-effort-corrected (SESARS) species-area models, the diversity-area relationship, asymptotic and extreme-value extrapolation, per-site prioritisation metrics, zeta diversity, distance decay, and Moran-eigenvector partitioning, all under one object model. `vegan` provides random and collector accumulation (Oksanen et al. 2022); `iNEXT` standardises Hill numbers by size and coverage (Hsieh et al. 2016); `betapart` partitions beta diversity (Baselga 2010).
 
 **Table 3.** What each tool computes along a spatial ordering. Cells reflect the packages at
 the time of writing and should be re-verified against current versions before submission.
@@ -205,11 +217,11 @@ the time of writing and should be re-verified against current versions before su
 
 Three features carry the contribution. The same spatial ordering drives not only the
 diversity rarefaction that Rarefy and mobr also provide, but the area-based and conservation
-relationships built on it, in one workflow. The focal-site ensemble supplies assumption-free
+relationships built on it, in one workflow. The spatial-focus ensemble supplies assumption-free
 uncertainty on the curve. The C++ backend and automatic two-tier distance handling keep the
 method practical at survey-to-atlas scales.
 
-Limitations are worth stating plainly. Spatial accumulation is descriptive; it characterises how diversity fills space and does not, by itself, attribute that pattern to process. The nearest-neighbour and nearest-centroid orderings are heuristics for "expanding outward" and other sensible orderings exist; the `order` argument exists so that users are not locked into the built-in ones. Coordinates are required, and for very uneven sampling the focal-site band reflects the sampling layout as much as the ecology, which the method surfaces rather than hides. `spacc` claims neither the spatial orderings nor spatial facet rarefaction as new: kNN and kNCN are from Chiarucci et al. (2009), implemented in mobr (richness) and Rarefy (taxonomic, functional, phylogenetic). The contribution is the scale and the integration with area-based and conservation outputs, and keeping that framing explicit is what separates `spacc` from the existing tools.
+Limitations are worth stating plainly. Spatial accumulation is descriptive; it characterises how diversity fills space. Coordinates and an appropriate focal domain are required. The convex-hull default is explicit and reproducible from the observed coordinates. A supplied polygon gives a more faithful sampling domain for regions with concavities, holes, or known unsampled areas. For uneven sampling, the focal-point band reflects both the sampling layout and ecological pattern. The `order` argument supports externally defined sequences. Fixed-focus kNN and centroid-based kNCN are established methods from Chiarucci et al. (2009), implemented in mobr (richness) and Rarefy (taxonomic, functional, phylogenetic). The nearest-neighbour walk, Gaussian, and cone methods are `spacc` extensions.
 
 Planned development includes [AUTHOR: list, e.g. additional null models for `ses()`, native handling of `sf` inputs, support objects for irregular study regions].
 
@@ -265,8 +277,8 @@ Thouverai, E., Pavoine, S., Tordoni, E., Chiarucci, A., Ricotta, C., Rocchini, D
 
 ## Author action items (delete before submission)
 
-- **A1 — Novelty / provenance (resolved; strategic flag).** The spatial orderings (kNN, kNCN) are Chiarucci et al. (2009). Richness sSBR is in mobr; taxonomic + functional + phylogenetic spatially explicit rarefaction is already in Rarefy (Thouverai et al. 2025), by the same group. The draft no longer claims any of these as new. The honest contribution is scale (parallel backend) plus the integrated area-based and conservation outputs (endemism-area, SFAR, SESARS, diversity-area, EVT extrapolation, per-site metrics) that the rarefaction packages do not include. STRATEGIC: this makes a high-novelty "new method" framing for MEE/Ecography unlikely; JOSS (software, eligible ~late July) or a carefully framed Applications note positioned as complementary are the realistic homes. Decide the venue before investing further effort.
-- **A2 — Empirical numbers (done).** Benchmark run and inserted as Table 2 and Figure 1 (`paper/figures/benchmark.{png,svg,csv}`): `spacc` random matches vegan's exact curve to within 0.5 species; `spacc` is ~11-13x faster than `vegan::specaccum` on matched random curves; the tree backend scales to 20,000 sites where the matrix backend is infeasible.
+- **A1 — Novelty / provenance (resolved; strategic flag).** Fixed-focus kNN and centroid-based kNCN are Chiarucci et al. (2009). Richness sSBR is in mobr; taxonomic + functional + phylogenetic spatially explicit rarefaction is already in Rarefy (Thouverai et al. 2025), by the same group. The draft identifies `nn_walk`, Gaussian, and cone accumulation as `spacc` extensions. The software contribution is scale plus the integrated area-based and conservation outputs (endemism-area, SFAR, SESARS, diversity-area, EVT extrapolation, per-site metrics). Decide the venue before investing further effort.
+- **A2 — Empirical numbers (done).** Benchmark run and inserted as Table 2 and Figure 1 (`paper/figures/benchmark.{png,svg,csv}`): `spacc` random matches vegan's exact curve to within 0.5 species; `spacc` is ~11-13x faster than `vegan::specaccum` on matched random curves; the `nn_walk` tree backend scales to 20,000 sites where the matrix backend is infeasible.
 - **A2b — Fairness refinement.** Add a single-thread comparison (so the speed gain is attributed to the C++ backend, not the 32-core parallelism), plus the band-width-vs-seeds and clustering-vs-gap sensitivity figures.
 - **A3 — Real dataset (done).** The case study now uses the Mafragh Mediterranean plant data (`ade4`): 97 sites, 56 species, coordinates + traits + phylogeny, fully reproducible. Figures 2-4 and the mobr cross-check are real. Remaining: the ecological interpretation is yours; one of 56 tree tips did not match a species name (55 matched) so confirm that pairing; add a second, larger system only if a referee asks for broader generality.
 - **A4 — Anonymise.** Strip author block, affiliation, ORCID, acknowledgements, and self-citations for double-anonymous review; keep a separate title page.

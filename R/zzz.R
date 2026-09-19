@@ -19,26 +19,25 @@ utils::globalVariables(c(
   # C++ functions from RcppExports.R
   "calc_chiu_coverage", "calc_coverage", "calc_faith_pd", "calc_fdis", "calc_fric_approx",
   "calc_hill_number", "calc_mntd", "calc_mpd",
-  "cpp_beta_knn_parallel", "cpp_beta_knn_single",
+  "cpp_beta_order_parallel", "cpp_beta_order_single",
   "cpp_collector_single", "cpp_cone_parallel", "cpp_cone_single",
   "cpp_distance_decay_parallel", "cpp_distance_decay_single",
   "cpp_distance_matrix",
-  "cpp_func_knn_parallel", "cpp_func_knn_single",
+  "cpp_func_order_parallel", "cpp_func_order_single",
   "cpp_gaussian_parallel", "cpp_gaussian_single",
   "cpp_kncn_kdtree_parallel", "cpp_kncn_kdtree_single",
   "cpp_kncn_metrics_parallel", "cpp_kncn_parallel", "cpp_kncn_single",
-  "cpp_knn_coverage_parallel", "cpp_knn_coverage_single",
-  "cpp_knn_hill_parallel", "cpp_knn_hill_single",
-  "cpp_knn_kdtree_parallel", "cpp_knn_kdtree_parallel_seeds", "cpp_knn_kdtree_single",
-  "cpp_knn_metrics_parallel", "cpp_knn_parallel", "cpp_knn_parallel_seeds", "cpp_knn_single",
-  "cpp_phylo_knn_parallel", "cpp_phylo_knn_single",
-  "cpp_radius_parallel", "cpp_radius_single",
+  "cpp_order_coverage_parallel", "cpp_order_coverage_single",
+  "cpp_order_hill_parallel", "cpp_order_hill_single",
+  "cpp_nn_walk_kdtree_parallel", "cpp_nn_walk_kdtree_parallel_seeds", "cpp_nn_walk_kdtree_single",
+  "cpp_nn_walk_metrics_parallel", "cpp_nn_walk_parallel", "cpp_nn_walk_parallel_seeds", "cpp_nn_walk_single",
+  "cpp_phylo_order_parallel", "cpp_phylo_order_single",
   "cpp_random_parallel", "cpp_random_single", "cpp_order_parallel",
-  "cpp_knn_order", "cpp_kncn_order", "calc_rao", "calc_rao_traits",
+  "cpp_nn_walk_order", "cpp_focal_order", "cpp_kncn_order", "calc_rao", "calc_rao_traits",
   "cpp_wavefront_parallel", "cpp_wavefront_single",
   "interpolate_at_coverage",
-  "cpp_knn_hill_coverage_parallel",
-  "cpp_knn_hill_beta_parallel",
+  "cpp_order_hill_coverage_parallel",
+  "cpp_order_hill_beta_parallel",
   # ggplot2 aesthetics for new features
   "mean_area", "mean_diversity", "mean_endemism", "mean_richness",
   "endemism_lower", "endemism_upper", "type", "predicted",
@@ -101,7 +100,7 @@ cli_success <- function(msg) {
 }
 
 # Internal ggplot2 theme: minimal with no grid, transparent background
-spacc_theme <- function(base_size = 12) {
+spacc_theme <- function(base_size = 19) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(
       panel.grid = ggplot2::element_blank()

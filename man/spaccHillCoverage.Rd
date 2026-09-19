@@ -14,7 +14,10 @@ spaccHillCoverage(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  method = c("knn", "nn_walk"),
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -40,6 +43,12 @@ standardization. Default \code{NULL} (no standardization). Values in (0, 1).}
 \item{progress}{Logical. Show progress? Default \code{TRUE}.}
 
 \item{seed}{Integer. Random seed for reproducibility.}
+
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_hill_coverage} containing:

@@ -28,7 +28,7 @@ with C++ backend for performance."><script>
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,7 @@ with C++ backend for performance.</p>
 <span>  <span class="va">x</span>,</span>
 <span>  <span class="va">coords</span>,</span>
 <span>  n_seeds <span class="op">=</span> <span class="fl">50L</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"kncn"</span>, <span class="st">"random"</span>, <span class="st">"radius"</span>, <span class="st">"gaussian"</span>, <span class="st">"cone"</span>, <span class="st">"collector"</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"kncn"</span>, <span class="st">"nn_walk"</span>, <span class="st">"random"</span>, <span class="st">"gaussian"</span>, <span class="st">"cone"</span>, <span class="st">"collector"</span><span class="op">)</span>,</span>
 <span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
 <span>  backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"exact"</span>, <span class="st">"kdtree"</span><span class="op">)</span>,</span>
 <span>  support <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -105,6 +105,8 @@ with C++ backend for performance.</p>
 <span>  w_space <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  w_time <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  focal_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  focal_domain <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  order <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -126,15 +128,16 @@ presence/absence (0/1) or abundance data. Can also be a data.frame.</p></dd>
 
 
 <dt id="arg-n-seeds">n_seeds<a class="anchor" aria-label="anchor" href="#arg-n-seeds"></a></dt>
-<dd><p>Integer. Number of random starting points for uncertainty
-quantification. Default 50.</p></dd>
+<dd><p>Integer. Number of random focal points or starting sites for
+uncertainty quantification. Default 50.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Character. Accumulation method:</p><ul><li><p><code>"knn"</code>: k-Nearest Neighbor (always visit closest unvisited)</p></li>
+<dd><p>Character. Accumulation method:</p><ul><li><p><code>"knn"</code>: fixed-focus spatially constrained rarefaction</p></li>
 <li><p><code>"kncn"</code>: k-Nearest Centroid Neighbor (visit closest to centroid)</p></li>
+<li><p><code>"nn_walk"</code>: nearest-neighbour walk (move from the current site to the
+closest unvisited site)</p></li>
 <li><p><code>"random"</code>: Random order (null model)</p></li>
-<li><p><code>"radius"</code>: Expand by distance from seed</p></li>
 <li><p><code>"gaussian"</code>: Probabilistic selection weighted by distance</p></li>
 <li><p><code>"cone"</code>: Directional expansion within angular constraint</p></li>
 <li><p><code>"collector"</code>: Sites in data order (no randomization, single curve)</p></li>
@@ -146,7 +149,7 @@ quantification. Default 50.</p></dd>
 
 
 <dt id="arg-backend">backend<a class="anchor" aria-label="anchor" href="#arg-backend"></a></dt>
-<dd><p>Character. Nearest-neighbor backend for <code>knn</code> and <code>kncn</code>:</p><ul><li><p><code>"auto"</code> (default): Uses exact (brute-force) for &lt;=500 sites,
+<dd><p>Character. Nearest-neighbor backend for <code>nn_walk</code> and <code>kncn</code>:</p><ul><li><p><code>"auto"</code> (default): Uses exact (brute-force) for &lt;=500 sites,
 spatial tree for &gt;500 sites.</p></li>
 <li><p><code>"exact"</code>: Always use brute-force with precomputed distance matrix.</p></li>
 <li><p><code>"kdtree"</code>: Always use spatial tree. Uses k-d tree (nanoflann) for
@@ -209,7 +212,7 @@ coordinate for each site. When provided, a combined spatiotemporal distance
 matrix is computed as <code>w_space * d_spatial + w_time * d_temporal</code> and used
 for accumulation. Forces exact (brute-force) backend since spatial trees
 cannot handle composite distances. Only supported for methods that use a
-distance matrix: <code>"knn"</code>, <code>"radius"</code>, <code>"gaussian"</code>.</p></dd>
+distance matrix: <code>"nn_walk"</code>, <code>"gaussian"</code>.</p></dd>
 
 
 <dt id="arg-w-space">w_space<a class="anchor" aria-label="anchor" href="#arg-w-space"></a></dt>
@@ -224,6 +227,24 @@ Default 1.</p></dd>
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer. Random seed for reproducibility. Default <code>NULL</code>.</p></dd>
+
+
+<dt id="arg-focal-points">focal_points<a class="anchor" aria-label="anchor" href="#arg-focal-points"></a></dt>
+<dd><p>Optional data frame or <code>sf</code> point object with <code>x</code> and
+<code>y</code> coordinates. For <code>method = "knn"</code>, each row is a fixed focal point and
+sites are accumulated by increasing distance from it. When supplied,
+<code>n_seeds</code> is set to the number of focal points. Default <code>NULL</code> samples
+continuous focal points uniformly from the spatial domain.</p></dd>
+
+
+<dt id="arg-focal-domain">focal_domain<a class="anchor" aria-label="anchor" href="#arg-focal-domain"></a></dt>
+<dd><p>Optional <code>sf</code> or <code>sfc</code> polygon defining the domain from
+which continuous <code>knn</code> focal points are sampled. When omitted, the convex
+hull of the eligible site coordinates is used. For haversine distances,
+hull sampling uses a local equal-area projection. Supplying the study
+polygon preserves concavities, holes, and disconnected components in
+irregular sampling domains. Its coordinates must use the same coordinate
+reference system as <code>coords</code>.</p></dd>
 
 
 <dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
@@ -255,15 +276,27 @@ combined with <code>support</code> or <code>time</code>. Default <code>NULL</cod
 <dt>n_species</dt>
 <dd><p>Total species in dataset</p></dd>
 
+<dt>focal_points</dt>
+<dd><p>Continuous focal points used by <code>method = "knn"</code></p></dd>
+
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The canonical <code>knn</code> method follows Chiarucci et al. (2009): each curve uses
+one fixed focal point and accumulates sites by increasing distance from that
+point. The <code>nn_walk</code> method is a greedy traversal whose reference point moves
+to the most recently selected site. The two methods represent different
+spatial sampling models.</p>
+    </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.</p>
 <p>Scheiner, S.M. (2003). Six types of species-area curves. Global Ecology
 and Biogeography, 12, 441-447.</p>
-<p>Chiarucci, A., Bacaro, G., Scheiner, S.M. (2011). Old and new challenges
-in using species diversity for assessing biodiversity. Philosophical
-Transactions of the Royal Society B, 366, 2426-2437.</p>
+<p>Chiarucci, A., Bacaro, G., Rocchini, D., Ricotta, C., Palmer, M.W. &amp;
+Scheiner, S.M. (2009). Spatially constrained rarefaction: incorporating the
+autocorrelated structure of biological communities into sample-based
+rarefaction. Community Ecology, 10, 209-214.</p>
     </div>
 
     <div class="section level2">

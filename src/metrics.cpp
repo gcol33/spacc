@@ -7,7 +7,7 @@ using namespace Rcpp;
 using namespace RcppParallel;
 
 
-// Worker struct for parallel kNN metrics (each site is its own seed)
+// Worker struct for parallel nearest-neighbour walk metrics
 struct KnnMetricsWorker : public Worker {
   // Inputs (read-only)
   const RMatrix<int> species_pa;
@@ -72,7 +72,7 @@ struct KnnMetricsWorker : public Worker {
 
 
 // [[Rcpp::export]]
-IntegerMatrix cpp_knn_metrics_parallel(IntegerMatrix species_pa,
+IntegerMatrix cpp_nn_walk_metrics_parallel(IntegerMatrix species_pa,
                                         NumericMatrix dist_mat,
                                         int n_cores = 1,
                                         bool progress = false) {

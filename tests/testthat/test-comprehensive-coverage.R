@@ -863,18 +863,18 @@ test_that("spacc with collector method works", {
 })
 
 
-test_that("spacc with radius method works", {
+test_that("spacc with nn_walk method works", {
   skip_on_cran()
 
   set.seed(42)
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.3), nrow = 20)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "radius",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc")
-  expect_equal(result$method, "radius")
+  expect_equal(result$method, "nn_walk")
 })
 
 

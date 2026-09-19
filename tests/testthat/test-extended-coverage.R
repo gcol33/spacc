@@ -510,21 +510,21 @@ test_that("subsample with grid method works", {
 
 
 # ==============================================================================
-# Test spacc with radius method
+# Test spacc with nearest-neighbour walk
 # ==============================================================================
 
-test_that("spacc with radius method works", {
+test_that("spacc with nn_walk method works", {
   skip_on_cran()
 
   set.seed(42)
   coords <- data.frame(x = runif(25), y = runif(25))
   species <- matrix(rbinom(25 * 10, 1, 0.3), nrow = 25)
 
-  result <- spacc(species, coords, method = "radius", n_seeds = 3,
+  result <- spacc(species, coords, method = "nn_walk", n_seeds = 3,
                   parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc")
-  expect_equal(result$method, "radius")
+  expect_equal(result$method, "nn_walk")
 })
 
 

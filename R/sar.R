@@ -8,7 +8,7 @@
 #' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
 #' @param q Numeric vector. Diversity orders. Default `c(0, 1, 2)`.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param area_method Character. How to estimate cumulative area:
 #'   `"voronoi"` (Voronoi tessellation, requires sf), `"convex_hull"`
 #'   (convex hull of accumulated sites, requires sf), or `"count"`
@@ -18,6 +18,8 @@
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_dar` containing:
 #'   \item{hill}{A `spacc_hill` object with diversity curves}
@@ -62,7 +64,9 @@ dar <- function(x,
                 parallel = TRUE,
                 n_cores = NULL,
                 progress = TRUE,
-                seed = NULL) {
+                seed = NULL,
+                focal_points = NULL,
+                focal_domain = NULL) {
 
   area_method <- match.arg(area_method)
   distance <- match.arg(distance)
@@ -73,7 +77,9 @@ dar <- function(x,
   hill_obj <- spaccHill(x, coords, q = q, n_seeds = n_seeds,
                          method = method, distance = distance,
                          parallel = parallel, n_cores = n_cores,
-                         progress = progress, seed = seed)
+                         progress = progress, seed = seed,
+                         focal_points = focal_points,
+                         focal_domain = focal_domain)
 
   # Get coordinate data
   if (inherits(coords, "spacc_dist")) {
@@ -84,9 +90,7 @@ dar <- function(x,
 
   n_sites <- nrow(coord_data)
 
-  # Compute cumulative area for each seed
-  # We need the site visit order for each seed, but spaccHill doesn't return it.
-  # Estimate area based on the knn ordering from coordinates.
+  # Compute cumulative area along the same site orders used for diversity.
   if (area_method == "count") {
     # Simple: area = site count (proxy)
     area <- matrix(rep(seq_len(n_sites), each = n_seeds),
@@ -96,34 +100,10 @@ dar <- function(x,
       check_suggests("sf")
     }
 
-    # Recompute knn orderings to get site visit sequences
-    if (inherits(coords, "spacc_dist")) {
-      dist_mat <- as.matrix(coords)
-    } else {
-      dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-    }
-
-    n_cores_use <- resolve_cores(n_cores, parallel)
-
     area <- matrix(NA, nrow = n_seeds, ncol = n_sites)
 
     for (s in seq_len(n_seeds)) {
-      # Reproduce the knn visit order
-      seed_idx <- sample(n_sites, 1) - 1L
-      visited <- logical(n_sites)
-      visit_order <- integer(n_sites)
-      current <- seed_idx + 1L
-      visited[current] <- TRUE
-      visit_order[1] <- current
-
-      for (step in 2:n_sites) {
-        dists <- dist_mat[current, ]
-        dists[visited] <- Inf
-        next_site <- which.min(dists)
-        visited[next_site] <- TRUE
-        visit_order[step] <- next_site
-        current <- next_site
-      }
+      visit_order <- hill_obj$orders[s, ]
 
       # Compute cumulative area
       area[s, 1] <- 0
@@ -531,6 +511,8 @@ plot.spacc_sfar <- function(x, ...) {
 #'   enabling `plot(type = "map")` and [as_sf()]. Default `FALSE`.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_endemism` containing:
 #'   \item{richness}{Matrix of cumulative richness (n_seeds x n_sites)}
@@ -572,14 +554,17 @@ plot.spacc_sfar <- function(x, ...) {
 spaccEndemism <- function(x,
                            coords,
                            n_seeds = 50L,
-                           method = "knn",
+                           method = c("knn", "nn_walk"),
                            distance = c("euclidean", "haversine"),
                            map = FALSE,
                            parallel = TRUE,
                            n_cores = NULL,
                            progress = TRUE,
-                           seed = NULL) {
+                           seed = NULL,
+                           focal_points = NULL,
+                           focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   if (!is.null(seed)) set.seed(seed)
 
@@ -602,6 +587,9 @@ spaccEndemism <- function(x,
 
   n_sites <- nrow(species_pa)
   n_species <- ncol(species_pa)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
 
   # Total species occurrences across all sites
   total_occ <- colSums(species_pa)
@@ -612,22 +600,7 @@ spaccEndemism <- function(x,
   endemism_mat <- matrix(0L, n_seeds, n_sites)
 
   for (s in seq_len(n_seeds)) {
-    # kNN ordering
-    seed_site <- sample(n_sites, 1) - 1L
-    visited <- logical(n_sites)
-    visit_order <- integer(n_sites)
-    current <- seed_site + 1L
-    visited[current] <- TRUE
-    visit_order[1] <- current
-
-    for (step in 2:n_sites) {
-      dists <- dist_mat[current, ]
-      dists[visited] <- Inf
-      next_site <- which.min(dists)
-      visited[next_site] <- TRUE
-      visit_order[step] <- next_site
-      current <- next_site
-    }
+    visit_order <- ordering$orders[s, ]
 
     # Compute cumulative richness and endemism along visit order
     accumulated <- integer(n_species)  # cumulative occurrences in visited sites
@@ -648,21 +621,10 @@ spaccEndemism <- function(x,
     if (progress) cli_info("Computing per-site endemism map")
     # Run accumulation from each site, record final endemism count
     site_endemism <- numeric(n_sites)
+    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
+                                       dist_mat, all_sites = TRUE)$orders
     for (s in seq_len(n_sites)) {
-      visited <- logical(n_sites)
-      visit_order <- integer(n_sites)
-      current <- s
-      visited[current] <- TRUE
-      visit_order[1] <- current
-
-      for (step in 2:n_sites) {
-        dists <- dist_mat[current, ]
-        dists[visited] <- Inf
-        next_site <- which.min(dists)
-        visited[next_site] <- TRUE
-        visit_order[step] <- next_site
-        current <- next_site
-      }
+      visit_order <- map_orders[s, ]
 
       # Count endemics at final step (= species only found in the accumulated area)
       accumulated <- colSums(species_pa[visit_order, , drop = FALSE])
@@ -690,6 +652,7 @@ spaccEndemism <- function(x,
       n_species = ncol(species_pa),
       method = method,
       distance = distance,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_endemism"

@@ -87,10 +87,10 @@ void count_abc(const std::set<int>& set1, const std::set<int>& set2,
 
 
 // [[Rcpp::export]]
-List cpp_beta_knn_single(IntegerMatrix species_pa,
-                         NumericMatrix dist_mat,
-                         int seed,
-                         bool use_jaccard = false) {
+List cpp_beta_order_single(IntegerMatrix species_pa,
+                           NumericMatrix dist_mat,
+                           IntegerVector order,
+                           bool use_jaccard = false) {
   int n_sites = species_pa.nrow();
   int n_species = species_pa.ncol();
 
@@ -101,12 +101,10 @@ List cpp_beta_knn_single(IntegerMatrix species_pa,
   NumericVector cum_distance(n_sites - 1);
   IntegerVector n_species_acc(n_sites);
 
-  std::vector<bool> visited(n_sites, false);
   std::set<int> accumulated_species;
   std::set<int> new_site_species;
 
-  int current = seed;
-  visited[current] = true;
+  int current = order[0];
 
   // Initialize with first site
   for (int sp = 0; sp < n_species; sp++) {
@@ -119,17 +117,8 @@ List cpp_beta_knn_single(IntegerMatrix species_pa,
   double total_dist = 0.0;
 
   for (int step = 0; step < n_sites - 1; step++) {
-    // Find nearest unvisited
-    double min_dist = R_PosInf;
-    int next = -1;
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j] && dist_mat(current, j) < min_dist) {
-        min_dist = dist_mat(current, j);
-        next = j;
-      }
-    }
-
-    total_dist += min_dist;
+    int next = order[step + 1];
+    total_dist += dist_mat(current, next);
     cum_distance[step] = total_dist;
 
     // Get species at new site
@@ -162,7 +151,6 @@ List cpp_beta_knn_single(IntegerMatrix species_pa,
     n_species_acc[step + 1] = accumulated_species.size();
 
     current = next;
-    visited[current] = true;
   }
 
   return List::create(
@@ -176,10 +164,10 @@ List cpp_beta_knn_single(IntegerMatrix species_pa,
 
 
 // Worker for parallel beta accumulation
-struct BetaKnnWorker : public Worker {
+struct BetaOrderWorker : public Worker {
   const RMatrix<int> species_pa;
   const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
+  const RMatrix<int> orders;
   const bool use_jaccard;
 
   RMatrix<double> beta_total;
@@ -187,11 +175,11 @@ struct BetaKnnWorker : public Worker {
   RMatrix<double> beta_nest;
   RMatrix<double> distances;
 
-  BetaKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                const IntegerVector& s, bool jac,
+  BetaOrderWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
+                const IntegerMatrix& ord, bool jac,
                 NumericMatrix& bt, NumericMatrix& btu,
                 NumericMatrix& bn, NumericMatrix& d)
-    : species_pa(sp), dist_mat(dm), seeds(s), use_jaccard(jac),
+    : species_pa(sp), dist_mat(dm), orders(ord), use_jaccard(jac),
       beta_total(bt), beta_turn(btu), beta_nest(bn), distances(d) {}
 
   void operator()(std::size_t begin, std::size_t end) {
@@ -199,12 +187,10 @@ struct BetaKnnWorker : public Worker {
     int n_species = species_pa.ncol();
 
     for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
       std::set<int> accumulated;
       std::set<int> new_species;
 
-      int current = seeds[s];
-      visited[current] = true;
+      int current = orders(s, 0);
 
       for (int sp = 0; sp < n_species; sp++) {
         if (species_pa(current, sp) > 0) {
@@ -215,16 +201,8 @@ struct BetaKnnWorker : public Worker {
       double total_dist = 0.0;
 
       for (int step = 0; step < n_sites - 1; step++) {
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        total_dist += min_dist;
+        int next = orders(s, step + 1);
+        total_dist += dist_mat(current, next);
         distances(s, step) = total_dist;
 
         new_species.clear();
@@ -259,7 +237,6 @@ struct BetaKnnWorker : public Worker {
         }
 
         current = next;
-        visited[current] = true;
       }
     }
   }
@@ -267,16 +244,16 @@ struct BetaKnnWorker : public Worker {
 
 
 // [[Rcpp::export]]
-List cpp_beta_knn_parallel(IntegerMatrix species_pa,
-                           NumericMatrix dist_mat,
-                           int n_seeds,
-                           bool use_jaccard = false,
-                           int n_cores = 1,
-                           bool progress = false) {
+List cpp_beta_order_parallel(IntegerMatrix species_pa,
+                             NumericMatrix dist_mat,
+                             IntegerMatrix orders,
+                             bool use_jaccard = false,
+                             int n_cores = 1,
+                             bool progress = false) {
   int n_sites = species_pa.nrow();
   int n_steps = n_sites - 1;
 
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
+  int n_seeds = orders.nrow();
 
   NumericMatrix beta_total(n_seeds, n_steps);
   NumericMatrix beta_turn(n_seeds, n_steps);
@@ -284,13 +261,14 @@ List cpp_beta_knn_parallel(IntegerMatrix species_pa,
   NumericMatrix distances(n_seeds, n_steps);
 
   if (n_cores > 1) {
-    BetaKnnWorker worker(species_pa, dist_mat, seeds, use_jaccard,
+    BetaOrderWorker worker(species_pa, dist_mat, orders, use_jaccard,
                          beta_total, beta_turn, beta_nest, distances);
     parallelFor(0, n_seeds, worker);
   } else {
     for (int s = 0; s < n_seeds; s++) {
-      List single = cpp_beta_knn_single(species_pa, dist_mat,
-                                        seeds[s], use_jaccard);
+      IntegerVector order = orders(s, _);
+      List single = cpp_beta_order_single(species_pa, dist_mat,
+                                          order, use_jaccard);
       NumericVector bt = single["beta_total"];
       NumericVector btu = single["beta_turnover"];
       NumericVector bn = single["beta_nestedness"];

@@ -117,7 +117,7 @@ test_that("spacc works with haversine distance", {
   coords <- data.frame(x = runif(15, -5, 5), y = runif(15, 45, 50))
   species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   distance = "haversine",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -170,18 +170,18 @@ test_that("spacc works with abundance data", {
 })
 
 
-test_that("spacc works with radius method", {
+test_that("spacc works with nn_walk method", {
   skip_on_cran()
 
   set.seed(42)
   coords <- data.frame(x = runif(15), y = runif(15))
   species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "radius",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc")
-  expect_equal(result$method, "radius")
+  expect_equal(result$method, "nn_walk")
 })
 
 
@@ -192,7 +192,7 @@ test_that("spacc works with kdtree backend", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.4), nrow = 20)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   backend = "kdtree",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -208,7 +208,7 @@ test_that("spacc works with exact backend", {
   coords <- data.frame(x = runif(15), y = runif(15))
   species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   backend = "exact",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -357,14 +357,14 @@ test_that("spacc with kncn kdtree backend works", {
 })
 
 
-test_that("spacc with knn exact backend works", {
+test_that("spacc with nn_walk exact backend works", {
   skip_on_cran()
 
   set.seed(42)
   coords <- data.frame(x = runif(15), y = runif(15))
   species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   backend = "exact",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
@@ -396,7 +396,7 @@ test_that("spacc with spatiotemporal distance works", {
   species <- matrix(rbinom(15 * 8, 1, 0.4), nrow = 15)
   time <- runif(15, 0, 10)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "knn",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   time = time, w_space = 1, w_time = 1,
                   parallel = FALSE, progress = FALSE, seed = 1)
 

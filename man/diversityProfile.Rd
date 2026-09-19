@@ -2,8 +2,6 @@
 % Please edit documentation in R/diversity.R
 \name{diversityProfile}
 \alias{diversityProfile}
-\alias{diversityProfilePhylo}
-\alias{diversityProfileFunc}
 \title{Diversity Profile}
 \usage{
 diversityProfile(
@@ -12,24 +10,6 @@ diversityProfile(
   type = c("both", "per_site", "regional"),
   traits = NULL,
   tree = NULL,
-  dist_method = c("euclidean", "gower"),
-  normalize = TRUE,
-  coords = NULL
-)
-
-diversityProfilePhylo(
-  x,
-  tree,
-  q = seq(0, 3, by = 0.1),
-  type = c("both", "per_site", "regional"),
-  coords = NULL
-)
-
-diversityProfileFunc(
-  x,
-  traits,
-  q = seq(0, 3, by = 0.1),
-  type = c("both", "per_site", "regional"),
   dist_method = c("euclidean", "gower"),
   normalize = TRUE,
   coords = NULL

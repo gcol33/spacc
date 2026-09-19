@@ -15,7 +15,10 @@ spaccHillBeta(
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
-  seed = NULL
+  seed = NULL,
+  method = c("knn", "nn_walk"),
+  focal_points = NULL,
+  focal_domain = NULL
 )
 ```
 
@@ -56,6 +59,20 @@ spaccHillBeta(
 - seed:
 
   Integer. Random seed.
+
+- method:
+
+  Character. Accumulation method: `"knn"` or `"nn_walk"`.
+
+- focal_points:
+
+  Optional focal points for `method = "knn"`. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
+
+- focal_domain:
+
+  Optional polygonal focal domain. See
+  [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
 
 ## Value
 

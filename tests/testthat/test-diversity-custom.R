@@ -89,7 +89,7 @@ test_that("spaccDiversity works across orderings and ends at total richness", {
   total <- sum(colSums(species) > 0)
   f <- function(comm) sum(comm > 0)
 
-  for (m in c("kncn", "radius", "collector")) {
+  for (m in c("kncn", "nn_walk", "collector")) {
     res <- spaccDiversity(species, coords, f, method = m, n_seeds = 4, progress = FALSE)
     expect_true(all(res$curves[, 18] == total), info = m)
   }

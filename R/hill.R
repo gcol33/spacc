@@ -13,7 +13,7 @@
 #'   - q = 1: Exponential of Shannon entropy (effective common species)
 #'   - q = 2: Inverse Simpson (effective dominant species)
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method: `"knn"` (default).
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores. Default `NULL` uses `detectCores() - 1`.
@@ -22,6 +22,8 @@
 #' @param map Logical. If `TRUE`, run accumulation from every site as seed
 #'   and store per-site final Hill numbers for spatial mapping. Enables
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_hill` containing:
 #'   \item{curves}{Named list of matrices, one per q value (n_seeds x n_sites)}
@@ -67,14 +69,17 @@ spaccHill <- function(x,
                       coords,
                       q = c(0, 1, 2),
                       n_seeds = 50L,
-                      method = "knn",
+                      method = c("knn", "nn_walk"),
                       distance = c("euclidean", "haversine"),
                       parallel = TRUE,
                       n_cores = NULL,
                       progress = TRUE,
                       seed = NULL,
-                      map = FALSE) {
+                      map = FALSE,
+                      focal_points = NULL,
+                      focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
 
   if (!is.null(seed)) set.seed(seed)
@@ -114,8 +119,10 @@ spaccHill <- function(x,
   if (progress) cli_info(sprintf("Computing Hill numbers (q = %s, %d seeds)",
                                   paste(q, collapse = ", "), n_seeds))
 
-  # Call C++ function
-  curves <- cpp_knn_hill_parallel(x, dist_mat, n_seeds, q, n_cores, progress)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
+  curves <- cpp_order_hill_parallel(x, ordering$orders - 1L, q, n_cores, progress)
 
   if (progress) cli_success("Done")
 
@@ -123,7 +130,10 @@ spaccHill <- function(x,
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site Hill map values (all sites as seeds)")
-    map_curves <- cpp_knn_hill_parallel(x, dist_mat, n_sites, q, n_cores, progress)
+    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
+                                       dist_mat, all_sites = TRUE)
+    map_curves <- cpp_order_hill_parallel(x, map_orders$orders - 1L, q,
+                                          n_cores, progress)
 
     site_values <- data.frame(
       site_id = seq_len(n_sites),
@@ -148,6 +158,8 @@ spaccHill <- function(x,
       n_species = n_species,
       method = method,
       distance = distance,
+      focal_points = ordering$focal_points,
+      orders = ordering$orders,
       call = match.call()
     ),
     class = "spacc_hill"
@@ -262,6 +274,9 @@ as_sf.spacc_hill <- function(x, crs = NULL) {
 #' @param n_cores Integer. Number of cores. Default `NULL`.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_hill_beta` containing:
 #'   \item{gamma}{Named list of n_seeds x n_sites matrices (one per q)}
@@ -306,8 +321,12 @@ spaccHillBeta <- function(x,
                            parallel = TRUE,
                            n_cores = NULL,
                            progress = TRUE,
-                           seed = NULL) {
+                           seed = NULL,
+                           method = c("knn", "nn_walk"),
+                           focal_points = NULL,
+                           focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   if (!is.null(seed)) set.seed(seed)
   n_cores <- resolve_cores(n_cores, parallel)
@@ -338,7 +357,11 @@ spaccHillBeta <- function(x,
   if (progress) cli_info(sprintf("Computing Hill beta (q = %s, %d seeds)",
                                   paste(q, collapse = ", "), n_seeds))
 
-  result <- cpp_knn_hill_beta_parallel(x, dist_mat, n_seeds, q, n_cores, progress)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   dist_mat, focal_points, focal_domain)
+  n_seeds <- ordering$n_seeds
+  result <- cpp_order_hill_beta_parallel(x, ordering$orders - 1L, q,
+                                         n_cores, progress)
 
   if (progress) cli_success("Done")
 
@@ -352,6 +375,8 @@ spaccHillBeta <- function(x,
       n_seeds = n_seeds,
       n_sites = n_sites,
       n_species = n_species,
+      method = method,
+      focal_points = ordering$focal_points,
       distance = distance,
       call = match.call()
     ),

@@ -1,25 +1,19 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-* New submission.
+This release updates the spatial accumulation semantics and unifies related
+diversity calculations around shared site-order matrices.
 
-The CRAN incoming check flags "possibly misspelled words" in DESCRIPTION:
-EVT and SAR are acronyms defined in the text (extreme value theory (EVT),
-species-area relationship (SAR)); "et"/"al" are citation fragments; "endemism"
-and "nestedness" are standard ecological terms. All are spelled correctly.
+Any spelling diagnostics for author names and citation fragments in DESCRIPTION
+refer to the cited literature.
 
 ## Test environments
 
 - Windows 11 (local), R 4.6.0
-- win-builder: R-devel, R-release
+- win-builder: R-devel
 - GitHub Actions: Ubuntu (R-release, R-devel), macOS (R-release), Windows (R-release)
 
-## First submission
+## Downstream dependencies
 
-This is the first CRAN submission of spacc.
-
-The package contains compiled C++ code (Rcpp/RcppParallel). The "New submission"
-NOTE is expected. Examples and vignettes that depend on Suggests packages are
-guarded with requireNamespace(). Parallel workers are capped to two cores when
-_R_CHECK_LIMIT_CORES_ is set, so checks respect the CRAN core limit.
+No reverse dependencies.

@@ -211,10 +211,10 @@ stacked by \\q\\.
 
 hill_df <- as.data.frame(hill)
 head(hill_df, 3)
-#>   sites q  mean lower upper       sd
-#> 1     1 0 14.75     7    24 6.290134
-#> 2     2 0 18.00    11    28 6.087087
-#> 3     3 0 20.35    11    29 5.333854
+#>   sites q  mean lower  upper       sd
+#> 1     1 0 17.25  9.95 24.000 4.115120
+#> 2     2 0 20.85 15.00 27.000 3.787445
+#> 3     3 0 22.50 16.95 28.525 3.220003
 # Final-site values per q
 hill_df[hill_df$sites == max(hill_df$sites), c("q", "mean", "lower", "upper")]
 #>     q     mean    lower    upper
@@ -235,8 +235,8 @@ useful for plotting custom intervals.
 hs <- summary(hill, ci_level = 0.90)
 tail(hs, 3)
 #>     q sites     mean    lower    upper
-#> 178 2    58 28.45312 28.36059 28.56035
-#> 179 2    59 28.51834 28.47592 28.57000
+#> 178 2    58 28.48275 28.36059 28.50306
+#> 179 2    59 28.52547 28.44862 28.54513
 #> 180 2    60 28.56626 28.56626 28.56626
 ```
 
@@ -335,11 +335,11 @@ ci0 <- ci[ci$q == 0, ]
 # Width of the 95% band at a few site counts
 data.frame(sites = c(5, 20, 40, 60),
            width = ci0$upper[c(5, 20, 40, 60)] - ci0$lower[c(5, 20, 40, 60)])
-#>   sites width
-#> 1     5    14
-#> 2    20     2
-#> 3    40     0
-#> 4    60     0
+#>   sites  width
+#> 1     5 10.525
+#> 2    20  2.000
+#> 3    40  0.000
+#> 4    60  0.000
 ```
 
 The band width shrinks toward the right because all seed walks
@@ -447,7 +447,7 @@ beta <- spaccBeta(pa, coords, n_seeds = 20, progress = FALSE)
 beta
 #> spacc beta diversity: 60 sites, 20 seeds
 #> Index: sorensen, Method: knn
-#> Mean final beta: 0.474 (turnover: 0.000, nestedness: 0.474)
+#> Mean final beta: 0.569 (turnover: 0.000, nestedness: 0.569)
 ```
 
 ``` r
@@ -473,13 +473,13 @@ gives the across-step means and their standard deviations.
 
 tail(as.data.frame(beta), 3)
 #>    sites beta_total beta_turnover beta_nestedness beta_total_sd
-#> 57    57  0.5012692             0       0.5012692     0.1806722
-#> 58    58  0.4736317             0       0.4736317     0.1308800
-#> 59    59  0.4737261             0       0.4737261     0.1467560
+#> 57    57  0.5314725             0       0.5314725    0.08745545
+#> 58    58  0.5681181             0       0.5681181    0.07406815
+#> 59    59  0.5687254             0       0.5687254    0.05952124
 #>    beta_turnover_sd beta_nestedness_sd
-#> 57                0          0.1806722
-#> 58                0          0.1308800
-#> 59                0          0.1467560
+#> 57                0         0.08745545
+#> 58                0         0.07406815
+#> 59                0         0.05952124
 ```
 
 The Hill-number framework offers a complementary beta.
@@ -678,7 +678,7 @@ fp
 #> Functional diversity profile: 60 sites, 30 species
 #> q range: [0.0, 3.0] (7 values)
 #> Per-site: mean D_0 = 1.5, mean D_1 = 1.5, mean D_2 = 1.5
-#> Regional: D_0 = 1.6, D_1 = 1.6, D_2 = 1.6
+#> Regional: D_0 = 1.6, D_1 = 1.5, D_2 = 1.5
 ```
 
 ## Rao’s quadratic entropy
@@ -723,9 +723,9 @@ func_rao <- spaccFunc(species, coords, traits,
                       n_seeds = 20, progress = FALSE)
 tail(as.data.frame(func_rao), 3)
 #>    sites metric     mean    lower    upper          sd
-#> 58    58    rao 1.880594 1.879207 1.884775 0.001788390
-#> 59    59    rao 1.881485 1.880221 1.883420 0.001009007
-#> 60    60    rao 1.882974 1.882974 1.882974 0.000000000
+#> 58    58    rao 1.934095 1.922281 1.944042 0.008915432
+#> 59    59    rao 1.934749 1.930139 1.938609 0.003703098
+#> 60    60    rao 1.935485 1.935485 1.935485 0.000000000
 ```
 
 With presence/absence data Rao’s Q reduces to an equal-weight form; with
@@ -741,9 +741,9 @@ func_rao_cover <- spaccFunc(cover, coords, traits,
                             metric = "rao", n_seeds = 10, progress = FALSE)
 tail(as.data.frame(func_rao_cover), 3)
 #>    sites metric     mean    lower    upper           sd
-#> 58    58    rao 1.880327 1.879207 1.881671 1.021466e-03
-#> 59    59    rao 1.880863 1.880221 1.882188 7.575978e-04
-#> 60    60    rao 1.882974 1.882974 1.882974 2.769383e-16
+#> 58    58    rao 1.932631 1.922281 1.944042 9.289699e-03
+#> 59    59    rao 1.934717 1.930139 1.938609 4.057622e-03
+#> 60    60    rao 1.935485 1.935485 1.935485 3.625973e-16
 ```
 
 Rao’s Q saturates faster than richness because once the community spans
@@ -798,8 +798,8 @@ cov_chiu <- spaccCoverage(species, coords, coverage = "chiu",
                           n_seeds = 20, progress = FALSE)
 tail(as.data.frame(cov_chiu), 3)
 #>    sites richness individuals coverage richness_sd coverage_sd
-#> 58    58       30      2263.8        1           0           0
-#> 59    59       30      2286.8        1           0           0
+#> 58    58       30      2274.7        1           0           0
+#> 59    59       30      2290.1        1           0           0
 #> 60    60       30      2308.0        1           0           0
 ```
 
@@ -814,12 +814,12 @@ targets, interpolating within the observed range.
 interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 summary(interp)
 #>       C90             C95       
-#>  Min.   :10.63   Min.   :12.66  
-#>  1st Qu.:15.80   1st Qu.:18.21  
-#>  Median :16.00   Median :19.82  
-#>  Mean   :17.87   Mean   :20.43  
-#>  3rd Qu.:21.84   3rd Qu.:24.03  
-#>  Max.   :24.53   Max.   :26.93
+#>  Min.   : 7.00   Min.   : 7.00  
+#>  1st Qu.:15.00   1st Qu.:20.71  
+#>  Median :18.49   Median :21.55  
+#>  Mean   :17.58   Mean   :20.71  
+#>  3rd Qu.:20.93   3rd Qu.:23.70  
+#>  Max.   :25.00   Max.   :27.00
 ```
 
 The same idea applied to Hill numbers gives coverage-standardised
@@ -892,7 +892,7 @@ through `...`. The result inherits the `spacc` class, so
 [`predict()`](https://rdrr.io/r/stats/predict.html) apply. The
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method uses a
 metric-neutral axis label by default; set `ylab` to name the index.
-Available orderings are `"knn"`, `"kncn"`, `"random"`, `"radius"`, and
+Available orderings are `"knn"`, `"kncn"`, `"nn_walk"`, `"random"`, and
 `"collector"`. Because the index is an arbitrary R function it runs
 slower than the compiled metrics while accepting any definition, so it
 is best kept for indices that are not already built in.

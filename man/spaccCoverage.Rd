@@ -8,14 +8,16 @@ spaccCoverage(
   x,
   coords,
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   coverage = c("chao", "chiu"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -25,7 +27,8 @@ spaccCoverage(
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: canonical fixed-focus \code{"knn"}
+or \code{"nn_walk"}. Default \code{"knn"}.}
 
 \item{distance}{Character. Distance method: \code{"euclidean"} or \code{"haversine"}.}
 
@@ -47,6 +50,10 @@ data where sampling units are plots/sites rather than independent individuals.}
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final coverage and richness for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_coverage} containing:
