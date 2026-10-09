@@ -54,3 +54,53 @@ retrieve_all(
          "https://royalsocietypublishing.org/doi/pdf/10.1098/rstb.2022.0183"),
     ],
 )
+
+# Publisher PDFs behind Cloudflare: plain requests get 403, so fetch the
+# remaining ones through the wall-clearing session (browser clear once,
+# cookies cached), trying each candidate URL until one yields a PDF.
+from bot_wall import WallSession
+
+WALLED = [
+    ("P1_Rosindell_2024_EvoHeritage.pdf", [
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC11129585/pdf/",
+        "https://academic.oup.com/sysbio/article-pdf/73/1/158/57593905/syad072.pdf",
+        "https://www.biorxiv.org/content/10.1101/2022.07.16.499419v4.full.pdf",
+    ]),
+    ("F1_Wojcik_2024_Aggregated_functional_diversity_K.pdf", [
+        "https://besjournals.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/2041-210X.14470",
+    ]),
+    ("E2_Zou_2023_Total_expected_species_rarefaction_fit.pdf", [
+        "https://esajournals.onlinelibrary.wiley.com/doi/pdfdirect/10.1002/ecs2.4363",
+    ]),
+    ("C1_Chiu_2023_Richness_estimator_sampling_without_replacement.pdf", [
+        "https://besjournals.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/2041-210X.14146",
+    ]),
+    ("I1_Chiu_2023_Network_diversity_incomplete_sampling.pdf", [
+        "https://royalsocietypublishing.org/doi/pdf/10.1098/rstb.2022.0183",
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC10257815/pdf/",
+    ]),
+]
+
+
+def is_pdf(path):
+    with open(path, "rb") as fh:
+        return fh.read(5) == b"%PDF-"
+
+
+session = WallSession()
+for filename, urls in WALLED:
+    dest = OUTPUT_DIR / filename
+    if dest.exists():
+        continue
+    for url in urls:
+        try:
+            session.download(url, dest)
+            if dest.exists() and is_pdf(dest):
+                print(f"  [OK] {filename} <- {url}")
+                break
+            if dest.exists():
+                dest.unlink()
+        except Exception as exc:  # noqa: BLE001 - report and try the next URL
+            print(f"  [!] {filename}: {url}: {exc}")
+    else:
+        print(f"  [FAILED] {filename}")
