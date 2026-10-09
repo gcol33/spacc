@@ -35,6 +35,10 @@
   the output of `Rarefy::directionalSAC()` and `Rarefy::rare_alpha()`.
   `spacc(method = "knn", focal_points = coords)` is checked to reproduce
   Rarefy's directional curve exactly (#16).
+- `spaccNetwork()` accumulates an interaction network over space:
+  interaction richness and Hill numbers, sample coverage, the species curves
+  of both levels and connectance along the same orders (Chiu et al. 2023)
+  (#15).
 - `dar()` is an S3 generic: besides a site-by-species matrix it takes a
   `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
   object and returns the diversity-area relationship of each of its curves,
