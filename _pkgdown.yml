@@ -99,6 +99,7 @@ reference:
   contents:
   - spaccPhylo
   - spaccFunc
+  - spaccRedundancy
 - title: Coverage-Based Rarefaction
   desc: Standardize by sample completeness
   contents:
