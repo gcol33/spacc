@@ -11,6 +11,7 @@ extrapolate(
   R = 200L,
   level = 0.95,
   compare = TRUE,
+  n_units = NULL,
   warn_ratio = 2,
   ...
 )
@@ -36,6 +37,12 @@ Default 200.}
 frequencies, compare the asymptote to the nonparametric \code{chao2()} /
 \code{iChao2()} estimates and flag large disagreement.}
 
+\item{n_units}{Total number of sampling units in the region when the sites
+are drawn without replacement from a finite set. With \code{compare = TRUE}
+the asymptote is then also compared with the MoRE estimator
+(\code{chao2(x, n_units = )}, Chiu 2023), which is the reference for the
+disagreement warning. Default \code{NULL} (sampling with replacement).}
+
 \item{warn_ratio}{Numeric. Warn when the fitted asymptote exceeds the
 observed richness by more than this factor. Default 2. Set to \code{Inf} to
 silence.}
@@ -52,7 +59,8 @@ An object of class \code{spacc_fit} containing:
 \item{aic}{AIC of the model}
 \item{gof}{List with residual \code{rmse} and relative \code{rmse_rel} over the
 observed range}
-\item{compare}{Nonparametric \code{chao2} / \code{iChao2} estimates, if available}
+\item{compare}{Nonparametric \code{chao2} / \code{iChao2} estimates, and \code{MoRE}
+when \code{n_units} is given, if available}
 \item{boot}{Bootstrap coefficient draws, if \code{interval = "bootstrap"}}
 }
 \description{

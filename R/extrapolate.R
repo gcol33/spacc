@@ -145,6 +145,11 @@
 #' @param compare Logical. If `TRUE` (default) and the object carries incidence
 #'   frequencies, compare the asymptote to the nonparametric `chao2()` /
 #'   `iChao2()` estimates and flag large disagreement.
+#' @param n_units Total number of sampling units in the region when the sites
+#'   are drawn without replacement from a finite set. With `compare = TRUE`
+#'   the asymptote is then also compared with the MoRE estimator
+#'   (`chao2(x, n_units = )`, Chiu 2023), which is the reference for the
+#'   disagreement warning. Default `NULL` (sampling with replacement).
 #' @param warn_ratio Numeric. Warn when the fitted asymptote exceeds the
 #'   observed richness by more than this factor. Default 2. Set to `Inf` to
 #'   silence.
@@ -159,7 +164,8 @@
 #'   \item{aic}{AIC of the model}
 #'   \item{gof}{List with residual `rmse` and relative `rmse_rel` over the
 #'     observed range}
-#'   \item{compare}{Nonparametric `chao2` / `iChao2` estimates, if available}
+#'   \item{compare}{Nonparametric `chao2` / `iChao2` estimates, and `MoRE`
+#'     when `n_units` is given, if available}
 #'   \item{boot}{Bootstrap coefficient draws, if `interval = "bootstrap"`}
 #'
 #' @section Bias caveat:
@@ -206,6 +212,7 @@ extrapolate <- function(object,
                         R = 200L,
                         level = 0.95,
                         compare = TRUE,
+                        n_units = NULL,
                         warn_ratio = 2,
                         ...) {
 
@@ -217,6 +224,7 @@ extrapolate <- function(object,
     stop("extrapolate() does not support grouped spacc objects; extrapolate each group separately.",
          call. = FALSE)
   }
+  n_units <- .finite_units(n_units, object$n_sites)
 
   summ <- summary(object)
   df <- data.frame(x = summ$sites, y = summ$mean)
@@ -271,6 +279,10 @@ extrapolate <- function(object,
     c2 <- .chao2_from_freq(object$incidence_freq, object$n_sites)
     ic2 <- .ichao2_from_freq(object$incidence_freq, object$n_sites)
     cmp <- list(chao2 = c2$estimate, iChao2 = ic2$estimate, S_obs = c2$S_obs)
+    if (!is.null(n_units)) {
+      cmp$MoRE <- .more_from_freq(object$incidence_freq, object$n_sites, n_units)$estimate
+      cmp$n_units <- n_units
+    }
   }
 
   # ---- guardrail warnings (issue #5) ----
@@ -279,12 +291,16 @@ extrapolate <- function(object,
       "Asymptote (%.0f) exceeds observed richness (%.0f) by more than %.1fx; parametric extrapolation may be unreliable on under-sampled data. See ?extrapolate.",
       asymptote, observed, warn_ratio), call. = FALSE)
   }
-  if (!is.null(cmp) && is.finite(cmp$chao2) && cmp$chao2 > 0) {
-    rel <- asymptote / cmp$chao2
+  ref_name <- if (!is.null(cmp$MoRE)) "MoRE" else "chao2"
+  ref <- cmp[[ref_name]]
+  if (!is.null(ref) && is.finite(ref) && ref > 0) {
+    rel <- asymptote / ref
     if (rel > 1.5 || rel < 1 / 1.5) {
       warning(sprintf(
-        "Asymptote (%.0f) disagrees with nonparametric chao2 (%.0f) by %.0f%%; prefer chao2()/iChao2() for total-richness intervals.",
-        asymptote, cmp$chao2, 100 * abs(rel - 1)), call. = FALSE)
+        "Asymptote (%.0f) disagrees with nonparametric %s (%.0f) by %.0f%%; prefer %s for total-richness intervals.",
+        asymptote, ref_name, ref, 100 * abs(rel - 1),
+        if (ref_name == "MoRE") "chao2(x, n_units = )" else "chao2()/iChao2()"),
+        call. = FALSE)
     }
   }
 
@@ -339,6 +355,10 @@ print.spacc_fit <- function(x, ...) {
     cat(strrep("-", 38), "\n")
     cat(sprintf("Nonparametric:  chao2 = %.1f   iChao2 = %.1f\n",
                 x$compare$chao2, x$compare$iChao2))
+    if (!is.null(x$compare$MoRE)) {
+      cat(sprintf("Without replacement (%d of %s units):  MoRE = %.1f\n",
+                  x$max_effort, format(x$compare$n_units), x$compare$MoRE))
+    }
     cat("(prefer these for calibrated total-richness intervals; see ?extrapolate)\n")
   }
   invisible(x)

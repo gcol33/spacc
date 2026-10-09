@@ -75,6 +75,49 @@ test_that("incidence richness estimators recover the true pool size", {
 })
 
 
+# ---- sampling without replacement (Chiu 2023) ----------------------------
+# A finite grid of T cells in which each species occupies a random set of
+# cells; truth = species present anywhere in the grid. A fraction of the cells
+# is drawn without replacement.
+grid_population <- function(T_units = 200, S = 200, pmin = 0.003, pmax = 0.15) {
+  p <- runif(S, pmin, pmax)
+  m <- sapply(p, function(pi) rbinom(T_units, 1, pi))
+  m[, colSums(m) > 0, drop = FALSE]
+}
+
+test_that("MoRE recovers the richness of a finite grid sampled at 80%", {
+  skip_on_cran()
+  set.seed(7)
+  N <- 120
+  r <- t(replicate(N, {
+    pop <- grid_population(); truth <- ncol(pop)
+    s <- pop[sample(nrow(pop), 0.8 * nrow(pop)), , drop = FALSE]
+    c2 <- chao2(s); mo <- chao2(s, n_units = nrow(pop))
+    c(c2 = abs(c2$estimate - truth), mo = abs(mo$estimate - truth),
+      mo_bias = (mo$estimate - truth) / truth,
+      c2_cov = truth >= c2$lower && truth <= c2$upper,
+      mo_cov = truth >= mo$lower && truth <= mo$upper)
+  }))
+  expect_lt(abs(median(r[, "mo_bias"])), 0.01)
+  expect_gt(mean(r[, "mo"] <= r[, "c2"]), 0.6)
+  # The log-normal interval puts its lower bound above S_obs, so it misses
+  # whenever the sample already holds every species (about 30% of draws here).
+  expect_gt(mean(r[, "mo_cov"]), mean(r[, "c2_cov"]))
+  expect_gt(mean(r[, "mo_cov"]), 0.6)
+})
+
+test_that("MoRE standard error matches the sampling spread of the estimate", {
+  skip_on_cran()
+  set.seed(8)
+  pop <- grid_population()
+  r <- t(replicate(200, {
+    e <- chao2(pop[sample(nrow(pop), 0.3 * nrow(pop)), ], n_units = nrow(pop))
+    c(e$estimate, e$se)
+  }))
+  expect_equal(mean(r[, 2]), sd(r[, 1]), tolerance = 0.2)
+})
+
+
 # ---- abundance estimators recover truth ----------------------------------
 test_that("abundance richness estimators recover the true pool size", {
   skip_on_cran()

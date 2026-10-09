@@ -6,6 +6,11 @@
   (Rosindell et al. 2024), phylogenetic diversity with attrition of
   evolutionary heritage at rate `rho`. `rho = 0` reproduces Faith's PD; a
   vector `rho` gives one curve per rate (#7).
+- `chao2(x, n_units = )` estimates richness for sites drawn without
+  replacement from a finite set of `n_units` units (MoRE, Chiu 2023), which
+  reaches the observed richness when every unit is sampled instead of
+  overestimating it. `extrapolate(n_units = )` compares the asymptote with
+  MoRE and uses it as the reference for the disagreement warning (#14).
 
 ## Bug fixes
 

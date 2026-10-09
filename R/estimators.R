@@ -106,6 +106,60 @@ chao1 <- function(x) {
 }
 
 
+# MoRE (Chiu 2023, Eq. 5): richness from incidence frequencies of t units
+# drawn without replacement from n_units, sampling fraction w = t / n_units.
+#   Q2 > 0:  S_obs + (t-1)/t (1-w) Q1^2 / (Q2 + w (Q1 - Q2)^+)
+#   Q2 = 0:  S_obs + (t-1)/t (1-w)/w (Q1 - 1)
+# with (A)^+ = A for A > 0 and 1 otherwise. Variance by the delta method over
+# the frequency counts, cov(Qi, Qj) = Qi (1 - Qi / S) on the diagonal and
+# -Qi Qj / S off it; S_obs depends on every Qk with derivative 1, so only the
+# derivatives in Q1 and Q2 differ from 1.
+.more_from_freq <- function(freq, t, n_units) {
+  freq <- freq[freq > 0]
+  S_obs <- length(freq)
+  Q1 <- sum(freq == 1)
+  Q2 <- sum(freq == 2)
+  w <- t / n_units
+  m <- (t - 1) / t
+
+  if (Q2 > 0) {
+    excess <- Q1 - Q2 > 0
+    A <- Q2 + w * if (excess) Q1 - Q2 else 1
+    f0 <- m * (1 - w) * Q1^2 / A
+    g1 <- m * (1 - w) * (2 * Q1 / A - Q1^2 * w * excess / A^2)
+    g2 <- -m * (1 - w) * Q1^2 * (1 - w * excess) / A^2
+  } else if (Q1 > 0) {
+    f0 <- m * (1 - w) / w * (Q1 - 1)
+    g1 <- m * (1 - w) / w
+    g2 <- 0
+  } else {
+    f0 <- g1 <- g2 <- 0
+  }
+  estimate <- S_obs + f0
+
+  d <- c(1 + g1, 1 + g2, 1)
+  Q <- c(Q1, Q2, S_obs - Q1 - Q2)
+  se <- if (estimate > 0) sqrt(max(sum(d^2 * Q) - sum(d * Q)^2 / estimate, 0)) else 0
+
+  ci <- chao_log_ci(estimate, se, S_obs)
+  list(estimate = estimate, se = se, lower = ci[1], upper = ci[2],
+       S_obs = S_obs, Q1 = Q1, Q2 = Q2, n = t, n_units = n_units)
+}
+
+
+# Validate n_units against the number of sampled units t; NULL and Inf mean
+# sampling with replacement.
+.finite_units <- function(n_units, t) {
+  if (is.null(n_units) || identical(n_units, Inf)) return(NULL)
+  stopifnot("n_units must be a single number" = is.numeric(n_units) && length(n_units) == 1)
+  if (!is.finite(n_units) || n_units < t) {
+    stop(sprintf("n_units (%s) must be at least the number of sampled units (%d)",
+                 format(n_units), t), call. = FALSE)
+  }
+  n_units
+}
+
+
 #' Chao2 Richness Estimator
 #'
 #' Estimate total species richness from incidence (presence/absence) data
@@ -113,40 +167,70 @@ chao1 <- function(x) {
 #'
 #' @param x A site-by-species matrix (presence/absence or abundance).
 #'   Automatically binarized.
+#' @param n_units Total number of sampling units in the study region, when
+#'   the rows of `x` are a sample drawn without replacement from a finite set
+#'   of units (atlas cells, a plot network). `NULL` (default) or `Inf` assumes
+#'   sampling with replacement and gives Chao2; a finite value gives the MoRE
+#'   estimator of Chiu (2023).
 #'
 #' @return An object of class `spacc_estimate`.
 #'
 #' @details
 #' The Chao2 estimator is the incidence-based analogue of Chao1:
-#' \deqn{S_{Chao2} = S_{obs} + \frac{Q_1^2}{2 Q_2}}
-#' where \eqn{Q_1} is the number of uniques (species found at exactly 1 site)
-#' and \eqn{Q_2} is the number of duplicates (species found at exactly 2 sites).
+#' \deqn{S_{Chao2} = S_{obs} + \frac{t-1}{t} \frac{Q_1^2}{2 Q_2}}
+#' where \eqn{t} is the number of sites, \eqn{Q_1} is the number of uniques
+#' (species found at exactly 1 site) and \eqn{Q_2} is the number of duplicates
+#' (species found at exactly 2 sites).
+#'
+#' Chao2 assumes the sites are drawn with replacement, or from an effectively
+#' infinite set of units. When they are a large fraction \eqn{w = t / T} of a
+#' finite set of \eqn{T} units it overestimates richness and does not reach the
+#' true richness as \eqn{w \to 1}. With `n_units = T`, `chao2()` returns the
+#' moment-based estimator for sampling without replacement (MoRE, Chiu 2023,
+#' Eq. 5):
+#' \deqn{S_{MoRE} = S_{obs} + \frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+}}
+#' where \eqn{(A)^+} is \eqn{A} for \eqn{A > 0} and 1 otherwise; for
+#' \eqn{Q_2 = 0} the undetected term is \eqn{\frac{t-1}{t} \frac{1-w}{w} (Q_1 - 1)}.
+#' MoRE equals the observed richness at \eqn{w = 1}. Its standard error is the
+#' delta-method variance of Chiu (2023) and the interval is the log-normal one
+#' used for Chao2.
 #'
 #' @references
 #' Chao, A. (1987). Estimating the population size for capture-recapture data
 #' with unequal catchability. Biometrics, 43, 783-791.
+#'
+#' Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+#' data sampled without replacement. Methods in Ecology and Evolution, 14,
+#' 2482-2493. \doi{10.1111/2041-210X.14146}
 #'
 #' @seealso [chao1()] for abundance-based estimation
 #'
 #' @examples
 #' species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 #' chao2(species)
+#' # the 50 sites are 80% of a 62-cell grid
+#' chao2(species, n_units = 62)
 #'
 #' @export
-chao2 <- function(x) {
+chao2 <- function(x, n_units = NULL) {
   x <- as.matrix(x)
   pa <- (x > 0) * 1L
-  r <- .chao2_from_freq(colSums(pa), nrow(pa))
+  n_units <- .finite_units(n_units, nrow(pa))
+  r <- if (is.null(n_units)) {
+    .chao2_from_freq(colSums(pa), nrow(pa))
+  } else {
+    .more_from_freq(colSums(pa), nrow(pa), n_units)
+  }
 
   structure(
     list(
-      estimator = "chao2",
+      estimator = if (is.null(n_units)) "chao2" else "MoRE",
       estimate = r$estimate,
       se = r$se,
       lower = r$lower,
       upper = r$upper,
       S_obs = r$S_obs,
-      details = list(Q1 = r$Q1, Q2 = r$Q2, n_sites = r$n)
+      details = list(Q1 = r$Q1, Q2 = r$Q2, n_sites = r$n, n_units = r$n_units)
     ),
     class = "spacc_estimate"
   )

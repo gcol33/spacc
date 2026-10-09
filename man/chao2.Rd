@@ -4,11 +4,17 @@
 \alias{chao2}
 \title{Chao2 Richness Estimator}
 \usage{
-chao2(x)
+chao2(x, n_units = NULL)
 }
 \arguments{
 \item{x}{A site-by-species matrix (presence/absence or abundance).
 Automatically binarized.}
+
+\item{n_units}{Total number of sampling units in the study region, when
+the rows of \code{x} are a sample drawn without replacement from a finite set
+of units (atlas cells, a plot network). \code{NULL} (default) or \code{Inf} assumes
+sampling with replacement and gives Chao2; a finite value gives the MoRE
+estimator of Chiu (2023).}
 }
 \value{
 An object of class \code{spacc_estimate}.
@@ -19,18 +25,38 @@ using the Chao2 estimator (Chao 1987).
 }
 \details{
 The Chao2 estimator is the incidence-based analogue of Chao1:
-\deqn{S_{Chao2} = S_{obs} + \frac{Q_1^2}{2 Q_2}}
-where \eqn{Q_1} is the number of uniques (species found at exactly 1 site)
-and \eqn{Q_2} is the number of duplicates (species found at exactly 2 sites).
+\deqn{S_{Chao2} = S_{obs} + \frac{t-1}{t} \frac{Q_1^2}{2 Q_2}}
+where \eqn{t} is the number of sites, \eqn{Q_1} is the number of uniques
+(species found at exactly 1 site) and \eqn{Q_2} is the number of duplicates
+(species found at exactly 2 sites).
+
+Chao2 assumes the sites are drawn with replacement, or from an effectively
+infinite set of units. When they are a large fraction \eqn{w = t / T} of a
+finite set of \eqn{T} units it overestimates richness and does not reach the
+true richness as \eqn{w \to 1}. With \code{n_units = T}, \code{chao2()} returns the
+moment-based estimator for sampling without replacement (MoRE, Chiu 2023,
+Eq. 5):
+\deqn{S_{MoRE} = S_{obs} + \frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+}}
+where \eqn{(A)^+} is \eqn{A} for \eqn{A > 0} and 1 otherwise; for
+\eqn{Q_2 = 0} the undetected term is \eqn{\frac{t-1}{t} \frac{1-w}{w} (Q_1 - 1)}.
+MoRE equals the observed richness at \eqn{w = 1}. Its standard error is the
+delta-method variance of Chiu (2023) and the interval is the log-normal one
+used for Chao2.
 }
 \examples{
 species <- matrix(rbinom(50 * 30, 1, 0.3), nrow = 50)
 chao2(species)
+# the 50 sites are 80\% of a 62-cell grid
+chao2(species, n_units = 62)
 
 }
 \references{
 Chao, A. (1987). Estimating the population size for capture-recapture data
 with unequal catchability. Biometrics, 43, 783-791.
+
+Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+data sampled without replacement. Methods in Ecology and Evolution, 14,
+2482-2493. \doi{10.1111/2041-210X.14146}
 }
 \seealso{
 \code{\link[=chao1]{chao1()}} for abundance-based estimation
