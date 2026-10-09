@@ -23,11 +23,21 @@
   accumulation: the ratio of the taxonomic Hill number to the phylogenetic
   (Chao et al. 2010) or similarity-sensitive functional (Leinster & Cobbold
   2012) Hill number of the accumulated community (#9).
+- `dar()` is an S3 generic: besides a site-by-species matrix it takes a
+  `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
+  object and returns the diversity-area relationship of each of its curves,
+  along the same site orders, with a power-law fit per curve (`coef()`).
+  The area kernels are C++ (incremental convex hull, Voronoi cells), so
+  `dar()` no longer needs `sf`. The result carries `curves`, `metric` and
+  the curve `object` it was built from (formerly `hill`) (#10).
 - New C++ engine for size- and coverage-based rarefaction and extrapolation
   of Hill numbers (`src/core/inext_core.h`), matching iNEXT.3D.
 
 ## Bug fixes
 
+- `dar(area_method = "voronoi")` computed bounding-box areas; it now sums the
+  Voronoi cells of the accumulated sites. The convex-hull area of one or two
+  sites is 0 instead of their bounding box.
 - `diversityProfile(tree = )` scaled branch lengths by the maximum
   root-to-tip depth. It now uses the abundance-weighted mean depth of Chao et
   al. (2010), which is the same for an ultrametric tree and keeps the profile

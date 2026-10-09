@@ -136,7 +136,7 @@ test_that("dar has expected structure", {
 
   expect_true("area" %in% names(result))
   expect_true("q" %in% names(result))
-  expect_true("hill" %in% names(result))
+  expect_s3_class(result$object, "spacc_hill")
 })
 
 

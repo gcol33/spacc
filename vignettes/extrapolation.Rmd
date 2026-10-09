@@ -430,12 +430,12 @@ community is not penalised for its lower count.
 area (Ma 2018), generalising the classical species-area relationship to every
 Hill number order:
 
-```{r dar, eval = requireNamespace("sf", quietly = TRUE)}
+```{r dar}
 dar_result <- dar(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
 dar_result
 ```
 
-```{r plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2.", eval = requireNamespace("sf", quietly = TRUE)}
+```{r plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2."}
 plot(dar_result) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -452,10 +452,14 @@ evenness is roughly constant across scales and richness alone carries the
 spatial signal; if the higher-order curves flatten earlier than the
 richness curve, common and dominant species saturate first while rare
 species keep accumulating, which is the usual pattern for aggregated
-communities. The area axis is built from the cumulative convex hull of
-the accumulated sites by default, so it requires `sf`; passing
-`area_method = "count"` substitutes the site count as an area proxy when
-`sf` is not available.
+communities. The area axis is the convex hull of the accumulated sites by
+default; `area_method = "voronoi"` sums the Voronoi cells of the accumulated
+sites instead, and `"count"` uses the number of sites.
+
+`dar()` also takes a curve object computed earlier, so the area scaling of
+phylogenetic or functional facets comes from the same site orders as the
+curve itself: `dar(spaccFunc(...))` gives one diversity-area curve per
+functional metric, `dar(spaccPhylo(...))` one per phylogenetic metric.
 
 Reading the DAR as a power law, $D = c\,A^{z}$ with diversity $D$, area
 $A$, intercept $c$, and scaling exponent $z$, gives a compact way to
@@ -464,6 +468,11 @@ facet of diversity grows with area. A steep $z$ at order zero with a
 shallow $z$ at order two is the signature of a community where rare
 species drive the area effect, which is exactly the case where a richness
 estimate from a small plot will most badly understate the regional total.
+`coef()` returns the fitted $c$ and $z$ of each curve:
+
+```{r dar-coef}
+coef(dar_result)
+```
 
 ## Predicting richness at new effort levels
 

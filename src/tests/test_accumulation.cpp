@@ -3,6 +3,7 @@
 
 #include "catch.hpp"
 #include "../core/accumulation_core.h"
+#include "../core/geometry_core.h"
 
 using namespace spacc;
 
@@ -220,4 +221,33 @@ TEST_CASE("richness_within_radius", "[accumulation]") {
   auto r2 = richness_within_radius(sp, dist, 3, 3, 0, 2.0);
   REQUIRE(r2.first == 3);
   REQUIRE(r2.second == 3);
+}
+
+
+TEST_CASE("geometry: hull area along an order and Voronoi cells", "[geometry]") {
+  // unit square corners plus its centre
+  std::vector<double> xs = {0, 1, 1, 0, 0.5};
+  std::vector<double> ys = {0, 0, 1, 1, 0.5};
+  auto x = [&](int i) { return xs[i]; };
+  auto y = [&](int i) { return ys[i]; };
+
+  SECTION("hull area grows only when a site falls outside the hull") {
+    std::vector<int> order = {4, 0, 1, 2, 3};
+    double area[5];
+    spacc::hull_area_along_order(x, y, [&](int k) { return order[k]; }, 5, area);
+    REQUIRE(area[0] == Approx(0.0));
+    REQUIRE(area[1] == Approx(0.0));
+    REQUIRE(area[2] == Approx(0.25));   // centre, (0,0), (1,0)
+    REQUIRE(area[3] == Approx(0.5));
+    REQUIRE(area[4] == Approx(1.0));
+  }
+
+  SECTION("Voronoi cells tile the bounding box") {
+    std::vector<double> cells = spacc::voronoi_cell_areas(x, y, 5, 0, 1, 0, 1);
+    double total = 0.0;
+    for (double c : cells) total += c;
+    REQUIRE(total == Approx(1.0));
+    REQUIRE(cells[4] == Approx(0.5));   // the centre owns the inner diamond
+    REQUIRE(cells[0] == Approx(0.125));
+  }
 }

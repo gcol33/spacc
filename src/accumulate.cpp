@@ -3,6 +3,7 @@
 #include <RcppParallel.h>
 #include <utility>
 #include "parallel_utils.h"
+#include "core/geometry_core.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
@@ -80,4 +81,38 @@ List cpp_radius_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat,
   run_workers(static_cast<std::size_t>(seeds.size()), n_cores, worker);
   return List::create(Named("curves") = curves,
                       Named("sites_included") = sites_included);
+}
+
+
+// Cumulative area of the sites visited along each order (n_orders x n_steps,
+// orders 0-based): the convex hull of the first k sites, or the summed
+// Voronoi cells of the first k sites within the bounding box of all sites.
+// [[Rcpp::export]]
+NumericMatrix cpp_area_along_orders(NumericVector x, NumericVector y, IntegerMatrix orders,
+                                    std::string method) {
+  const int n_orders = orders.nrow(), n_steps = orders.ncol();
+  NumericMatrix area(n_orders, n_steps);
+  auto xs = [&](int i) { return x[i]; };
+  auto ys = [&](int i) { return y[i]; };
+  if (method == "convex_hull") {
+    std::vector<double> row(n_steps);
+    for (int s = 0; s < n_orders; s++) {
+      spacc::hull_area_along_order(xs, ys, [&](int k) { return orders(s, k); }, n_steps,
+                                   row.data());
+      for (int k = 0; k < n_steps; k++) area(s, k) = row[k];
+    }
+  } else if (method == "voronoi") {
+    const std::vector<double> cell = spacc::voronoi_cell_areas(
+      xs, ys, x.size(), Rcpp::min(x), Rcpp::max(x), Rcpp::min(y), Rcpp::max(y));
+    for (int s = 0; s < n_orders; s++) {
+      double total = 0.0;
+      for (int k = 0; k < n_steps; k++) {
+        total += cell[orders(s, k)];
+        area(s, k) = total;
+      }
+    }
+  } else {
+    Rcpp::stop("unknown area method");
+  }
+  return area;
 }

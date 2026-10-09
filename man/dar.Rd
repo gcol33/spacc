@@ -2,9 +2,17 @@
 % Please edit documentation in R/sar.R
 \name{dar}
 \alias{dar}
+\alias{dar.default}
+\alias{dar.spacc}
+\alias{dar.spacc_hill}
+\alias{dar.spacc_phylo}
+\alias{dar.spacc_func}
+\alias{dar.spacc_redundancy}
 \title{Diversity-Area Relationship (DAR)}
 \usage{
-dar(
+dar(x, ...)
+
+\method{dar}{default}(
   x,
   coords,
   q = c(0, 1, 2),
@@ -17,24 +25,42 @@ dar(
   progress = TRUE,
   seed = NULL,
   focal_points = NULL,
-  focal_domain = NULL
+  focal_domain = NULL,
+  ...
 )
+
+\method{dar}{spacc}(x, area_method = c("convex_hull", "voronoi", "count"), ...)
+
+\method{dar}{spacc_hill}(x, area_method = c("convex_hull", "voronoi", "count"), ...)
+
+\method{dar}{spacc_phylo}(x, area_method = c("convex_hull", "voronoi", "count"), ...)
+
+\method{dar}{spacc_func}(x, area_method = c("convex_hull", "voronoi", "count"), ...)
+
+\method{dar}{spacc_redundancy}(x, area_method = c("convex_hull", "voronoi", "count"), ...)
 }
 \arguments{
-\item{x}{A site-by-species matrix (abundance data recommended).}
+\item{x}{A site-by-species matrix (abundance data recommended), or a
+curve object: \code{spacc}, \code{spacc_hill}, \code{spacc_phylo}, \code{spacc_func} or
+\code{spacc_redundancy}. A matrix is first passed to \code{\link[=spaccHill]{spaccHill()}} with \code{q}.}
 
-\item{coords}{A data.frame with columns \code{x} and \code{y}, or a \code{spacc_dist} object.}
+\item{...}{Arguments passed to methods.}
 
-\item{q}{Numeric vector. Diversity orders. Default \code{c(0, 1, 2)}.}
+\item{coords}{A data.frame with columns \code{x} and \code{y}, or a \code{spacc_dist}
+object (matrix input only).}
+
+\item{q}{Numeric vector. Diversity orders (matrix input only). Default
+\code{c(0, 1, 2)}.}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
 \item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
-\item{area_method}{Character. How to estimate cumulative area:
-\code{"voronoi"} (Voronoi tessellation, requires sf), \code{"convex_hull"}
-(convex hull of accumulated sites, requires sf), or \code{"count"}
-(use site count as proxy, no dependencies). Default \code{"convex_hull"}.}
+\item{area_method}{Character. How to measure the area covered by the first
+k sites of an order: \code{"convex_hull"} (area of their convex hull, 0 until
+three sites span a polygon), \code{"voronoi"} (summed area of their Voronoi
+cells within the bounding box of all sites) or \code{"count"} (number of
+sites). Areas are in squared coordinate units. Default \code{"convex_hull"}.}
 
 \item{distance}{Character. Distance method. Default \code{"euclidean"}.}
 
@@ -52,15 +78,21 @@ dar(
 }
 \value{
 An object of class \code{spacc_dar} containing:
-\item{hill}{A \code{spacc_hill} object with diversity curves}
+\item{curves}{Named list of diversity curves (n_seeds x n_sites), one per
+metric or order}
+\item{metric}{Names of the curves}
 \item{area}{Matrix of cumulative areas (n_seeds x n_sites)}
-\item{q}{Diversity orders used}
+\item{power_law}{Data frame with the power-law fit \eqn{D = c A^z} of
+each mean curve (\code{metric}, \code{c}, \code{z})}
+\item{q}{Diversity orders for Hill-number input, else \code{NULL}}
 \item{area_method}{Method used for area estimation}
+\item{source}{Class of the curve object the DAR was built from}
+\item{object}{That curve object}
 }
 \description{
-Extend the classic species-area relationship (SAR) to a diversity-area
-relationship using Hill numbers of any order q. Instead of plotting species
-richness vs. sites, this plots effective diversity vs. cumulative area.
+Diversity against cumulative area along a spatial accumulation, for Hill
+numbers (Ma 2018) or for any curve spacc computes: species richness,
+phylogenetic and functional metrics, redundancy.
 }
 \details{
 The DAR (Ma, 2018) generalizes the SAR by replacing species richness (q=0)
@@ -71,14 +103,25 @@ diversity scale with area:
 \item q=1 (Shannon) shows how common species diversity scales
 \item q=2 (Simpson) shows how dominant species diversity scales
 }
+
+The area is accumulated along the same site orders as the diversity curve,
+so any curve object gives its own diversity-area relationship: functional
+richness, dispersion and other facets can scale with area differently from
+richness (Dias et al. 2025). The power-law exponent \code{z} is the slope of
+log mean diversity against log mean area over the steps where both are
+positive.
 }
 \examples{
 \donttest{
 coords <- data.frame(x = runif(50), y = runif(50))
 species <- matrix(rpois(50 * 30, 2), nrow = 50)
 
-dar <- dar(species, coords, q = c(0, 1, 2))
-plot(dar)
+d <- dar(species, coords, q = c(0, 1, 2))
+plot(d)
+
+traits <- matrix(rnorm(30 * 2), nrow = 30)
+func <- spaccFunc(species, coords, traits, metric = c("fdis", "fric"))
+dar(func)
 }
 
 }
@@ -88,7 +131,11 @@ for biodiversity and biogeography analyses. Ecology and Evolution, 8,
 10023-10038.
 
 Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
+
+Dias, R.A., Bastazini, V.A.G., Gianuca, A.T. & Matthews, T.J. (2025). The
+spatial scaling of multiple dimensions of functional diversity in habitat
+islands. Functional Ecology. \doi{10.1111/1365-2435.70158}
 }
 \seealso{
-\code{\link[=spaccHill]{spaccHill()}}, \code{\link[=extrapolate]{extrapolate()}}
+\code{\link[=spaccHill]{spaccHill()}}, \code{\link[=spaccFunc]{spaccFunc()}}, \code{\link[=spaccPhylo]{spaccPhylo()}}, \code{\link[=extrapolate]{extrapolate()}}
 }

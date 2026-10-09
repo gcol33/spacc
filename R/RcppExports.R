@@ -9,6 +9,10 @@ cpp_radius_parallel <- function(species_pa, dist_mat, seeds, radii, n_cores = 1L
     .Call(`_spacc_cpp_radius_parallel`, species_pa, dist_mat, seeds, radii, n_cores)
 }
 
+cpp_area_along_orders <- function(x, y, orders, method) {
+    .Call(`_spacc_cpp_area_along_orders`, x, y, orders, method)
+}
+
 cpp_beta_order_parallel <- function(species_pa, dist_mat, orders, use_jaccard = FALSE, n_cores = 1L) {
     .Call(`_spacc_cpp_beta_order_parallel`, species_pa, dist_mat, orders, use_jaccard, n_cores)
 }

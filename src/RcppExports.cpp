@@ -38,6 +38,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_area_along_orders
+NumericMatrix cpp_area_along_orders(NumericVector x, NumericVector y, IntegerMatrix orders, std::string method);
+RcppExport SEXP _spacc_cpp_area_along_orders(SEXP xSEXP, SEXP ySEXP, SEXP ordersSEXP, SEXP methodSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
+    Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_area_along_orders(x, y, orders, method));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_beta_order_parallel
 List cpp_beta_order_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, IntegerMatrix orders, bool use_jaccard, int n_cores);
 RcppExport SEXP _spacc_cpp_beta_order_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP ordersSEXP, SEXP use_jaccardSEXP, SEXP n_coresSEXP) {
@@ -507,6 +521,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_order_parallel", (DL_FUNC) &_spacc_cpp_order_parallel, 3},
     {"_spacc_cpp_radius_parallel", (DL_FUNC) &_spacc_cpp_radius_parallel, 5},
+    {"_spacc_cpp_area_along_orders", (DL_FUNC) &_spacc_cpp_area_along_orders, 4},
     {"_spacc_cpp_beta_order_parallel", (DL_FUNC) &_spacc_cpp_beta_order_parallel, 5},
     {"_spacc_calc_coverage", (DL_FUNC) &_spacc_calc_coverage, 1},
     {"_spacc_calc_chiu_coverage", (DL_FUNC) &_spacc_calc_chiu_coverage, 3},
