@@ -406,11 +406,12 @@ ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99, 1.0), q = 0)
 ext
 ```
 
-Targets below the observed coverage are interpolated; targets above it
-invoke the Chao1-based extrapolation for `q = 0`, with separate
-estimators for the Shannon (`q = 1`) and Simpson (`q = 2`) orders. The
-printed output reports observed coverage and richness alongside the
-extrapolated values so the size of the extrapolation step is visible.
+Targets below the observed coverage are interpolated along each seed's curve;
+targets above it extrapolate the pooled sample towards the Chao1 asymptote for
+`q = 0`. The Shannon (`q = 1`) and Simpson (`q = 2`) orders need the Hill
+curves of a `spaccHillCoverage()` object. The printed output reports observed
+coverage and richness alongside the extrapolated values so the size of the
+extrapolation step is visible.
 
 ```{r plot-cov-extrap, fig.cap = "Coverage-based extrapolation of species richness."}
 plot(ext) +

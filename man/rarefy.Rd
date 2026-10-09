@@ -14,8 +14,7 @@ diversity for. Default \code{NULL} computes for all levels from 1 to total.}
 
 \item{q}{Numeric. Order of Hill number; any value \verb{>= 0}. Default 0
 (species richness). q=1 gives rarefied Shannon diversity, q=2 gives
-rarefied Simpson diversity. q=0, 1, and 2 use exact estimators; other
-orders report the Hill number of order \code{q} of the sampled composition.}
+rarefied Simpson diversity.}
 
 \item{n_boot}{Integer. Number of bootstrap replicates for CI. Default 100.}
 }
@@ -32,13 +31,14 @@ Compute individual-based rarefaction curves for Hill numbers at any order q.
 This complements the sample-based accumulation in \code{\link[=spacc]{spacc()}}.
 }
 \details{
-For q=0 (species richness): uses the Hurlbert (1971) formula.
-
-For q=1 (Shannon diversity): rarefied Shannon entropy is computed and
-converted to effective number of species via exponentiation.
-
-For q=2 (Simpson diversity): rarefied Simpson concentration is computed
-and converted to effective number of species via inversion.
+The expected Hill number of a random subsample of \code{n} individuals drawn
+without replacement from the pooled sample (Chao et al. 2014). Each
+species' subsample count is hypergeometric, and
+\deqn{{}^qD(n) = \left(\sum_i E\left[(Y_i / n)^q\right]\right)^{1/(1-q)},}
+with the exponential of the expected Shannon entropy at q = 1. At q = 0 this
+is the Hurlbert (1971) formula. Sizes above the sample size are
+extrapolated towards the asymptotic estimators (Chao et al. 2014; integer
+\code{q} only).
 }
 \examples{
 \donttest{

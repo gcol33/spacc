@@ -54,6 +54,7 @@ standardization. Default \code{NULL} (no standardization). Values in (0, 1).}
 An object of class \code{spacc_hill_coverage} containing:
 \item{hills}{Named list of n_seeds x n_sites matrices (one per q)}
 \item{coverage}{n_seeds x n_sites matrix of Chao-Jost coverage}
+\item{pooled}{Species abundances pooled over all sites}
 \item{standardized}{List of per-q values interpolated at target coverage,
 or \code{NULL} if \code{target_coverage} is \code{NULL}}
 \item{q}{Vector of q values}

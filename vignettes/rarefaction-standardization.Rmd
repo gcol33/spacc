@@ -387,10 +387,12 @@ returns the full matrix rather than a collapsed summary.
 
 ## Extrapolation beyond observed
 
-When a target coverage exceeds the maximum any seed reached, interpolation is
-impossible and `extrapolateCoverage()` switches to the Chao et al. (2014)
-asymptotic estimators. For $q = 0$ it uses the Chao1 coverage deficit; for $q = 1$
-and $q = 2$ it applies the corresponding Shannon and Simpson asymptotics. The
+When a target coverage exceeds the coverage a seed reached, interpolation is
+impossible. Every seed ends with the same pooled sample of all sites, and
+`extrapolateCoverage()` extrapolates that sample with the Chao et al. (2014)
+estimators, towards the Chao1 asymptote for $q = 0$. A `spacc_coverage` object
+carries richness only; for $q = 1$ and $q = 2$, pass a `spaccHillCoverage()`
+object, whose extrapolation approaches the Shannon and Simpson asymptotes. The
 returned `spacc_coverage_ext` object reports the observed coverage and richness
 alongside the extrapolated values.
 

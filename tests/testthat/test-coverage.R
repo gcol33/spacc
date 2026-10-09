@@ -207,7 +207,7 @@ test_that("extrapolateCoverage with q=1 works", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rpois(20 * 10, 3), nrow = 20)
 
-  cov <- spaccCoverage(species, coords, n_seeds = 3,
+  cov <- spaccHillCoverage(species, coords, n_seeds = 3,
                         parallel = FALSE, progress = FALSE, seed = 1)
 
   ext <- extrapolateCoverage(cov, target_coverage = c(0.99), q = 1)
@@ -224,7 +224,7 @@ test_that("extrapolateCoverage with q=2 works", {
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rpois(20 * 10, 3), nrow = 20)
 
-  cov <- spaccCoverage(species, coords, n_seeds = 3,
+  cov <- spaccHillCoverage(species, coords, n_seeds = 3,
                         parallel = FALSE, progress = FALSE, seed = 1)
 
   ext <- extrapolateCoverage(cov, target_coverage = c(0.99), q = 2)

@@ -30,6 +30,7 @@
 #'   \item{richness}{Matrix of species richness (n_seeds x n_sites)}
 #'   \item{individuals}{Matrix of individual counts}
 #'   \item{coverage}{Matrix of coverage estimates}
+#'   \item{pooled}{Species abundances pooled over all sites}
 #'   \item{coverage_type}{Coverage estimator used (`"chao"` or `"chiu"`)}
 #'   \item{coords, n_seeds, n_sites, method}{Parameters used}
 #'
@@ -139,6 +140,7 @@ spaccCoverage <- function(x,
       richness = result$richness,
       individuals = result$individuals,
       coverage = result$coverage,
+      pooled = colSums(x),
       coords = coord_data,
       site_values = site_values,
       n_seeds = ordering$n_seeds,
@@ -184,33 +186,39 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
 }
 
 
-#' Extrapolate Richness Beyond Observed Coverage
+#' Extrapolate Diversity Beyond Observed Coverage
 #'
-#' Predict species richness at coverage levels beyond the empirical maximum,
-#' following the Chao et al. (2014) framework. Provides seamless
-#' interpolation and extrapolation as a function of sample coverage.
+#' Hill numbers at target sample coverages along a coverage-tracking
+#' accumulation, interpolated within the observed coverage and extrapolated
+#' beyond it (Chao et al. 2014).
 #'
-#' @param x A `spacc_coverage` object from [spaccCoverage()].
+#' @param x A `spacc_coverage` object from [spaccCoverage()] (richness,
+#'   `q = 0` only) or a `spacc_hill_coverage` object from
+#'   [spaccHillCoverage()] (any of its orders).
 #' @param target_coverage Numeric vector of target coverage levels (0 to 1).
 #'   Can exceed observed coverage for extrapolation. Default `c(0.90, 0.95, 0.99)`.
-#' @param q Numeric. Diversity order for extrapolation: 0 (richness, default),
-#'   1 (Shannon), or 2 (Simpson).
+#' @param q Numeric. Diversity order: 0 (richness, default), or for a
+#'   `spacc_hill_coverage` object one of its orders.
 #'
 #' @return An object of class `spacc_coverage_ext` containing:
-#'   \item{richness}{Matrix of interpolated/extrapolated richness (n_seeds x n_targets)}
+#'   \item{richness}{Matrix of interpolated/extrapolated Hill numbers of
+#'     order `q` (n_seeds x n_targets)}
 #'   \item{target_coverage}{Target coverage levels}
 #'   \item{q}{Diversity order used}
 #'   \item{observed_coverage}{Mean observed final coverage}
-#'   \item{observed_richness}{Mean observed final richness}
+#'   \item{observed_richness}{Mean observed final Hill number of order `q`}
 #'
 #' @details
-#' For targets within observed coverage, linear interpolation is used.
-#' For targets beyond observed coverage, asymptotic estimators are applied:
-#'
-#' - **q = 0**: Chao1 estimator: S_est = S_obs + f1^2 / (2 * f2), where f1/f2
-#'   are singleton/doubleton counts. Extrapolation via coverage deficit.
-#' - **q = 1**: Shannon extrapolation based on the Good-Turing frequency formula.
-#' - **q = 2**: Simpson extrapolation using the unbiased estimator.
+#' A target at or below a seed's final coverage is read off that seed's
+#' spatial accumulation curve by linear interpolation in coverage. Above it,
+#' every seed has accumulated the same pooled sample, so the value is the
+#' coverage-based extrapolation of the pooled abundances (Chao et al. 2014):
+#' the sample size reaching the target coverage is found from the
+#' Chao-Jost coverage deficit, and the Hill number at that size approaches
+#' the Chao1 (q = 0), Chao et al. (2013) Shannon (q = 1) or unbiased Simpson
+#' (q = 2) asymptote; `target_coverage = 1` gives the asymptote itself.
+#' Extrapolation is defined for integer `q` and for the individual-based
+#' coverage (`coverage = "chao"`).
 #'
 #' @references
 #' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
@@ -233,73 +241,43 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
 #'
 #' @export
 extrapolateCoverage <- function(x, target_coverage = c(0.90, 0.95, 0.99), q = 0) {
-  stopifnot(inherits(x, "spacc_coverage"))
+  stopifnot("x must be a spacc_coverage or spacc_hill_coverage object" =
+              inherits(x, c("spacc_coverage", "spacc_hill_coverage")))
   stopifnot(all(target_coverage >= 0 & target_coverage <= 1))
-  stopifnot(q %in% c(0, 1, 2))
+  stopifnot("q must be a single number" = is.numeric(q) && length(q) == 1)
 
-  n_seeds <- x$n_seeds
-  n_targets <- length(target_coverage)
+  curves <- if (inherits(x, "spacc_hill_coverage")) {
+    if (!q %in% x$q) stop(sprintf("q = %g is not among the orders of x (%s)",
+                                  q, paste(x$q, collapse = ", ")), call. = FALSE)
+    x$hills[[match(q, x$q)]]
+  } else {
+    if (q != 0) stop("a spacc_coverage object carries richness only (q = 0); ",
+                     "use spaccHillCoverage() for other orders", call. = FALSE)
+    x$richness
+  }
+  if (is.null(x$pooled)) stop("x was created by an older spacc version; recompute it",
+                              call. = FALSE)
 
-  result <- matrix(NA, nrow = n_seeds, ncol = n_targets)
-  colnames(result) <- paste0("C", target_coverage * 100)
-
-  for (s in seq_len(n_seeds)) {
-    richness_curve <- x$richness[s, ]
-    coverage_curve <- x$coverage[s, ]
-    indiv_curve <- x$individuals[s, ]
-
-    obs_S <- richness_curve[x$n_sites]
-    obs_C <- coverage_curve[x$n_sites]
-    obs_n <- indiv_curve[x$n_sites]
-
-    for (t in seq_len(n_targets)) {
-      tc <- target_coverage[t]
-
-      if (tc <= obs_C) {
-        result[s, t] <- interpolate_at_coverage(
-          as.numeric(richness_curve), coverage_curve, tc
-        )
-      } else if (q == 0) {
-        # Chao1 asymptote from f1, f2 reconstructed via the coverage deficit
-        f1 <- max(1, round(obs_n * (1 - obs_C)))
-        f2 <- max(1, round(f1 * (f1 - 1) / (2 * obs_n * (1 - obs_C) + 1e-10)))
-        S_chao1 <- obs_S + f1^2 / (2 * f2)
-        f0_hat <- S_chao1 - obs_S
-        if (f0_hat > 0 && obs_C < 1) {
-          ratio <- min(log(1 - tc) / log(1 - obs_C), 50)
-          result[s, t] <- obs_S + f0_hat * (1 - exp(log(1 - f0_hat / (f0_hat + 1e-10)) * ratio))
-          if (tc >= 0.999) result[s, t] <- S_chao1
-        } else {
-          result[s, t] <- obs_S
-        }
-      } else if (q == 1) {
-        # Shannon: logistic approach to the asymptote in the coverage deficit
-        if (x$n_sites >= 10) {
-          h_final <- calc_hill_number(as.numeric(indiv_curve), 1.0)
-          coverage_deficit <- 1 - obs_C
-          target_deficit <- 1 - tc
-          if (coverage_deficit > 0) {
-            scale <- target_deficit / coverage_deficit
-            result[s, t] <- h_final / (1 - 0.5 * (1 - scale) * (1 - h_final / (h_final + 1)))
-          } else {
-            result[s, t] <- h_final
-          }
-        } else {
-          result[s, t] <- NA
-        }
-      } else {
-        # Simpson: inverse Simpson is stable; small correction in the deficit
-        h2_obs <- calc_hill_number(as.numeric(indiv_curve), 2.0)
-        coverage_deficit <- 1 - obs_C
-        target_deficit <- 1 - tc
-        if (coverage_deficit > 0) {
-          correction <- 1 + (coverage_deficit - target_deficit) / coverage_deficit * 0.1
-          result[s, t] <- h2_obs * correction
-        } else {
-          result[s, t] <- h2_obs
-        }
-      }
+  final_C <- x$coverage[, x$n_sites]
+  beyond <- outer(final_C, target_coverage, `<`)
+  if (any(beyond)) {
+    if (identical(x$coverage_type, "chiu")) {
+      stop("Extrapolation beyond the observed coverage uses the individual-based ",
+           "estimators; recompute with coverage = \"chao\"", call. = FALSE)
     }
+    if (q != round(q)) stop("Extrapolation is defined for integer q", call. = FALSE)
+  }
+  pooled <- calc_hill_at_coverage(as.numeric(x$pooled), target_coverage, q)$hill[1, ]
+
+  result <- matrix(NA_real_, nrow = x$n_seeds, ncol = length(target_coverage))
+  colnames(result) <- paste0("C", target_coverage * 100)
+  for (s in seq_len(x$n_seeds)) {
+    within <- !beyond[s, ]
+    if (any(within)) {
+      result[s, within] <- interpolate_at_coverage(as.numeric(curves[s, ]), x$coverage[s, ],
+                                                   target_coverage[within])
+    }
+    result[s, !within] <- pooled[!within]
   }
 
   structure(
@@ -307,9 +285,9 @@ extrapolateCoverage <- function(x, target_coverage = c(0.90, 0.95, 0.99), q = 0)
       richness = result,
       target_coverage = target_coverage,
       q = q,
-      observed_coverage = mean(x$coverage[, x$n_sites]),
-      observed_richness = mean(x$richness[, x$n_sites]),
-      n_seeds = n_seeds,
+      observed_coverage = mean(final_C),
+      observed_richness = mean(curves[, x$n_sites]),
+      n_seeds = x$n_seeds,
       spacc_coverage = x
     ),
     class = "spacc_coverage_ext"

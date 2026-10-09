@@ -8,8 +8,7 @@
 #'   diversity for. Default `NULL` computes for all levels from 1 to total.
 #' @param q Numeric. Order of Hill number; any value `>= 0`. Default 0
 #'   (species richness). q=1 gives rarefied Shannon diversity, q=2 gives
-#'   rarefied Simpson diversity. q=0, 1, and 2 use exact estimators; other
-#'   orders report the Hill number of order `q` of the sampled composition.
+#'   rarefied Simpson diversity.
 #' @param n_boot Integer. Number of bootstrap replicates for CI. Default 100.
 #'
 #' @return An object of class `spacc_rare` containing:
@@ -20,13 +19,14 @@
 #'   \item{q}{Order of diversity used}
 #'
 #' @details
-#' For q=0 (species richness): uses the Hurlbert (1971) formula.
-#'
-#' For q=1 (Shannon diversity): rarefied Shannon entropy is computed and
-#' converted to effective number of species via exponentiation.
-#'
-#' For q=2 (Simpson diversity): rarefied Simpson concentration is computed
-#' and converted to effective number of species via inversion.
+#' The expected Hill number of a random subsample of `n` individuals drawn
+#' without replacement from the pooled sample (Chao et al. 2014). Each
+#' species' subsample count is hypergeometric, and
+#' \deqn{{}^qD(n) = \left(\sum_i E\left[(Y_i / n)^q\right]\right)^{1/(1-q)},}
+#' with the exponential of the expected Shannon entropy at q = 1. At q = 0 this
+#' is the Hurlbert (1971) formula. Sizes above the sample size are
+#' extrapolated towards the asymptotic estimators (Chao et al. 2014; integer
+#' `q` only).
 #'
 #' @examples
 #' \donttest{
@@ -68,12 +68,10 @@ rarefy <- function(x, n_individuals = NULL, q = 0, n_boot = 100L) {
   stopifnot("q must be a single non-negative number" =
               is.numeric(q) && length(q) == 1 && q >= 0)
 
-  # Compute rarefied diversity for any q >= 0 (q = 0, 1, 2 are exact)
-  rarefy_fn <- function(st, n, nt, ns) rarefy_qD(st, n, nt, ns, q)
-
-  expected <- vapply(n_individuals, function(n) {
-    rarefy_fn(species_totals, n, n_total, n_species)
-  }, numeric(1))
+  rarefy_fn <- function(totals) {
+    calc_hill_at_size(as.numeric(totals), as.numeric(n_individuals), q)$hill[1, ]
+  }
+  expected <- rarefy_fn(species_totals)
 
   # Bootstrap for variance
   boot_results <- matrix(NA, n_boot, length(n_individuals))
@@ -82,13 +80,7 @@ rarefy <- function(x, n_individuals = NULL, q = 0, n_boot = 100L) {
   for (b in seq_len(n_boot)) {
     boot_sample <- sample(pool, n_total, replace = TRUE)
     boot_totals <- tabulate(boot_sample, nbins = n_species)
-    boot_totals <- boot_totals[boot_totals > 0]
-    boot_n_total <- sum(boot_totals)
-    boot_n_species <- length(boot_totals)
-
-    boot_results[b, ] <- vapply(n_individuals, function(n) {
-      rarefy_fn(boot_totals, n, boot_n_total, boot_n_species)
-    }, numeric(1))
+    boot_results[b, ] <- rarefy_fn(boot_totals[boot_totals > 0])
   }
 
   sd_vals <- apply(boot_results, 2, stats::sd, na.rm = TRUE)
@@ -109,87 +101,6 @@ rarefy <- function(x, n_individuals = NULL, q = 0, n_boot = 100L) {
     ),
     class = "spacc_rare"
   )
-}
-
-
-# Rarefaction: q=0 (Hurlbert 1971, species richness)
-#' @noRd
-rarefy_q0 <- function(species_totals, n, n_total, n_species) {
-  if (n >= n_total) return(n_species)
-  probs <- vapply(species_totals, function(ni) {
-    1 - exp(lchoose(n_total - ni, n) - lchoose(n_total, n))
-  }, numeric(1))
-  sum(probs)
-}
-
-
-# Rarefaction: q=1 (Shannon diversity as Hill number)
-#' @noRd
-rarefy_q1 <- function(species_totals, n, n_total, n_species) {
-  if (n >= n_total) {
-    p <- species_totals / n_total
-    p <- p[p > 0]
-    return(exp(-sum(p * log(p))))
-  }
-  if (n <= 1) return(1)
-
-  # Rarefied Shannon entropy: E[H] using inclusion probabilities
-  # For each species, probability of detection at subsample n
-  probs <- vapply(species_totals, function(ni) {
-    1 - exp(lchoose(n_total - ni, n) - lchoose(n_total, n))
-  }, numeric(1))
-
-  # Expected proportion of each species conditional on detection
-  # Approximate: E[p_i * log(p_i)] is complex, use expected abundance approach
-  # E[abundance of species i in subsample of n] = n * ni / N
-  exp_abund <- n * species_totals / n_total
-  # Expected proportions
-  p_exp <- exp_abund / n
-  p_exp <- p_exp[p_exp > 0]
-
-  H <- -sum(p_exp * log(p_exp))
-  exp(H)
-}
-
-
-# Rarefaction: q=2 (Simpson diversity as Hill number)
-#' @noRd
-rarefy_q2 <- function(species_totals, n, n_total, n_species) {
-  if (n >= n_total) {
-    p <- species_totals / n_total
-    return(1 / sum(p^2))
-  }
-  if (n <= 1) return(1)
-
-  # Rarefied Simpson: E[sum(p_i^2)] for subsample of size n
-  # E[n_i(n_i-1)] in subsample = n(n-1) * N_i(N_i-1) / (N(N-1))
-  # So E[sum p_i^2] = sum E[n_i(n_i-1)] / (n(n-1)) + 1/n
-  lambda <- sum(species_totals * (species_totals - 1)) /
-            (n_total * (n_total - 1))
-
-  if (lambda <= 0) return(n_species)
-
-  # Simpson concentration for subsample
-  # lambda_n = (n-1)/n * lambda + 1/n (bias from finite sample)
-  # This simplifies to just lambda for expected D2
-  1 / lambda
-}
-
-
-# Rarefaction: general order q (>= 0)
-# q = 0, 1, 2 dispatch to the exact estimators above; other orders return the
-# Hill number of order q of the sampled composition (effort-independent in the
-# interior, matching the q = 1 / q = 2 treatment, and exact at the endpoints).
-#' @noRd
-rarefy_qD <- function(species_totals, n, n_total, n_species, q) {
-  if (q == 0) return(rarefy_q0(species_totals, n, n_total, n_species))
-  if (abs(q - 1) < 1e-8) return(rarefy_q1(species_totals, n, n_total, n_species))
-  if (q == 2) return(rarefy_q2(species_totals, n, n_total, n_species))
-
-  if (n <= 1) return(1)
-  p <- species_totals / n_total
-  p <- p[p > 0]
-  sum(p^q)^(1 / (1 - q))
 }
 
 

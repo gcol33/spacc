@@ -20,6 +20,18 @@
 
 ## Bug fixes
 
+- `rarefy()` with `q = 1` or `q = 2` returned the Hill number of the full
+  sample at every size (q = 1 plugged the sample proportions into Shannon,
+  q = 2 ignored the subsample size). It now returns the expected Hill number
+  of a random subsample at every order, matching iNEXT.3D, and extrapolates
+  sizes above the sample size.
+- `extrapolateCoverage()` with `q = 1` or `q = 2` interpolated the richness
+  curve within the observed coverage and applied ad hoc corrections beyond
+  it. It now reads the Hill curve of the requested order (a
+  `spaccHillCoverage()` object; a `spacc_coverage` object carries `q = 0`
+  only) and extrapolates the pooled sample with the Chao et al. (2014)
+  estimators, which also replace the reconstructed singleton counts used for
+  `q = 0`.
 - `spaccPhylo()` PD matched species to tree tips by column position, so it
   was wrong when `colnames(x)` were not in `tree$tip.label` order and read past
   the community when the tree held more tips than `x` had species. Species are

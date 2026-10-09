@@ -24,6 +24,7 @@
 #' @return An object of class `spacc_hill_coverage` containing:
 #'   \item{hills}{Named list of n_seeds x n_sites matrices (one per q)}
 #'   \item{coverage}{n_seeds x n_sites matrix of Chao-Jost coverage}
+#'   \item{pooled}{Species abundances pooled over all sites}
 #'   \item{standardized}{List of per-q values interpolated at target coverage,
 #'     or `NULL` if `target_coverage` is `NULL`}
 #'   \item{q}{Vector of q values}
@@ -142,6 +143,7 @@ spaccHillCoverage <- function(x,
     list(
       hills = hills,
       coverage = coverage_mat,
+      pooled = colSums(x),
       standardized = standardized,
       q = q,
       target_coverage = target_coverage,

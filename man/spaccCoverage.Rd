@@ -60,6 +60,7 @@ An object of class \code{spacc_coverage} containing:
 \item{richness}{Matrix of species richness (n_seeds x n_sites)}
 \item{individuals}{Matrix of individual counts}
 \item{coverage}{Matrix of coverage estimates}
+\item{pooled}{Species abundances pooled over all sites}
 \item{coverage_type}{Coverage estimator used (\code{"chao"} or \code{"chiu"})}
 \item{coords, n_seeds, n_sites, method}{Parameters used}
 }
