@@ -1,13 +1,14 @@
 // core/phylo_core.h
 // Phylogenetic diversity of a species set: mean pairwise distance (MPD), mean
-// nearest taxon distance (MNTD), Rao's quadratic entropy and Faith's PD.
-// Pure C++: distance matrices and abundance vectors are accessed through
-// d(i, j) / abundance(i) callables.
+// nearest taxon distance (MNTD), Rao's quadratic entropy, Faith's PD and
+// EvoHeritage. Pure C++: distance matrices and abundance vectors are accessed
+// through d(i, j) / abundance(i) callables.
 
 #ifndef SPACC_CORE_PHYLO_H
 #define SPACC_CORE_PHYLO_H
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <vector>
 
@@ -90,6 +91,7 @@ struct PhyloTree {
   std::vector<int> edge_into;      // edge index leading into each node, -1 at the root
   std::vector<int> parent_of;      // parent node of each node, 0 at the root
   std::vector<double> edge_length;
+  std::vector<int> postorder;      // non-root nodes, every child before its parent
   int n_tips;
 
   template<class ParentFn, class ChildFn, class LengthFn>
@@ -108,6 +110,25 @@ struct PhyloTree {
       parent_of[child(e)] = parent(e);
       edge_length[e] = length(e);
     }
+
+    // Sorting nodes by decreasing depth (edge count to the root) puts every
+    // child ahead of its parent.
+    std::vector<int> depth(n_nodes + 1, -1);
+    for (int v = 1; v <= n_nodes; v++) {
+      std::vector<int> path;
+      int u = v;
+      while (depth[u] < 0 && edge_into[u] >= 0) {
+        path.push_back(u);
+        u = parent_of[u];
+      }
+      if (depth[u] < 0) depth[u] = 0;
+      for (auto it = path.rbegin(); it != path.rend(); ++it) depth[*it] = depth[parent_of[*it]] + 1;
+    }
+    for (int v = 1; v <= n_nodes; v++) {
+      if (edge_into[v] >= 0) postorder.push_back(v);
+    }
+    std::stable_sort(postorder.begin(), postorder.end(),
+                     [&](int a, int b) { return depth[a] > depth[b]; });
   }
 
   // Faith's PD: total length of the edges on the paths from the present tips
@@ -128,6 +149,31 @@ struct PhyloTree {
       }
     }
     return pd;
+  }
+
+  // EvoHeritage phi_rho of the present tips (Rosindell et al. 2024, Eqns. 5
+  // and 9). Heritage is gained along each edge and attrited at rate rho per
+  // unit length; p(v) is the fraction of the heritage at node v that survives
+  // to at least one present tip:
+  //   p(tip) = present(tip),  p(v) = 1 - prod_children [1 - p(c) exp(-rho L_c)].
+  // phi_rho = sum_e (1 - exp(-rho L_e)) p(child_e) / (1 - exp(-rho)), which is
+  // Faith's PD at rho = 0 and tends to the number of present tips as rho grows.
+  template<class PresentFn>
+  double evo_heritage(const PresentFn& present, double rho) const {
+    // (1 - exp(-rho L)) / (1 - exp(-rho)) in standardised units; L at rho = 0.
+    const double unit = rho > 0.0 ? -std::expm1(-rho) : 1.0;
+    auto gain = [&](double len) { return rho > 0.0 ? -std::expm1(-rho * len) / unit : len; };
+
+    std::vector<double> lost_below(parent_of.size(), 1.0);  // prod_children [1 - p(c) R(c)]
+    double phi = 0.0;
+    for (int v : postorder) {
+      const double p = v <= n_tips ? (present(v - 1) ? 1.0 : 0.0) : 1.0 - lost_below[v];
+      if (p <= 0.0) continue;
+      const double len = edge_length[edge_into[v]];
+      phi += gain(len) * p;
+      lost_below[parent_of[v]] *= 1.0 - p * std::exp(-rho * len);
+    }
+    return phi;
   }
 };
 

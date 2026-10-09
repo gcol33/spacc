@@ -474,6 +474,30 @@ ones already present, since they measure average distances rather than totals. A
 flat MPD with a rising PD says the region keeps adding species but not new deep
 branches.
 
+PD counts every unit of branch length as a feature that all descendants still
+carry. EvoHeritage (Rosindell et al. 2024) adds attrition: features arise along
+a branch and are lost at rate $\rho$ per unit length, so a branch of length $L$
+passes on a fraction $e^{-\rho L}$ of what entered it, and a feature counts once
+if it survives to at least one accumulated species. At $\rho = 0$ this is PD; as
+$\rho$ grows, long internal branches lose what they carry and the value tends to
+the number of species. `metric = "evoheritage"` with a vector `rho` gives one
+curve per rate.
+
+```{r evoheritage, eval = requireNamespace("ape", quietly = TRUE)}
+evo_acc <- spaccPhylo(pa, coords, tree,
+                      metric = "evoheritage", rho = c(0, 0.5, 5),
+                      n_seeds = 20, progress = FALSE)
+evo_df <- summary(evo_acc)
+evo_df[evo_df$sites == max(evo_df$sites), c("metric", "mean", "lower", "upper")]
+sum(colSums(pa) > 0)   # observed richness
+```
+
+The $\rho = 0$ curve is PD. Values are in standardised units, the heritage at
+the end of a single branch of unit length, so a rate changes both how much of
+the deep branches survives and what one unit means. The limit of one unit per
+species is reached only once $\rho L$ is large for the shortest terminal
+branches, which on a coalescent tree such as this one takes rates far above 5.
+
 Functional accumulation works the same way in trait space. `spaccFunc()` tracks
 functional dispersion (FDis), the abundance-weighted mean distance of species to
 the community centroid, and functional richness (FRic), the volume of trait
@@ -720,7 +744,7 @@ The table below summarises which function fits which question.
 | Is turnover replacement or species loss | `spaccBeta()` | presence/absence | turnover, nestedness |
 | How many distinct communities (Hill beta) | `spaccHillBeta()` | abundance | beta per order |
 | Does turnover involve distinct traits or lineages | `spaccBeta(traits=)`, `spaccBeta(tree=)` | P/A + traits/tree | weighted beta |
-| How does evolutionary or trait diversity accumulate | `spaccPhylo()`, `spaccFunc()` | abundance + tree/traits | MPD, MNTD, PD, FDis, FRic |
+| How does evolutionary or trait diversity accumulate | `spaccPhylo()`, `spaccFunc()` | abundance + tree/traits | MPD, MNTD, PD, EvoHeritage, FDis, FRic |
 | Abundance-weighted trait/lineage dispersion | `spaccPhylo(metric="rao")`, `spaccFunc(metric="rao")` | abundance + tree/traits | Rao's Q |
 | Fair comparison under unequal effort | `spaccCoverage()`, `spaccHillCoverage()` | abundance | coverage-standardised |
 | An index spacc does not implement | `spaccDiversity()` | any | user function |

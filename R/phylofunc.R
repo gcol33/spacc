@@ -10,9 +10,14 @@
 #'   - `"mpd"`: Mean Pairwise Distance
 #'   - `"mntd"`: Mean Nearest Taxon Distance
 #'   - `"pd"`: Faith's Phylogenetic Diversity (requires tree, not distance matrix)
+#'   - `"evoheritage"`: EvoHeritage (Rosindell et al. 2024), PD with
+#'     attrition of evolutionary heritage at rate `rho` (requires tree)
 #'   - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
 #'     phylogenetic distance). Pass abundance data for weighting; with
 #'     presence/absence it reduces to the equal-weight form.
+#' @param rho Non-negative numeric vector. Attrition rate(s) for
+#'   `"evoheritage"`, per unit of branch length. `rho = 0` gives Faith's PD.
+#'   Several values give one curve each, named `evoheritage_rho<value>`.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
 #' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param distance Character. Site distance method: `"euclidean"` or `"haversine"`.
@@ -41,11 +46,27 @@
 #'   relative. Sensitive to terminal clustering.
 #'
 #' - **PD (Faith's Phylogenetic Diversity)**: Total branch length connecting
-#'   species. Requires full tree object.
+#'   species to the root. Requires full tree object.
+#'
+#' - **EvoHeritage**: Features accumulate along each branch and are lost at
+#'   rate `rho`, so a branch of length `L` passes on a fraction `exp(-rho * L)`
+#'   of what entered it. A feature counts once if it survives to at least one
+#'   present species. The value is in standardised units (the heritage at the
+#'   end of a single branch of unit length), so `rho = 0` gives PD and large
+#'   `rho` tends to species richness. Scanning `rho` places a community
+#'   between its richness and PD curves.
+#'
+#' Tree-based metrics match the columns of `x` to `tree$tip.label` by name;
+#' the tree may contain species absent from `x`.
 #'
 #' @references
 #' Faith, D.P. (1992). Conservation evaluation and phylogenetic diversity.
 #' Biological Conservation, 61, 1-10.
+#'
+#' Rosindell, J., Manson, K., Gumbs, R., Pearse, W.D. & Steel, M. (2024).
+#' Phylogenetic biodiversity metrics should account for both accumulation and
+#' attrition of evolutionary heritage. Systematic Biology, 73, 158-182.
+#' \doi{10.1093/sysbio/syad072}
 #'
 #' Webb, C.O. (2000). Exploring the phylogenetic structure of ecological
 #' communities: an example for rain forest trees. American Naturalist, 156, 145-155.
@@ -72,6 +93,7 @@ spaccPhylo <- function(x,
                        coords,
                        tree,
                        metric = c("mpd", "mntd"),
+                       rho = 0,
                        n_seeds = 50L,
                        method = c("knn", "nn_walk"),
                        distance = c("euclidean", "haversine"),
@@ -85,7 +107,10 @@ spaccPhylo <- function(x,
 
   method <- match.arg(method)
   distance <- match.arg(distance)
-  metric <- match.arg(metric, c("mpd", "mntd", "pd", "rao"), several.ok = TRUE)
+  metric <- match.arg(metric, c("mpd", "mntd", "pd", "evoheritage", "rao"),
+                      several.ok = TRUE)
+  stopifnot("rho must be non-negative and finite" =
+              is.numeric(rho) && length(rho) >= 1 && all(is.finite(rho) & rho >= 0))
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -103,11 +128,20 @@ spaccPhylo <- function(x,
                                    n_cores = n_cores)
 
   phylo_dist_mat <- .phylo_distances(tree, colnames(x))
-  if (is.matrix(tree) && "pd" %in% metric) {
-    warning("PD requires full tree object; removing 'pd' from metrics")
-    metric <- setdiff(metric, "pd")
+  tree_metrics <- intersect(metric, c("pd", "evoheritage"))
+  if (is.matrix(tree) && length(tree_metrics) > 0) {
+    warning(sprintf("%s requires a full tree object; removing it from metrics",
+                    paste(sQuote(tree_metrics, FALSE), collapse = " and ")))
+    metric <- setdiff(metric, tree_metrics)
+    tree_metrics <- character(0)
   }
   stopifnot("Phylo distance matrix must match species" = ncol(phylo_dist_mat) == n_species)
+
+  # One curve per rho value; a single rate keeps the plain label.
+  if ("evoheritage" %in% metric && length(rho) > 1) {
+    at <- match("evoheritage", metric)
+    metric <- append(metric[-at], paste0("evoheritage_rho", rho), after = at - 1L)
+  }
 
   # Keep abundances as doubles. Presence metrics (mpd/mntd/pd) read
   # cumulative > 0, so binarising is unnecessary; Rao uses the abundance
@@ -118,20 +152,25 @@ spaccPhylo <- function(x,
   if (progress) cli_info(sprintf("Computing phylogenetic diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
 
-  # Tree edge data for Faith's PD
+  # Tree data for the metrics that walk the edges (PD, EvoHeritage)
   tree_edge <- NULL
   tree_edge_length <- NULL
   tree_n_tips <- 0L
-  if ("pd" %in% metric && inherits(tree, "phylo")) {
+  species_tip <- integer(0)
+  if (length(tree_metrics) > 0) {
+    if (is.null(tree$edge.length)) stop("tree must have edge lengths for PD and EvoHeritage")
     tree_edge <- tree$edge
     tree_edge_length <- tree$edge.length
     tree_n_tips <- length(tree$tip.label)
+    species_tip <- .species_tips(tree, colnames(x), n_species)
   }
+  evo_rho <- if ("evoheritage" %in% tree_metrics) as.numeric(rho) else numeric(0)
 
   run <- function(orders) {
     if (length(metric) == 0) return(list())
     cpp_phylo_order_parallel(species_pa, orders - 1L, phylo_dist_mat, metric, n_cores,
-                             tree_edge, tree_edge_length, tree_n_tips)
+                             tree_edge, tree_edge_length, tree_n_tips,
+                             species_tip, evo_rho)
   }
 
   result <- run(ordering$orders)
@@ -150,6 +189,7 @@ spaccPhylo <- function(x,
     list(
       curves = result,
       metric = metric,
+      rho = if (length(evo_rho) > 0) evo_rho else NULL,
       coords = coord_data,
       site_values = site_values,
       n_seeds = ordering$n_seeds,
@@ -162,6 +202,21 @@ spaccPhylo <- function(x,
     ),
     class = "spacc_phylo"
   )
+}
+
+
+# 0-based tip index of each species column. Species are matched to tips by
+# name; an unnamed community matrix must list the tips in tree order.
+.species_tips <- function(tree, species_names, n_species) {
+  if (is.null(species_names)) {
+    if (n_species != length(tree$tip.label)) {
+      stop("x has no column names, so it must have one column per tree tip, in tip order")
+    }
+    return(seq_len(n_species) - 1L)
+  }
+  tip <- match(species_names, tree$tip.label)
+  if (anyNA(tip)) stop("Some species in x are not in the tree")
+  tip - 1L
 }
 
 

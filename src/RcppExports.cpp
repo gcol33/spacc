@@ -327,9 +327,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calc_evo_heritage
+double calc_evo_heritage(IntegerMatrix edge, NumericVector edge_length, int n_tips, LogicalVector species_present, double rho);
+RcppExport SEXP _spacc_calc_evo_heritage(SEXP edgeSEXP, SEXP edge_lengthSEXP, SEXP n_tipsSEXP, SEXP species_presentSEXP, SEXP rhoSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type edge(edgeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type edge_length(edge_lengthSEXP);
+    Rcpp::traits::input_parameter< int >::type n_tips(n_tipsSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type species_present(species_presentSEXP);
+    Rcpp::traits::input_parameter< double >::type rho(rhoSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_evo_heritage(edge, edge_length, n_tips, species_present, rho));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_phylo_order_parallel
-List cpp_phylo_order_parallel(NumericMatrix species_pa, IntegerMatrix orders, NumericMatrix phylo_dist_mat, CharacterVector metrics, int n_cores, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips);
-RcppExport SEXP _spacc_cpp_phylo_order_parallel(SEXP species_paSEXP, SEXP ordersSEXP, SEXP phylo_dist_matSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP) {
+List cpp_phylo_order_parallel(NumericMatrix species_pa, IntegerMatrix orders, NumericMatrix phylo_dist_mat, CharacterVector metrics, int n_cores, Rcpp::Nullable<IntegerMatrix> tree_edge, Rcpp::Nullable<NumericVector> tree_edge_length, int tree_n_tips, IntegerVector species_tip, NumericVector rho);
+RcppExport SEXP _spacc_cpp_phylo_order_parallel(SEXP species_paSEXP, SEXP ordersSEXP, SEXP phylo_dist_matSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP tree_edgeSEXP, SEXP tree_edge_lengthSEXP, SEXP tree_n_tipsSEXP, SEXP species_tipSEXP, SEXP rhoSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -341,7 +356,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<IntegerMatrix> >::type tree_edge(tree_edgeSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<NumericVector> >::type tree_edge_length(tree_edge_lengthSEXP);
     Rcpp::traits::input_parameter< int >::type tree_n_tips(tree_n_tipsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_phylo_order_parallel(species_pa, orders, phylo_dist_mat, metrics, n_cores, tree_edge, tree_edge_length, tree_n_tips));
+    Rcpp::traits::input_parameter< IntegerVector >::type species_tip(species_tipSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rho(rhoSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_phylo_order_parallel(species_pa, orders, phylo_dist_mat, metrics, n_cores, tree_edge, tree_edge_length, tree_n_tips, species_tip, rho));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -422,7 +439,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_calc_mntd", (DL_FUNC) &_spacc_calc_mntd, 4},
     {"_spacc_calc_rao", (DL_FUNC) &_spacc_calc_rao, 2},
     {"_spacc_calc_faith_pd", (DL_FUNC) &_spacc_calc_faith_pd, 4},
-    {"_spacc_cpp_phylo_order_parallel", (DL_FUNC) &_spacc_cpp_phylo_order_parallel, 8},
+    {"_spacc_calc_evo_heritage", (DL_FUNC) &_spacc_calc_evo_heritage, 5},
+    {"_spacc_cpp_phylo_order_parallel", (DL_FUNC) &_spacc_cpp_phylo_order_parallel, 10},
     {"_spacc_calc_fdis", (DL_FUNC) &_spacc_calc_fdis, 3},
     {"_spacc_calc_fric_approx", (DL_FUNC) &_spacc_calc_fric_approx, 2},
     {"_spacc_calc_rao_traits", (DL_FUNC) &_spacc_calc_rao_traits, 2},

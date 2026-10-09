@@ -1,5 +1,19 @@
 # spacc 0.11.0
 
+## New features
+
+- `spaccPhylo(metric = "evoheritage", rho = )` accumulates EvoHeritage
+  (Rosindell et al. 2024), phylogenetic diversity with attrition of
+  evolutionary heritage at rate `rho`. `rho = 0` reproduces Faith's PD; a
+  vector `rho` gives one curve per rate (#7).
+
+## Bug fixes
+
+- `spaccPhylo()` PD matched species to tree tips by column position, so it
+  was wrong when `colnames(x)` were not in `tree$tip.label` order and read past
+  the community when the tree held more tips than `x` had species. Species are
+  now matched to tips by name.
+
 ## Internals
 
 - Every accumulation method is now an order generator (`src/orders.cpp`),

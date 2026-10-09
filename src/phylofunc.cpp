@@ -103,20 +103,49 @@ double calc_faith_pd(IntegerMatrix edge, NumericVector edge_length, int n_tips,
 }
 
 
+// EvoHeritage (Rosindell et al. 2024) of the present tips; species_present is
+// indexed by tip.
+// [[Rcpp::export]]
+double calc_evo_heritage(IntegerMatrix edge, NumericVector edge_length, int n_tips,
+                         LogicalVector species_present, double rho) {
+  spacc::PhyloTree tree = build_tree(edge, edge_length, n_tips);
+  return tree.evo_heritage([&](int tip) { return species_present[tip] != 0; }, rho);
+}
+
+
+// Tree-based metrics read presence per tip; species_tip maps each column of
+// the community matrix to its 0-based tip, so the tree may hold tips that are
+// not in the community and in any order.
 struct PhyloMetric {
   RMatrix<double> phylo_dist;
   RMatrix<double> out;       // (n_seeds * n_metrics) x n_sites
   int n_metrics, mpd_idx, mntd_idx, pd_idx, rao_idx;
+  std::vector<int> evo_idx;                       // rows of the EvoHeritage metrics
+  std::vector<double> evo_rho;                    // their attrition rates
   std::shared_ptr<const spacc::PhyloTree> tree;   // null when no tree supplied
+  std::vector<int> species_of_tip;                // -1 for tips not in the community
 
   PhyloMetric(const NumericMatrix& phylo_dist_, NumericMatrix& out_,
-              const std::vector<std::string>& names,
-              std::shared_ptr<const spacc::PhyloTree> tree_)
+              const std::vector<std::string>& names, const NumericVector& rho,
+              std::shared_ptr<const spacc::PhyloTree> tree_,
+              const IntegerVector& species_tip)
     : phylo_dist(phylo_dist_), out(out_),
       n_metrics(static_cast<int>(names.size())),
       mpd_idx(index_of(names, "mpd")), mntd_idx(index_of(names, "mntd")),
       pd_idx(tree_ ? index_of(names, "pd") : -1), rao_idx(index_of(names, "rao")),
-      tree(tree_) {}
+      tree(tree_) {
+    if (tree) {
+      for (std::size_t m = 0; m < names.size(); m++) {
+        if (names[m].rfind("evoheritage", 0) == 0) evo_idx.push_back(static_cast<int>(m));
+      }
+      if (evo_idx.size() != static_cast<std::size_t>(rho.size())) {
+        Rcpp::stop("one rho value is needed per EvoHeritage metric");
+      }
+      evo_rho.assign(rho.begin(), rho.end());
+      species_of_tip.assign(tree->n_tips, -1);
+      for (int sp = 0; sp < species_tip.size(); sp++) species_of_tip[species_tip[sp]] = sp;
+    }
+  }
 
   struct Scratch {};
   Scratch scratch(int) const { return Scratch(); }
@@ -125,12 +154,19 @@ struct PhyloMetric {
                Scratch&) {
     auto d = [&](int i, int j) { return phylo_dist(i, j); };
     auto one = [](int) { return 1.0; };
+    auto tip_present = [&](int tip) {
+      const int sp = species_of_tip[tip];
+      return sp >= 0 && cumulative[sp] > 0;
+    };
     const std::size_t row = s * n_metrics;
     std::vector<int> present;
     if (mpd_idx >= 0 || mntd_idx >= 0) present = spacc::present_species(cumulative);
     if (mpd_idx >= 0)  out(row + mpd_idx, step) = spacc::mean_pairwise_distance(d, present, one);
     if (mntd_idx >= 0) out(row + mntd_idx, step) = spacc::mean_nearest_taxon_distance(d, present, one);
-    if (pd_idx >= 0)   out(row + pd_idx, step) = tree->faith_pd([&](int tip) { return cumulative[tip] > 0; });
+    if (pd_idx >= 0)   out(row + pd_idx, step) = tree->faith_pd(tip_present);
+    for (std::size_t k = 0; k < evo_idx.size(); k++) {
+      out(row + evo_idx[k], step) = tree->evo_heritage(tip_present, evo_rho[k]);
+    }
     if (rao_idx >= 0)  out(row + rao_idx, step) = spacc::rao_quadratic_entropy(
                          d, [&](int i) { return cumulative[i]; }, static_cast<int>(cumulative.size()));
   }
@@ -142,17 +178,22 @@ List cpp_phylo_order_parallel(NumericMatrix species_pa, IntegerMatrix orders,
                               int n_cores = 1,
                               Rcpp::Nullable<IntegerMatrix> tree_edge = R_NilValue,
                               Rcpp::Nullable<NumericVector> tree_edge_length = R_NilValue,
-                              int tree_n_tips = 0) {
+                              int tree_n_tips = 0,
+                              IntegerVector species_tip = IntegerVector(),
+                              NumericVector rho = NumericVector()) {
   std::shared_ptr<const spacc::PhyloTree> tree;
   if (tree_edge.isNotNull() && tree_edge_length.isNotNull()) {
     tree = std::make_shared<const spacc::PhyloTree>(
       build_tree(Rcpp::as<IntegerMatrix>(tree_edge),
                  Rcpp::as<NumericVector>(tree_edge_length), tree_n_tips));
+    if (species_tip.size() != species_pa.ncol()) {
+      Rcpp::stop("species_tip must give one tip per species column");
+    }
   }
   const int n_seeds = orders.nrow();
   NumericMatrix flat(n_seeds * metrics.size(), species_pa.nrow());
   std::fill(flat.begin(), flat.end(), NA_REAL);
-  PhyloMetric metric(phylo_dist_mat, flat, metric_names(metrics), tree);
+  PhyloMetric metric(phylo_dist_mat, flat, metric_names(metrics), rho, tree, species_tip);
   run_order_metric<double>(species_pa, orders, metric, n_cores);
   return run_metric_list(flat, n_seeds, metrics);
 }

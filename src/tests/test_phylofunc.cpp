@@ -92,6 +92,56 @@ TEST_CASE("PhyloTree::faith_pd", "[phylo]") {
 }
 
 
+TEST_CASE("PhyloTree::evo_heritage", "[phylo]") {
+  // Same tree as above, with the inner node numbered before the root to check
+  // that the traversal does not rely on ape's node numbering.
+  // ((t1:1, t2:2):3, t3:4); tips 1..3, inner 4, root 5
+  std::vector<int> parent = {5, 4, 4, 5};
+  std::vector<int> child = {4, 1, 2, 3};
+  std::vector<double> len = {3, 1, 2, 4};
+  PhyloTree tree(4,
+    [&](int e) { return parent[e]; },
+    [&](int e) { return child[e]; },
+    [&](int e) { return len[e]; },
+    3);
+
+  auto evo = [&](std::vector<bool> present, double rho) {
+    return tree.evo_heritage([&](int tip) { return present[tip]; }, rho);
+  };
+  auto pd = [&](std::vector<bool> present) {
+    return tree.faith_pd([&](int tip) { return present[tip]; });
+  };
+
+  SECTION("rho = 0 is Faith's PD") {
+    for (auto set : std::vector<std::vector<bool>>{
+           {true, false, false}, {true, true, false}, {true, true, true},
+           {false, true, true}, {false, false, false}}) {
+      REQUIRE(evo(set, 0.0) == Approx(pd(set)));
+    }
+    REQUIRE(evo({true, true, false}, 1e-9) == Approx(6.0).epsilon(1e-6));
+  }
+
+  SECTION("large rho tends to the number of present tips") {
+    REQUIRE(evo({true, false, false}, 50.0) == Approx(1.0));
+    REQUIRE(evo({true, true, false}, 50.0) == Approx(2.0));
+    REQUIRE(evo({true, true, true}, 50.0) == Approx(3.0));
+  }
+
+  SECTION("hand-computed value at rho = 1, tips t1 and t2") {
+    // p(t1) = p(t2) = 1; p(inner) = 1 - (1 - e^-1)(1 - e^-2)
+    // phi = [(1 - e^-1) + (1 - e^-2) + (1 - e^-3) p(inner)] / (1 - e^-1)
+    const double e1 = std::exp(-1.0), e2 = std::exp(-2.0), e3 = std::exp(-3.0);
+    const double p_inner = 1.0 - (1.0 - e1) * (1.0 - e2);
+    const double expected = ((1.0 - e1) + (1.0 - e2) + (1.0 - e3) * p_inner) / (1.0 - e1);
+    REQUIRE(evo({true, true, false}, 1.0) == Approx(expected));
+  }
+
+  SECTION("empty set gives zero") {
+    REQUIRE(evo({false, false, false}, 0.5) == Approx(0.0));
+  }
+}
+
+
 TEST_CASE("functional_dispersion", "[func]") {
   Mat traits{{{0, 0}, {2, 0}, {1, 1}}};
 

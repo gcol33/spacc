@@ -240,7 +240,7 @@ test_that("spaccPhylo warns when PD requested with distance matrix", {
     spaccPhylo(species, coords, phylo_dist,
                metric = c("pd", "mpd"), n_seeds = 3,
                parallel = FALSE, progress = FALSE, seed = 1),
-    "PD requires"
+    "requires a full tree"
   )
 })
 

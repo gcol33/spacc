@@ -93,8 +93,12 @@ calc_faith_pd <- function(edge, edge_length, n_tips, species_present) {
     .Call(`_spacc_calc_faith_pd`, edge, edge_length, n_tips, species_present)
 }
 
-cpp_phylo_order_parallel <- function(species_pa, orders, phylo_dist_mat, metrics, n_cores = 1L, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L) {
-    .Call(`_spacc_cpp_phylo_order_parallel`, species_pa, orders, phylo_dist_mat, metrics, n_cores, tree_edge, tree_edge_length, tree_n_tips)
+calc_evo_heritage <- function(edge, edge_length, n_tips, species_present, rho) {
+    .Call(`_spacc_calc_evo_heritage`, edge, edge_length, n_tips, species_present, rho)
+}
+
+cpp_phylo_order_parallel <- function(species_pa, orders, phylo_dist_mat, metrics, n_cores = 1L, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L, species_tip = integer(), rho = numeric()) {
+    .Call(`_spacc_cpp_phylo_order_parallel`, species_pa, orders, phylo_dist_mat, metrics, n_cores, tree_edge, tree_edge_length, tree_n_tips, species_tip, rho)
 }
 
 calc_fdis <- function(traits, species_present, abundances) {
