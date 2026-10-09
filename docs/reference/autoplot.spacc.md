@@ -1,9 +1,9 @@
 # Autoplot Methods for spacc Objects
 
 [`ggplot2::autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-methods for spacc objects. These are thin wrappers around the
-corresponding [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-methods, provided for ggplot2 integration.
+methods for spacc objects. Each one calls the corresponding
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method, which
+already returns a ggplot2 object.
 
 ## Arguments
 

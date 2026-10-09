@@ -28,7 +28,7 @@ with C++ backend for performance."><script>
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -154,7 +154,10 @@ spatial tree for &gt;500 sites.</p></li>
 <li><p><code>"exact"</code>: Always use brute-force with precomputed distance matrix.</p></li>
 <li><p><code>"kdtree"</code>: Always use spatial tree. Uses k-d tree (nanoflann) for
 Euclidean distances and ball tree for haversine distances. Faster for
-large datasets, no distance matrix needed.</p></li>
+large datasets, no distance matrix needed.
+A supplied distance matrix (<code>spacc_dist</code> coordinates or the
+spatiotemporal composite built from <code>time</code>) is always used as given, so
+those inputs take the exact backend.</p></li>
 </ul></dd>
 
 
@@ -264,6 +267,10 @@ combined with <code>support</code> or <code>time</code>. Default <code>NULL</cod
 <dl><dt>curves</dt>
 <dd><p>Matrix of cumulative species counts (n_seeds x n_sites)</p></dd>
 
+<dt>orders</dt>
+<dd><p>Matrix of 1-based site indices (n_seeds x n_sites): the
+order in which each curve visited the sites</p></dd>
+
 <dt>coords</dt>
 <dd><p>Original coordinates</p></dd>
 
@@ -287,6 +294,9 @@ one fixed focal point and accumulates sites by increasing distance from that
 point. The <code>nn_walk</code> method is a greedy traversal whose reference point moves
 to the most recently selected site. The two methods represent different
 spatial sampling models.</p>
+<p>Every method is a rule for ordering the sites; the species data are then
+accumulated along those orders. The <code>orders</code> element of the result lets the
+same traversals be reused, for example through the <code>order</code> argument.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

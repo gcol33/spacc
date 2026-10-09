@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">spacc</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,6 +76,29 @@
       <small>Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.11.0" id="spacc-0110">spacc 0.11.0<a class="anchor" aria-label="anchor" href="#spacc-0110"></a></h2>
+<div class="section level3">
+<h3 id="internals-0-11-0">Internals<a class="anchor" aria-label="anchor" href="#internals-0-11-0"></a></h3>
+<ul><li>Every accumulation method is now an order generator (<code>src/orders.cpp</code>), and one kernel accumulates species along those orders (<code>src/accumulate.cpp</code>). The per-method serial/parallel/tree copies of the traversal (<code>knn.cpp</code>, <code>kncn.cpp</code>, <code>random.cpp</code>, <code>methods.cpp</code>, <code>metrics.cpp</code>) are gone; <code><a href="../reference/spacc.html">spacc()</a></code>, <code><a href="../reference/spaccMetrics.html">spaccMetrics()</a></code>, <code><a href="../reference/spaccDiversity.html">spaccDiversity()</a></code> and the metric front doors all take their site orders from <code>.accumulation_orders()</code>.</li>
+<li>The Hill, coverage, beta, phylogenetic and functional accumulations run on one templated worker (<code>OrderMetricWorker</code> in <code>src/parallel_utils.h</code>); each metric is a small struct with an <code>at_step()</code> method. The pure kernels live in <code>src/core/</code> (<code>phylo_core.h</code> and <code>func_core.h</code> are new) and are the single implementation behind both the exported single-community functions (<code>calc_mpd()</code>, <code>calc_fdis()</code>, …) and the accumulation workers.</li>
+<li>Faith’s PD precomputes the parent of every tree node once per call instead of scanning the edge list at every step.</li>
+<li>The S3 methods of the curve classes share <code>.curve_stats()</code>, <code>.curve_frame()</code>, <code>.plot_curves_by()</code>, <code>.plot_site_map()</code> and <code>.as_sf_site_values()</code>; the <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> methods are one delegating function registered per class.</li>
+<li>
+<code>spacc</code> objects carry the site <code>orders</code> their curves were accumulated along.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="behaviour-changes-0-11-0">Behaviour changes<a class="anchor" aria-label="anchor" href="#behaviour-changes-0-11-0"></a></h3>
+<ul><li>
+<code>method = "gaussian"</code> draws from R’s random number generator, so <code>seed</code> (or <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code>) now reproduces its curves. It previously used an unseeded C++ generator.</li>
+<li>
+<code>method = "kncn"</code> with <code>distance = "haversine"</code> measures centroid distances with the haversine formula on both backends; the exact backend used planar distances on longitude/latitude.</li>
+<li>
+<code>.accumulation_orders()</code> computes a distance matrix only for the methods that need one, so <code><a href="../reference/spaccHill.html">spaccHill()</a></code>, <code><a href="../reference/spaccPhylo.html">spaccPhylo()</a></code>, <code><a href="../reference/spaccFunc.html">spaccFunc()</a></code>, <code><a href="../reference/spaccCoverage.html">spaccCoverage()</a></code> and <code><a href="../reference/spaccEndemism.html">spaccEndemism()</a></code> no longer build an <code>n x n</code> matrix for the fixed-focus <code>knn</code> method.</li>
+<li>
+<code><a href="../reference/as_sf.html">as_sf()</a></code> and <code>plot(type = "map")</code> on an object computed without <code>map = TRUE</code> fail with one message for every class: “No map data. Rerun <constructor>() with map = TRUE.”</constructor></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.10.2" id="spacc-0102">spacc 0.10.2<a class="anchor" aria-label="anchor" href="#spacc-0102"></a></h2>
 <div class="section level3">

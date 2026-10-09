@@ -88,7 +88,10 @@ spacc(
 
   - `"kdtree"`: Always use spatial tree. Uses k-d tree (nanoflann) for
     Euclidean distances and ball tree for haversine distances. Faster
-    for large datasets, no distance matrix needed.
+    for large datasets, no distance matrix needed. A supplied distance
+    matrix (`spacc_dist` coordinates or the spatiotemporal composite
+    built from `time`) is always used as given, so those inputs take the
+    exact backend.
 
 - support:
 
@@ -207,6 +210,11 @@ When `groups = NULL`, an object of class `spacc` containing:
 
   Matrix of cumulative species counts (n_seeds x n_sites)
 
+- orders:
+
+  Matrix of 1-based site indices (n_seeds x n_sites): the order in which
+  each curve visited the sites
+
 - coords:
 
   Original coordinates
@@ -234,6 +242,10 @@ uses one fixed focal point and accumulates sites by increasing distance
 from that point. The `nn_walk` method is a greedy traversal whose
 reference point moves to the most recently selected site. The two
 methods represent different spatial sampling models.
+
+Every method is a rule for ordering the sites; the species data are then
+accumulated along those orders. The `orders` element of the result lets
+the same traversals be reused, for example through the `order` argument.
 
 ## References
 

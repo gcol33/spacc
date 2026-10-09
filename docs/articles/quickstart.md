@@ -352,8 +352,8 @@ comp
 #> Comparison: sac_a vs sac_b 
 #> ---------------------------------------- 
 #> Method: permutation (n=199)
-#> AUC difference: 19.7 (p = 0.236)
-#> Saturation: sac_a at 16 sites, sac_b at 18 sites
+#> AUC difference: -3.2 (p = 0.819)
+#> Saturation: sac_a at 17 sites, sac_b at 16 sites
 ```
 
 The printout names the two objects, gives the area-under-curve
@@ -373,10 +373,10 @@ both saturation points, and the \\p\\-value.
 ``` r
 
 as.data.frame(comp)
-#>       comparison    auc_x  auc_y auc_diff saturation_x saturation_y
-#> 1 sac_a vs sac_b 1497.567 1477.9 19.66667           16           18
+#>       comparison  auc_x    auc_y  auc_diff saturation_x saturation_y
+#> 1 sac_a vs sac_b 1488.6 1491.833 -3.233333           17           16
 #>   saturation_diff   p_value      method
-#> 1              -2 0.2361809 permutation
+#> 1               1 0.8190955 permutation
 ```
 
 ## Extrapolation and prediction
@@ -565,10 +565,10 @@ abund <- matrix(rpois(n_sites * n_species, lambda = 2), n_sites, n_species)
 colnames(abund) <- colnames(species)
 hill <- spaccHill(abund, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
 tail(as.data.frame(hill), 3)
-#>     sites q     mean    lower    upper          sd
-#> 238    78 2 39.84461 39.83415 39.85251 0.007587100
-#> 239    79 2 39.84802 39.84522 39.85350 0.003270283
-#> 240    80 2 39.85458 39.85458 39.85458 0.000000000
+#>     q sites     mean    lower    upper          sd
+#> 238 2    78 39.84461 39.83415 39.85251 0.007587100
+#> 239 2    79 39.84802 39.84522 39.85350 0.003270283
+#> 240 2    80 39.85458 39.85458 39.85458 0.000000000
 ```
 
 ``` r

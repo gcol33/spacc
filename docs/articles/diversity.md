@@ -211,10 +211,10 @@ stacked by \\q\\.
 
 hill_df <- as.data.frame(hill)
 head(hill_df, 3)
-#>   sites q  mean lower  upper       sd
-#> 1     1 0 17.25  9.95 24.000 4.115120
-#> 2     2 0 20.85 15.00 27.000 3.787445
-#> 3     3 0 22.50 16.95 28.525 3.220003
+#>   q sites  mean lower  upper       sd
+#> 1 0     1 17.25  9.95 24.000 4.115120
+#> 2 0     2 20.85 15.00 27.000 3.787445
+#> 3 0     3 22.50 16.95 28.525 3.220003
 # Final-site values per q
 hill_df[hill_df$sites == max(hill_df$sites), c("q", "mean", "lower", "upper")]
 #>     q     mean    lower    upper
@@ -722,10 +722,10 @@ func_rao <- spaccFunc(species, coords, traits,
                       metric = "rao",
                       n_seeds = 20, progress = FALSE)
 tail(as.data.frame(func_rao), 3)
-#>    sites metric     mean    lower    upper          sd
-#> 58    58    rao 1.934095 1.922281 1.944042 0.008915432
-#> 59    59    rao 1.934749 1.930139 1.938609 0.003703098
-#> 60    60    rao 1.935485 1.935485 1.935485 0.000000000
+#>    metric sites     mean    lower    upper          sd
+#> 58    rao    58 1.934095 1.922281 1.944042 0.008915432
+#> 59    rao    59 1.934749 1.930139 1.938609 0.003703098
+#> 60    rao    60 1.935485 1.935485 1.935485 0.000000000
 ```
 
 With presence/absence data Rao’s Q reduces to an equal-weight form; with
@@ -740,10 +740,10 @@ cover <- species / max(species)   # fractional values in [0, 1]
 func_rao_cover <- spaccFunc(cover, coords, traits,
                             metric = "rao", n_seeds = 10, progress = FALSE)
 tail(as.data.frame(func_rao_cover), 3)
-#>    sites metric     mean    lower    upper           sd
-#> 58    58    rao 1.932631 1.922281 1.944042 9.289699e-03
-#> 59    59    rao 1.934717 1.930139 1.938609 4.057622e-03
-#> 60    60    rao 1.935485 1.935485 1.935485 3.625973e-16
+#>    metric sites     mean    lower    upper           sd
+#> 58    rao    58 1.932631 1.922281 1.944042 9.289699e-03
+#> 59    rao    59 1.934717 1.930139 1.938609 4.057622e-03
+#> 60    rao    60 1.935485 1.935485 1.935485 3.625973e-16
 ```
 
 Rao’s Q saturates faster than richness because once the community spans

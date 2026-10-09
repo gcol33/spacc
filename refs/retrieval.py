@@ -76,8 +76,8 @@ WALLED = [
         "https://besjournals.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/2041-210X.14146",
     ]),
     ("I1_Chiu_2023_Network_diversity_incomplete_sampling.pdf", [
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC10225855/pdf/",
         "https://royalsocietypublishing.org/doi/pdf/10.1098/rstb.2022.0183",
-        "https://pmc.ncbi.nlm.nih.gov/articles/PMC10257815/pdf/",
     ]),
 ]
 
