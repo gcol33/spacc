@@ -54,8 +54,9 @@ test_that("converted object works with summary, print, and compare", {
 })
 
 test_that("as_spacc errors clearly on unsupported input", {
-  expect_error(as_spacc(1:5), "specaccum")
-  expect_error(as_spacc(data.frame(a = 1)), "specaccum")
+  expect_error(as_spacc(list(a = 1)), "specaccum")
+  expect_error(as_spacc("curve"), "specaccum")
+  expect_error(as_spacc(data.frame(a = 1)), "column")
 })
 
 test_that("as_spacc round-trips a real vegan::specaccum object", {

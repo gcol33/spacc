@@ -209,6 +209,16 @@ convex hull of eligible sites. An `sf` polygon supplied through `focal_domain`
 represents a known irregular boundary, including holes and disconnected parts.
 Exact coordinates supplied through `focal_points` reproduce a specified design.
 
+The Rarefy package (Thouverai et al. 2026) implements the same traversal with
+the observed plots as foci: `Rarefy::directionalSAC()` with the site distance
+matrix as gradient ranks the sites by distance from each plot in turn and
+averages the collector curves, which is `spacc(x, coords, method = "knn",
+focal_points = coords)` (on a 60-plot simulated community the two agree to
+machine precision). The packages differ in where the foci come from: Rarefy
+seeds at the plots, spacc by default at points drawn over the study area, so a
+plot-seeded curve weights the region by where plots happen to be. Rarefy
+curves can be brought into spacc with `as_spacc()`.
+
 ### Nearest-neighbour walk (`nn_walk`)
 
 From the current site $\pi_k$, move to the closest unvisited site:

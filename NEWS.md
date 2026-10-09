@@ -31,6 +31,10 @@
   sampling design (user-supplied `focal_points` of a `knn` analysis) by
   random rotations and shifts (Ridder et al. 2024), testing the design's
   position rather than the community's spatial structure (#12).
+- `as_spacc()` converts a numeric curve or a data frame column, including
+  the output of `Rarefy::directionalSAC()` and `Rarefy::rare_alpha()`.
+  `spacc(method = "knn", focal_points = coords)` is checked to reproduce
+  Rarefy's directional curve exactly (#16).
 - `dar()` is an S3 generic: besides a site-by-species matrix it takes a
   `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
   object and returns the diversity-area relationship of each of its curves,
