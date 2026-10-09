@@ -15,6 +15,10 @@
   and alpha to a common sample coverage at every step (iNEXT.beta3D, Chao et
   al. 2023) and returns the four dissimilarities `1-CqN`, `1-UqN`, `1-VqN`,
   `1-SqN`. Final-step values match `iNEXT.beta3D::iNEXTbeta3D()` (#6).
+- `spaccFunc(metric = "K")` accumulates the aggregated functional diversity
+  K of Wojcik et al. (2024) with its four facets (`k_richness`,
+  `k_biomass_evenness`, `k_trait_evenness`, `k_dispersion`); K is defined
+  from two species on (#8).
 - New C++ engine for size- and coverage-based rarefaction and extrapolation
   of Hill numbers (`src/core/inext_core.h`), matching iNEXT.3D.
 

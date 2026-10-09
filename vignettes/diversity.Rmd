@@ -551,6 +551,21 @@ trait variation, adding species near the centroid does not move the mean
 distance much. A FDis curve that keeps climbing indicates the region is still
 gaining functionally extreme species at large spatial scales.
 
+`metric = "K"` aggregates four facets into one index between 0 and 1
+(Wojcik et al. 2024): the share of the trait axis covered, the evenness of
+abundances, the evenness of the spacing along the trait axis, and the spread of
+abundance around the mean trait. Each facet is 1 for species spread uniformly
+along the axis with equal abundances, and K is their geometric mean, so the
+facet curves show which aspect a new site adds.
+
+```{r func-k}
+func_k <- spaccFunc(species, coords, traits, metric = "K",
+                    n_seeds = 20, progress = FALSE)
+k_df <- summary(func_k)
+k_df[k_df$sites %in% c(1, 10, max(k_df$sites)), c("metric", "sites", "mean")]
+```
+
+
 The continuous-$q$ profile extends to both paradigms. `diversityProfile()` with a
 `tree` argument gives phylogenetic Hill numbers across $q$, and with a `traits`
 argument gives

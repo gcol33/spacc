@@ -253,6 +253,27 @@ spaccPhylo <- function(x,
 }
 
 
+# Rows reported for metric = "K": its four facets and K itself.
+.k_metrics <- c("k_richness", "k_biomass_evenness", "k_trait_evenness",
+                "k_dispersion", "K")
+
+
+# Length L of each trait axis for K: the trait range over all species unless
+# given. A trait that does not vary carries no functional diversity.
+.k_axis_length <- function(traits, axis_length = NULL) {
+  if (is.null(axis_length)) {
+    axis_length <- apply(traits, 2, function(v) diff(range(v)))
+  }
+  stopifnot("axis_length_k must have one value per trait" =
+              length(axis_length) == ncol(traits))
+  if (any(!is.finite(axis_length) | axis_length <= 0)) {
+    stop("K needs every trait axis to have positive length; drop constant traits",
+         call. = FALSE)
+  }
+  as.numeric(axis_length)
+}
+
+
 #' Spatial Functional Diversity Accumulation
 #'
 #' Compute spatial accumulation of functional diversity metrics based on traits.
@@ -265,6 +286,9 @@ spaccPhylo <- function(x,
 #'   - `"fric"`: Functional Richness (convex hull volume approximation)
 #'   - `"rao"`: Rao's quadratic entropy (abundance-weighted mean pairwise
 #'     Euclidean trait distance)
+#'   - `"K"`: aggregated functional diversity (Wojcik et al. 2024), reported
+#'     with its four facets as `k_richness`, `k_biomass_evenness`,
+#'     `k_trait_evenness`, `k_dispersion` and `K`
 #' @param n_seeds Integer. Number of random starting points. Default 50.
 #' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
 #' @param distance Character. Site distance method: `"euclidean"` or `"haversine"`.
@@ -277,6 +301,9 @@ spaccPhylo <- function(x,
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
 #' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
 #' @param focal_domain Optional polygonal focal domain. See [spacc()].
+#' @param axis_length_k Numeric vector, one value per trait. Length of each
+#'   trait axis for the richness facet of `"K"`. Default `NULL` uses the
+#'   range of each trait over all species in `traits`.
 #'
 #' @return An object of class `spacc_func` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
@@ -292,9 +319,29 @@ spaccPhylo <- function(x,
 #' - **FRic (Functional Richness)**: Volume of trait space occupied (convex hull).
 #'   Requires more species than traits to compute.
 #'
+#' - **K (aggregated functional diversity)**: the geometric mean of four
+#'   facets between 0 and 1, each equal to 1 when species are spread
+#'   uniformly along the trait axis with equal abundances (Wojcik et al.
+#'   2024). Per trait, with the \eqn{n} present species sorted by trait value
+#'   and relative abundances \eqn{b_i}: functional richness is the trait
+#'   range over the axis length; biomass evenness compares the \eqn{b_i} with
+#'   \eqn{1/n}; trait evenness compares the gaps between neighbouring trait
+#'   values with an even spacing; dispersion is the abundance-weighted trait
+#'   variance over that of a uniform distribution on the same range, capped
+#'   at 1. Several traits combine as the geometric mean over traits, and each
+#'   reported facet is its geometric mean over traits. Trait evenness needs
+#'   three species: with two, K is the cube root of the other three facets
+#'   and `k_trait_evenness` is `NA`. With fewer than two species K is 0.
+#'   With presence/absence data biomass evenness is 1.
+#'
 #' @references
 #' Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 #' functional diversity from multiple traits. Ecology, 91, 299-305.
+#'
+#' Wojcik, L.A., Gaedke, U., van Velzen, E. & Klauschies, T. (2024). Measuring
+#' overall functional diversity by aggregating its multiple facets: functional
+#' richness, biomass evenness, trait evenness and dispersion. Methods in
+#' Ecology and Evolution, 16, 215-227. \doi{10.1111/2041-210X.14470}
 #'
 #' @seealso `FD::dbFD()` for comprehensive functional diversity analysis
 #'
@@ -326,11 +373,12 @@ spaccFunc <- function(x,
                       seed = NULL,
                       map = FALSE,
                       focal_points = NULL,
-                      focal_domain = NULL) {
+                      focal_domain = NULL,
+                      axis_length_k = NULL) {
 
   method <- match.arg(method)
   distance <- match.arg(distance)
-  metric <- match.arg(metric, c("fdis", "fric", "rao"), several.ok = TRUE)
+  metric <- match.arg(metric, c("fdis", "fric", "rao", "K"), several.ok = TRUE)
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -349,6 +397,14 @@ spaccFunc <- function(x,
 
   traits <- .match_traits(traits, colnames(x), n_species)
 
+  # K is reported with its four facets, in place of the single "K" entry.
+  axis_length <- numeric(0)
+  if ("K" %in% metric) {
+    axis_length <- .k_axis_length(traits, axis_length_k)
+    at <- match("K", metric)
+    metric <- append(metric[-at], .k_metrics, after = at - 1L)
+  }
+
   # Keep abundance data as doubles (supports non-integer abundances,
   # e.g. cover or biomass, for FDis and Rao weighting)
   storage.mode(x) <- "double"
@@ -357,7 +413,7 @@ spaccFunc <- function(x,
                                   paste(metric, collapse = ", "), n_seeds))
 
   run <- function(orders) {
-    cpp_func_order_parallel(x, orders - 1L, traits, metric, n_cores)
+    cpp_func_order_parallel(x, orders - 1L, traits, metric, n_cores, axis_length)
   }
 
   result <- run(ordering$orders)

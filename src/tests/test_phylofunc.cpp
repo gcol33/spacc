@@ -178,3 +178,50 @@ TEST_CASE("rao_trait_entropy", "[func]") {
   // 2 * 0.25 * 5 = 2.5
   REQUIRE(rao_trait_entropy(traits, 2, 2, [&](int i) { return ab[i]; }) == Approx(2.5));
 }
+
+
+TEST_CASE("functional_facets_K", "[func]") {
+  auto facets = [](std::vector<double> t, std::vector<double> ab, double L) {
+    std::vector<int> present;
+    for (int i = 0; i < static_cast<int>(t.size()); i++) present.push_back(i);
+    return functional_facets_K([&](int i, int) { return t[i]; }, 1, present,
+                               [&](int i) { return ab[i]; }, std::vector<double>{L});
+  };
+
+  SECTION("even spacing with equal abundances gives K = 1") {
+    KFacets f = facets({0.0, 0.5, 1.0}, {1, 1, 1}, 1.0);
+    REQUIRE(f.richness == Approx(1.0));
+    REQUIRE(f.biomass_evenness == Approx(1.0));
+    REQUIRE(f.trait_evenness == Approx(1.0));
+    REQUIRE(f.dispersion == Approx(1.0));
+    REQUIRE(f.K == Approx(1.0));
+  }
+
+  SECTION("two species: finite K from three facets") {
+    // b = (1/4, 3/4): BE = 1 - sqrt(0.125 / 0.5) = 0.5; FRic = 1/2;
+    // V_obs = 0.1875 > V_uni = 1/12, so Dis = 1; K = (0.5 * 0.5 * 1)^(1/3)
+    KFacets f = facets({0.0, 1.0}, {1, 3}, 2.0);
+    REQUIRE(f.richness == Approx(0.5));
+    REQUIRE(f.biomass_evenness == Approx(0.5));
+    REQUIRE(f.dispersion == Approx(1.0));
+    REQUIRE(std::isnan(f.trait_evenness));
+    REQUIRE(f.K == Approx(std::cbrt(0.25)));
+  }
+
+  SECTION("uneven spacing lowers trait evenness") {
+    // gaps 0.1, 0.9 against 0.5: sum of squares 0.32, / (1/2) -> sqrt 0.8
+    KFacets f = facets({0.0, 0.1, 1.0}, {1, 1, 1}, 1.0);
+    REQUIRE(f.trait_evenness == Approx(0.2));
+    REQUIRE(f.K == Approx(std::pow(0.2, 0.25)));
+  }
+
+  SECTION("clustered abundance lowers dispersion") {
+    // most weight at the centre: V_obs = 2 * 0.05 * 0.25 = 0.025 < 1/12
+    KFacets f = facets({0.0, 0.5, 1.0}, {1, 18, 1}, 1.0);
+    REQUIRE(f.dispersion == Approx(0.025 * 12));
+  }
+
+  SECTION("one species gives K = 0") {
+    REQUIRE(facets({0.3}, {5}, 1.0).K == Approx(0.0));
+  }
+}

@@ -427,9 +427,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calc_k_facets
+NumericVector calc_k_facets(NumericMatrix traits, NumericVector abundances, NumericVector axis_length);
+RcppExport SEXP _spacc_calc_k_facets(SEXP traitsSEXP, SEXP abundancesSEXP, SEXP axis_lengthSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type axis_length(axis_lengthSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_k_facets(traits, abundances, axis_length));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_func_order_parallel
-List cpp_func_order_parallel(NumericMatrix species_mat, IntegerMatrix orders, NumericMatrix traits, CharacterVector metrics, int n_cores);
-RcppExport SEXP _spacc_cpp_func_order_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP traitsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP) {
+List cpp_func_order_parallel(NumericMatrix species_mat, IntegerMatrix orders, NumericMatrix traits, CharacterVector metrics, int n_cores, NumericVector axis_length);
+RcppExport SEXP _spacc_cpp_func_order_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP traitsSEXP, SEXP metricsSEXP, SEXP n_coresSEXP, SEXP axis_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -438,7 +451,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type traits(traitsSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type metrics(metricsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_func_order_parallel(species_mat, orders, traits, metrics, n_cores));
+    Rcpp::traits::input_parameter< NumericVector >::type axis_length(axis_lengthSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_func_order_parallel(species_mat, orders, traits, metrics, n_cores, axis_length));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -474,7 +488,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_calc_fdis", (DL_FUNC) &_spacc_calc_fdis, 3},
     {"_spacc_calc_fric_approx", (DL_FUNC) &_spacc_calc_fric_approx, 2},
     {"_spacc_calc_rao_traits", (DL_FUNC) &_spacc_calc_rao_traits, 2},
-    {"_spacc_cpp_func_order_parallel", (DL_FUNC) &_spacc_cpp_func_order_parallel, 5},
+    {"_spacc_calc_k_facets", (DL_FUNC) &_spacc_calc_k_facets, 3},
+    {"_spacc_cpp_func_order_parallel", (DL_FUNC) &_spacc_cpp_func_order_parallel, 6},
     {NULL, NULL, 0}
 };
 

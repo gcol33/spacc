@@ -121,7 +121,11 @@ calc_rao_traits <- function(traits, abundances) {
     .Call(`_spacc_calc_rao_traits`, traits, abundances)
 }
 
-cpp_func_order_parallel <- function(species_mat, orders, traits, metrics, n_cores = 1L) {
-    .Call(`_spacc_cpp_func_order_parallel`, species_mat, orders, traits, metrics, n_cores)
+calc_k_facets <- function(traits, abundances, axis_length) {
+    .Call(`_spacc_calc_k_facets`, traits, abundances, axis_length)
+}
+
+cpp_func_order_parallel <- function(species_mat, orders, traits, metrics, n_cores = 1L, axis_length = numeric()) {
+    .Call(`_spacc_cpp_func_order_parallel`, species_mat, orders, traits, metrics, n_cores, axis_length)
 }
 

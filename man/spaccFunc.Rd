@@ -18,7 +18,8 @@ spaccFunc(
   seed = NULL,
   map = FALSE,
   focal_points = NULL,
-  focal_domain = NULL
+  focal_domain = NULL,
+  axis_length_k = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ spaccFunc(
 \item \code{"fric"}: Functional Richness (convex hull volume approximation)
 \item \code{"rao"}: Rao's quadratic entropy (abundance-weighted mean pairwise
 Euclidean trait distance)
+\item \code{"K"}: aggregated functional diversity (Wojcik et al. 2024), reported
+with its four facets as \code{k_richness}, \code{k_biomass_evenness},
+\code{k_trait_evenness}, \code{k_dispersion} and \code{K}
 }}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
@@ -57,6 +61,10 @@ and store per-site final values for spatial mapping. Enables
 \item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
 
 \item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
+
+\item{axis_length_k}{Numeric vector, one value per trait. Length of each
+trait axis for the richness facet of \code{"K"}. Default \code{NULL} uses the
+range of each trait over all species in \code{traits}.}
 }
 \value{
 An object of class \code{spacc_func} containing:
@@ -74,6 +82,20 @@ Functional diversity metrics quantify trait space occupation:
 the community centroid in trait space. Captures functional divergence.
 \item \strong{FRic (Functional Richness)}: Volume of trait space occupied (convex hull).
 Requires more species than traits to compute.
+\item \strong{K (aggregated functional diversity)}: the geometric mean of four
+facets between 0 and 1, each equal to 1 when species are spread
+uniformly along the trait axis with equal abundances (Wojcik et al.
+2024). Per trait, with the \eqn{n} present species sorted by trait value
+and relative abundances \eqn{b_i}: functional richness is the trait
+range over the axis length; biomass evenness compares the \eqn{b_i} with
+\eqn{1/n}; trait evenness compares the gaps between neighbouring trait
+values with an even spacing; dispersion is the abundance-weighted trait
+variance over that of a uniform distribution on the same range, capped
+at 1. Several traits combine as the geometric mean over traits, and each
+reported facet is its geometric mean over traits. Trait evenness needs
+three species: with two, K is the cube root of the other three facets
+and \code{k_trait_evenness} is \code{NA}. With fewer than two species K is 0.
+With presence/absence data biomass evenness is 1.
 }
 }
 \examples{
@@ -94,6 +116,11 @@ plot(func)
 \references{
 Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 functional diversity from multiple traits. Ecology, 91, 299-305.
+
+Wojcik, L.A., Gaedke, U., van Velzen, E. & Klauschies, T. (2024). Measuring
+overall functional diversity by aggregating its multiple facets: functional
+richness, biomass evenness, trait evenness and dispersion. Methods in
+Ecology and Evolution, 16, 215-227. \doi{10.1111/2041-210X.14470}
 }
 \seealso{
 \code{FD::dbFD()} for comprehensive functional diversity analysis

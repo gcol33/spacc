@@ -230,16 +230,47 @@ double calc_rao_traits(NumericMatrix traits, NumericVector abundances) {
 }
 
 
+// Aggregated functional diversity K and its facets (Wojcik et al. 2024) for one
+// community; axis_length is the length L of each trait axis.
+// [[Rcpp::export]]
+NumericVector calc_k_facets(NumericMatrix traits, NumericVector abundances,
+                            NumericVector axis_length) {
+  std::vector<int> present;
+  for (int i = 0; i < abundances.size(); i++) if (abundances[i] > 0) present.push_back(i);
+  const spacc::KFacets f = spacc::functional_facets_K(
+    [&](int i, int t) { return traits(i, t); }, traits.ncol(), present,
+    [&](int i) { return abundances[i]; }, to_std(axis_length));
+  return NumericVector::create(
+    Named("k_richness") = f.richness, Named("k_biomass_evenness") = f.biomass_evenness,
+    Named("k_trait_evenness") = f.trait_evenness, Named("k_dispersion") = f.dispersion,
+    Named("K") = f.K);
+}
+
+
 struct FuncMetric {
   RMatrix<double> traits;
   RMatrix<double> out;       // (n_seeds * n_metrics) x n_sites
   int n_metrics, fdis_idx, fric_idx, rao_idx;
+  int k_idx[5];              // rows of k_richness, k_biomass_evenness, k_trait_evenness, k_dispersion, K
+  bool k_any;
+  std::vector<double> axis_length;
 
   FuncMetric(const NumericMatrix& traits_, NumericMatrix& out_,
-             const std::vector<std::string>& names)
+             const std::vector<std::string>& names, const NumericVector& axis_length_)
     : traits(traits_), out(out_), n_metrics(static_cast<int>(names.size())),
       fdis_idx(index_of(names, "fdis")), fric_idx(index_of(names, "fric")),
-      rao_idx(index_of(names, "rao")) {}
+      rao_idx(index_of(names, "rao")), axis_length(to_std(axis_length_)) {
+    const char* k_names[5] = {"k_richness", "k_biomass_evenness", "k_trait_evenness",
+                              "k_dispersion", "K"};
+    k_any = false;
+    for (int i = 0; i < 5; i++) {
+      k_idx[i] = index_of(names, k_names[i]);
+      k_any = k_any || k_idx[i] >= 0;
+    }
+    if (k_any && static_cast<int>(axis_length.size()) != traits_.ncol()) {
+      Rcpp::stop("K needs one axis length per trait");
+    }
+  }
 
   struct Scratch {};
   Scratch scratch(int) const { return Scratch(); }
@@ -251,22 +282,30 @@ struct FuncMetric {
     const int n_traits = traits.ncol();
     const std::size_t row = s * n_metrics;
     std::vector<int> present;
-    if (fdis_idx >= 0 || fric_idx >= 0) present = spacc::present_species(cumulative);
+    if (fdis_idx >= 0 || fric_idx >= 0 || k_any) present = spacc::present_species(cumulative);
     if (fdis_idx >= 0) out(row + fdis_idx, step) = spacc::functional_dispersion(trait, n_traits, present, abundance);
     if (fric_idx >= 0) out(row + fric_idx, step) = spacc::functional_range_volume(trait, n_traits, present);
     if (rao_idx >= 0)  out(row + rao_idx, step) = spacc::rao_trait_entropy(
                          trait, n_traits, static_cast<int>(cumulative.size()), abundance);
+    if (k_any) {
+      const spacc::KFacets f = spacc::functional_facets_K(trait, n_traits, present, abundance,
+                                                          axis_length);
+      const double values[5] = {f.richness, f.biomass_evenness, f.trait_evenness,
+                                f.dispersion, f.K};
+      for (int i = 0; i < 5; i++) if (k_idx[i] >= 0) out(row + k_idx[i], step) = values[i];
+    }
   }
 };
 
 // [[Rcpp::export]]
 List cpp_func_order_parallel(NumericMatrix species_mat, IntegerMatrix orders,
                              NumericMatrix traits, CharacterVector metrics,
-                             int n_cores = 1) {
+                             int n_cores = 1,
+                             NumericVector axis_length = NumericVector()) {
   const int n_seeds = orders.nrow();
   NumericMatrix flat(n_seeds * metrics.size(), species_mat.nrow());
   std::fill(flat.begin(), flat.end(), NA_REAL);
-  FuncMetric metric(traits, flat, metric_names(metrics));
+  FuncMetric metric(traits, flat, metric_names(metrics), axis_length);
   run_order_metric<double>(species_mat, orders, metric, n_cores);
   return run_metric_list(flat, n_seeds, metrics);
 }
