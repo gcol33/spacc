@@ -23,6 +23,10 @@
   accumulation: the ratio of the taxonomic Hill number to the phylogenetic
   (Chao et al. 2010) or similarity-sensitive functional (Leinster & Cobbold
   2012) Hill number of the accumulated community (#9).
+- `spaccBeta(pool = )` repeats the turnover/nestedness partition between
+  pooled assemblages (habitats, regions) along the same site orders, next to
+  the site-level partition (Jones et al. 2025); `summary()` and `plot()` take
+  `resolution = "site"`, `"pooled"` or (plot) `"both"` (#11).
 - `dar()` is an S3 generic: besides a site-by-species matrix it takes a
   `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
   object and returns the diversity-area relationship of each of its curves,

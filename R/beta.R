@@ -24,12 +24,17 @@
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
 #' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
 #' @param focal_domain Optional polygonal focal domain. See [spacc()].
+#' @param pool Optional vector with one value per site (habitat, degradation
+#'   level, region) grouping sites into pools. The partition is then also
+#'   computed between pooled assemblages along the same orders.
 #'
 #' @return An object of class `spacc_beta` containing:
 #'   \item{beta_total}{Matrix of total beta diversity (n_seeds x n_sites-1)}
 #'   \item{beta_turnover}{Matrix of turnover component}
 #'   \item{beta_nestedness}{Matrix of nestedness component}
 #'   \item{distance}{Matrix of cumulative distances}
+#'   \item{pooled}{With `pool`: the same four matrices for the pooled
+#'     assemblages (n_seeds x n_pools-1), plus `pool` and `n_pools`; else `NULL`}
 #'   \item{n_seeds, n_sites, method, index}{Parameters used}
 #'
 #' @details
@@ -51,9 +56,24 @@
 #' records which was computed. `map = TRUE` is supported for the taxonomic
 #' variant only.
 #'
+#' With `pool`, sites are aggregated into pooled assemblages (a species is
+#' present in a pool if it occurs in any of its sites) and the partition is
+#' repeated between pools: each site order becomes the order in which its
+#' pools are first reached, and the distance between two pools is the mean
+#' distance between their sites. Partitions at the two resolutions can
+#' disagree, for example when degraded habitats are homogenised at the pool
+#' level while individual sites still differ (Jones et al. 2025).
+#' `summary(x, resolution = "pooled")` and
+#' `plot(x, resolution = "pooled")` or `"both"` show the pooled partition.
+#'
 #' @references
 #' Baselga, A. (2010). Partitioning the turnover and nestedness components
 #' of beta diversity. Global Ecology and Biogeography, 19, 134-143.
+#'
+#' Jones, F.A.M., Hardenbol, A.A., Hekkala, A.-M., et al. (2025). Partitioning
+#' beta diversity at two spatial resolutions reveals biotic homogenisation
+#' with habitat degradation. Diversity and Distributions, 31, e70080.
+#' \doi{10.1111/ddi.70080}
 #'
 #' @seealso [betapart::beta.pair()] for pairwise beta diversity
 #'
@@ -89,7 +109,8 @@ spaccBeta <- function(x,
                       seed = NULL,
                       map = FALSE,
                       focal_points = NULL,
-                      focal_domain = NULL) {
+                      focal_domain = NULL,
+                      pool = NULL) {
 
   method <- match.arg(method)
   index <- match.arg(index)
@@ -128,19 +149,24 @@ spaccBeta <- function(x,
                                    n_cores = n_cores)
   n_seeds <- ordering$n_seeds
 
-  # Dispatch on the requested dimension
-  if (!is.null(tree)) {
-    comp <- beta_phylogenetic(x, species_pa, tree, dist_mat, ordering$orders,
-                              index, progress)
-    beta_type <- "phylogenetic"
-  } else if (!is.null(traits)) {
-    comp <- beta_functional(x, species_pa, traits, dist_mat, ordering$orders,
-                            index, progress)
-    beta_type <- "functional"
-  } else {
-    comp <- beta_taxonomic(species_pa, dist_mat, ordering$orders, index, n_cores,
-                           progress, map, coord_data, method, distance)
-    beta_type <- "taxonomic"
+  # Dispatch on the requested dimension; the same partition runs on sites and,
+  # with `pool`, on pooled assemblages.
+  beta_type <- if (!is.null(tree)) "phylogenetic" else if (!is.null(traits)) "functional" else "taxonomic"
+  partition <- function(pa, dmat, orders, with_map) {
+    switch(beta_type,
+      phylogenetic = beta_phylogenetic(pa, pa, tree, dmat, orders, index, progress),
+      functional = beta_functional(pa, pa, traits, dmat, orders, index, progress),
+      taxonomic = beta_taxonomic(pa, dmat, orders, index, n_cores, progress, with_map,
+                                 coord_data, method, distance))
+  }
+  comp <- partition(species_pa, dist_mat, ordering$orders, map)
+
+  pooled <- NULL
+  if (!is.null(pool)) {
+    pools <- .pool_sites(species_pa, dist_mat, ordering$orders, pool)
+    pooled <- c(partition(pools$pa, pools$dist_mat, pools$orders, FALSE)[
+                  c("beta_total", "beta_turnover", "beta_nestedness", "distance")],
+                list(pool = pool, n_pools = nrow(pools$pa)))
   }
 
   if (progress) cli_success("Done")
@@ -151,6 +177,7 @@ spaccBeta <- function(x,
       beta_turnover = comp$beta_turnover,
       beta_nestedness = comp$beta_nestedness,
       distance = comp$distance,
+      pooled = pooled,
       coords = coord_data,
       site_values = comp$site_values,
       n_seeds = n_seeds,
@@ -167,30 +194,69 @@ spaccBeta <- function(x,
 }
 
 
+# Pooled assemblages for spaccBeta(pool = ): presence in any site of a pool,
+# each site order turned into the order in which its pools are first reached,
+# and the mean distance between the sites of two pools (the site distance
+# when every pool is one site).
+.pool_sites <- function(species_pa, dist_mat, orders, pool) {
+  if (length(pool) != nrow(species_pa)) stop("pool must have one value per site", call. = FALSE)
+  if (anyNA(pool)) stop("pool must not contain NA", call. = FALSE)
+  groups <- unique(pool)
+  if (length(groups) < 2) stop("pool needs at least two groups", call. = FALSE)
+  id <- match(pool, groups)
+
+  pa <- (rowsum(species_pa, id) > 0) * 1L
+  storage.mode(pa) <- "integer"
+  rownames(pa) <- as.character(groups)
+
+  members <- split(seq_along(id), id)
+  n <- length(groups)
+  group_dist <- matrix(0, n, n)
+  for (g in seq_len(n - 1)) {
+    for (h in (g + 1):n) {
+      group_dist[g, h] <- group_dist[h, g] <- mean(dist_mat[members[[g]], members[[h]]])
+    }
+  }
+
+  group_orders <- t(apply(orders, 1, function(o) unique(id[o])))
+  list(pa = pa, dist_mat = group_dist, orders = group_orders)
+}
+
+
 #' @export
 print.spacc_beta <- function(x, ...) {
   cat(sprintf("spacc beta diversity: %d sites, %d seeds\n",
               x$n_sites, x$n_seeds))
   cat(sprintf("Index: %s, Method: %s\n", x$index, x$method))
-  cat(sprintf("Mean final beta: %.3f (turnover: %.3f, nestedness: %.3f)\n",
-              mean(.final_per_seed(x$beta_total)),
-              mean(.final_per_seed(x$beta_turnover)),
-              mean(.final_per_seed(x$beta_nestedness))))
+  final_line <- function(label, part) {
+    cat(sprintf("%s: %.3f (turnover: %.3f, nestedness: %.3f)\n", label,
+                mean(.final_per_seed(part$beta_total)),
+                mean(.final_per_seed(part$beta_turnover)),
+                mean(.final_per_seed(part$beta_nestedness))))
+  }
+  final_line("Mean final beta", x)
+  if (!is.null(x$pooled)) {
+    final_line(sprintf("Mean final beta, %d pools", x$pooled$n_pools), x$pooled)
+  }
   invisible(x)
 }
 
 
 #' @export
-summary.spacc_beta <- function(object, ci_level = 0.95, ...) {
-  total <- .curve_stats(object$beta_total, ci_level)
+summary.spacc_beta <- function(object, ci_level = 0.95, resolution = c("site", "pooled"),
+                               ...) {
+  resolution <- match.arg(resolution)
+  part <- if (resolution == "site") object else object$pooled
+  if (is.null(part)) stop("No pooled partition; rerun spaccBeta() with `pool`", call. = FALSE)
+  total <- .curve_stats(part$beta_total, ci_level)
   data.frame(
-    step = seq_len(ncol(object$beta_total)),
-    mean_distance = colMeans(object$distance),
+    step = seq_len(ncol(part$beta_total)),
+    mean_distance = colMeans(part$distance),
     beta_total = total$mean,
     beta_total_lower = total$lower,
     beta_total_upper = total$upper,
-    beta_turnover = colMeans(object$beta_turnover),
-    beta_nestedness = colMeans(object$beta_nestedness)
+    beta_turnover = colMeans(part$beta_turnover),
+    beta_nestedness = colMeans(part$beta_nestedness)
   )
 }
 
@@ -200,8 +266,10 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
                             xaxis = c("sites", "distance"),
                             ci = TRUE, ci_alpha = 0.2,
                             component = c("beta_total", "beta_turnover", "beta_nestedness"),
-                            point_size = 3, palette = "viridis", ...) {
+                            point_size = 3, palette = "viridis",
+                            resolution = c("site", "pooled", "both"), ...) {
   type <- match.arg(type)
+  resolution <- match.arg(resolution)
 
   if (type == "map") {
     component <- match.arg(component)
@@ -214,11 +282,16 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
   check_suggests("ggplot2")
 
   xaxis <- match.arg(xaxis)
-  summ <- summary(x)
+  levels <- if (resolution == "both") c("site", "pooled") else resolution
+  summ <- do.call(rbind, lapply(levels, function(r) {
+    s <- summary(x, resolution = r)
+    s$resolution <- r
+    s
+  }))
 
   if (xaxis == "sites") {
-    summ$x <- summ$step + 1  # step 1 = site 2
-    xlab <- "Sites accumulated"
+    summ$x <- summ$step + 1  # step 1 = second site (or pool)
+    xlab <- if (resolution == "site") "Sites accumulated" else "Sites or pools accumulated"
   } else {
     summ$x <- summ$mean_distance
     xlab <- "Cumulative distance"
@@ -226,21 +299,24 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
   ylab <- paste0("Beta diversity (", x$index, ")")
   title <- "Spatial Beta Diversity Accumulation"
 
-  if (!partition) {
+  if (!partition && resolution != "both") {
     return(.plot_curve(summ, x = "x", y = "beta_total",
                        lower = "beta_total_lower", upper = "beta_total_upper",
                        xlab = xlab, ylab = ylab, title = title,
                        ci = ci, ci_alpha = ci_alpha))
   }
 
-  df <- data.frame(
-    x = rep(summ$x, 3),
-    value = c(summ$beta_total, summ$beta_turnover, summ$beta_nestedness),
-    component = rep(c("Total", "Turnover", "Nestedness"), each = nrow(summ))
-  )
+  components <- if (partition) c("Total", "Turnover", "Nestedness") else "Total"
+  columns <- c(Total = "beta_total", Turnover = "beta_turnover", Nestedness = "beta_nestedness")
+  df <- do.call(rbind, lapply(components, function(cmp) {
+    data.frame(x = summ$x, value = summ[[columns[[cmp]]]], component = cmp,
+               resolution = summ$resolution)
+  }))
   df$component <- factor(df$component, levels = c("Total", "Turnover", "Nestedness"))
+  df$resolution <- factor(df$resolution, levels = c("site", "pooled"),
+                          labels = c("Sites", "Pools"))
 
-  ggplot2::ggplot(df, ggplot2::aes(x = x, y = value, color = component)) +
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = value, color = component)) +
     ggplot2::geom_line(linewidth = 1) +
     ggplot2::scale_color_manual(values = c("Total" = "#2E7D32",
                                             "Turnover" = "#1565C0",
@@ -248,6 +324,17 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
     ggplot2::labs(x = xlab, y = ylab, color = "Component", title = title) +
     spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
+  if (resolution != "site") {
+    p <- p + ggplot2::geom_point(data = df[df$resolution == "Pools", ], size = 1.5)
+  }
+  if (resolution == "both") p <- p + ggplot2::facet_wrap(~ resolution, scales = "free_x")
+  if (xaxis == "sites") {
+    p <- p + ggplot2::scale_x_continuous(breaks = function(lim) {
+      b <- pretty(lim)
+      b[b == round(b)]
+    })
+  }
+  p
 }
 
 

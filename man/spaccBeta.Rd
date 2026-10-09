@@ -19,7 +19,8 @@ spaccBeta(
   seed = NULL,
   map = FALSE,
   focal_points = NULL,
-  focal_domain = NULL
+  focal_domain = NULL,
+  pool = NULL
 )
 }
 \arguments{
@@ -57,6 +58,10 @@ and store per-site final beta values for spatial mapping. Enables
 \item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
 
 \item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
+
+\item{pool}{Optional vector with one value per site (habitat, degradation
+level, region) grouping sites into pools. The partition is then also
+computed between pooled assemblages along the same orders.}
 }
 \value{
 An object of class \code{spacc_beta} containing:
@@ -64,6 +69,8 @@ An object of class \code{spacc_beta} containing:
 \item{beta_turnover}{Matrix of turnover component}
 \item{beta_nestedness}{Matrix of nestedness component}
 \item{distance}{Matrix of cumulative distances}
+\item{pooled}{With \code{pool}: the same four matrices for the pooled
+assemblages (n_seeds x n_pools-1), plus \code{pool} and \code{n_pools}; else \code{NULL}}
 \item{n_seeds, n_sites, method, index}{Parameters used}
 }
 \description{
@@ -91,6 +98,16 @@ pool and each new site. Supplying \code{tree} computes phylogenetic beta diversi
 phylogenetic variants all return a \code{spacc_beta} object whose \code{beta_type} field
 records which was computed. \code{map = TRUE} is supported for the taxonomic
 variant only.
+
+With \code{pool}, sites are aggregated into pooled assemblages (a species is
+present in a pool if it occurs in any of its sites) and the partition is
+repeated between pools: each site order becomes the order in which its
+pools are first reached, and the distance between two pools is the mean
+distance between their sites. Partitions at the two resolutions can
+disagree, for example when degraded habitats are homogenised at the pool
+level while individual sites still differ (Jones et al. 2025).
+\code{summary(x, resolution = "pooled")} and
+\code{plot(x, resolution = "pooled")} or \code{"both"} show the pooled partition.
 }
 \examples{
 \donttest{
@@ -113,6 +130,11 @@ beta_func <- spaccBeta(species, coords, traits = traits)
 \references{
 Baselga, A. (2010). Partitioning the turnover and nestedness components
 of beta diversity. Global Ecology and Biogeography, 19, 134-143.
+
+Jones, F.A.M., Hardenbol, A.A., Hekkala, A.-M., et al. (2025). Partitioning
+beta diversity at two spatial resolutions reveals biotic homogenisation
+with habitat degradation. Diversity and Distributions, 31, e70080.
+\doi{10.1111/ddi.70080}
 }
 \seealso{
 \code{\link[betapart:beta.pair]{betapart::beta.pair()}} for pairwise beta diversity

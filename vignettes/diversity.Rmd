@@ -375,6 +375,24 @@ $q$, so beta is itself an effective number of communities rather than a
 dissimilarity in $[0,1]$. This is the Jost (2007) decomposition tracked along
 the curve.
 
+The partition depends on the resolution at which assemblages are compared
+(Jones et al. 2025). Passing `pool`, a grouping of the sites such as habitat
+type, repeats the partition between pooled assemblages along the same orders,
+so site-level and pool-level turnover can be read side by side. Here the sites
+are pooled into three bands across the study area:
+
+```{r beta-pool}
+band <- cut(coords$x, breaks = c(-Inf, 33, 66, Inf), labels = c("west", "centre", "east"))
+beta_pool <- spaccBeta(pa, coords, n_seeds = 20, progress = FALSE, pool = band)
+beta_pool
+```
+
+```{r plot-beta-pool, fig.cap = "Beta partition between sites and between pooled bands."}
+plot(beta_pool, resolution = "both") +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
 ```{r hillbeta}
 hb <- spaccHillBeta(species, coords, q = c(0, 1, 2), n_seeds = 15, progress = FALSE)
 hb
