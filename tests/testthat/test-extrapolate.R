@@ -340,3 +340,13 @@ test_that("compareModels best_model has delta_AIC = 0", {
   best_row <- cm$table[cm$table$model == cm$best_model, ]
   expect_equal(best_row$delta_AIC, 0)
 })
+
+
+test_that("an argument nls() does not know is an error, not a failed fit", {
+  set.seed(1)
+  coords <- data.frame(x = runif(60), y = runif(60))
+  sac <- spacc(matrix(rbinom(60 * 40, 1, 0.15), 60), coords, n_seeds = 10, progress = FALSE)
+  expect_error(extrapolate(sac, interval = "none", progress = FALSE), "Unknown argument")
+  expect_error(compareModels(sac, progress = FALSE), "Unknown argument")
+  expect_true(all(compareModels(sac)$table$converged))
+})

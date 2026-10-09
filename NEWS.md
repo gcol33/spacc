@@ -35,6 +35,11 @@
 
 ## Bug fixes
 
+- `extrapolate()` and `compareModels()` passed unknown arguments (such as
+  `progress = FALSE`) on to `nls()`, which treated them as data, so every
+  model "failed to converge". Unknown arguments are now an error. The
+  extrapolation vignette's model comparison had been all failures for this
+  reason.
 - `dar(area_method = "voronoi")` computed bounding-box areas; it now sums the
   Voronoi cells of the accumulated sites. The convex-hull area of one or two
   sites is 0 instead of their bounding box.

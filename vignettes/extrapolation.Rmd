@@ -252,7 +252,7 @@ spread across these five asymptotes, set against the known true value of
 
 ```{r plot-best, fig.cap = "Best-fitting asymptotic model with bootstrap band."}
 best_name <- names(fits)[which.min(sapply(fits, function(f) f$aic))]
-best <- extrapolate(sac, model = best_name, progress = FALSE)
+best <- extrapolate(sac, model = best_name)
 plot(best) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -290,7 +290,7 @@ convergence flag. This is the recommended entry point when the goal is
 model selection rather than a single pre-chosen form.
 
 ```{r compare-models}
-cm <- compareModels(sac, progress = FALSE)
+cm <- compareModels(sac)
 cm
 ```
 

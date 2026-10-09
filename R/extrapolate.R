@@ -66,6 +66,13 @@
 # NULL on failure. `quiet = TRUE` (used inside the bootstrap) suppresses both
 # the warning and nls's own convergence chatter.
 .fit_sar <- function(df, model, quiet = TRUE, ...) {
+  # nls() evaluates arguments it does not know as model-frame variables, so a
+  # stray argument would turn every fit into a silent convergence failure.
+  unknown <- setdiff(names(list(...)), names(formals(stats::nls)))
+  if (length(unknown) > 0) {
+    stop(sprintf("Unknown argument(s) passed on to nls(): %s",
+                 paste(unknown, collapse = ", ")), call. = FALSE)
+  }
   if (model == "evt" && nrow(df) < 10) {
     if (!quiet) warning("EVT model requires >= 10 data points; falling back to Weibull",
                         call. = FALSE)
