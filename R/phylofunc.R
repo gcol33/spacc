@@ -215,8 +215,37 @@ spaccPhylo <- function(x,
     return(seq_len(n_species) - 1L)
   }
   tip <- match(species_names, tree$tip.label)
-  if (anyNA(tip)) stop("Some species in x are not in the tree")
+  if (anyNA(tip)) stop(.missing_species_message("tree", species_names[is.na(tip)]), call. = FALSE)
   tip - 1L
+}
+
+
+# "Species not in <where>: a, b, c, ..." listing at most five names.
+.missing_species_message <- function(where, missing) {
+  shown <- paste(utils::head(missing, 5), collapse = ", ")
+  if (length(missing) > 5) shown <- paste0(shown, ", ...")
+  sprintf("Species not in %s: %s", where, shown)
+}
+
+
+# Similarity matrix Z = 1 - d between the species in `species_names`, from
+# trait distances: Euclidean on standardised traits or Gower, rescaled to a
+# maximum of 1 when `normalize`.
+.trait_similarity <- function(traits, species_names, dist_method = c("euclidean", "gower"),
+                              normalize = TRUE) {
+  dist_method <- match.arg(dist_method)
+  if (is.null(species_names)) stop("x must have column names matching trait row names")
+  missing <- setdiff(species_names, rownames(traits))
+  if (length(missing) > 0) stop(.missing_species_message("traits", missing), call. = FALSE)
+  traits_sub <- traits[species_names, , drop = FALSE]
+  D <- if (dist_method == "gower") {
+    check_suggests("cluster")
+    as.matrix(cluster::daisy(traits_sub, metric = "gower"))
+  } else {
+    as.matrix(stats::dist(scale(traits_sub)))
+  }
+  if (normalize && max(D) > 0) D <- D / max(D)
+  1 - D
 }
 
 

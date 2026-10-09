@@ -459,34 +459,20 @@ diversityProfile <- function(x, q = seq(0, 3, by = 0.1),
 
   # Build the per-site Hill kernel for the requested dimension
   if (!is.null(tree)) {
-    check_suggests("ape")
-    if (is.null(colnames(x))) stop("x must have column names matching tree tip labels")
-    missing_tips <- setdiff(colnames(x), tree$tip.label)
-    if (length(missing_tips) > 0) {
-      stop(sprintf("Species not in tree: %s",
-                   paste(missing_tips[seq_len(min(5, length(missing_tips)))], collapse = ", ")))
+    species_tip <- .species_tips(tree, colnames(x), n_species) + 1L
+    tip_abundance <- function(ab) {
+      out <- numeric(length(tree$tip.label))
+      out[species_tip] <- ab
+      out
     }
-    T_max <- max(ape::node.depth.edgelength(tree))
-    kernel <- function(ab, qi) calc_hill_phylo_site(ab, tree, T_max, qi)
+    kernel <- function(ab, qi) {
+      calc_hill_phylo(tree$edge, tree$edge.length, length(tree$tip.label),
+                      tip_abundance(as.numeric(ab)), qi)
+    }
     profile_type <- "phylogenetic"
   } else if (!is.null(traits)) {
-    if (is.null(colnames(x))) stop("x must have column names matching trait row names")
-    missing_sp <- setdiff(colnames(x), rownames(traits))
-    if (length(missing_sp) > 0) {
-      stop(sprintf("Species not in traits: %s",
-                   paste(missing_sp[seq_len(min(5, length(missing_sp)))], collapse = ", ")))
-    }
-    traits_sub <- traits[colnames(x), , drop = FALSE]
-    if (dist_method == "gower") {
-      check_suggests("cluster")
-      D <- as.matrix(cluster::daisy(traits_sub, metric = "gower"))
-    } else {
-      traits_scaled <- scale(traits_sub)
-      D <- as.matrix(stats::dist(traits_scaled))
-    }
-    if (normalize && max(D) > 0) D <- D / max(D)
-    Z <- 1 - D
-    kernel <- function(ab, qi) calc_hill_func_site(ab, Z, qi)
+    Z <- .trait_similarity(traits, colnames(x), dist_method, normalize)
+    kernel <- function(ab, qi) calc_hill_similarity(Z, as.numeric(ab), qi)
     profile_type <- "functional"
   } else {
     kernel <- function(ab, qi) calc_hill_number(as.numeric(ab), qi)
@@ -687,101 +673,3 @@ plot.spacc_profile <- function(x, type = c("profile", "map"),
     ) +
     spacc_theme()
 }
-
-
-# ============================================================================
-# PHYLOGENETIC DIVERSITY PROFILE
-# ============================================================================
-
-# Internal helper: compute phylogenetic Hill number for one site
-calc_hill_phylo_site <- function(abundances, tree, T_max, q) {
-  # abundances: named vector matching tree$tip.label
-  # Post-order traversal to compute branch-level abundances
-  n_tips <- length(tree$tip.label)
-  n_edges <- nrow(tree$edge)
-  edge_abundances <- numeric(n_edges)
-  N <- sum(abundances)
-
-  if (N == 0) return(0)
-
-  # Map tip abundances to terminal edges
-  tip_order <- match(names(abundances), tree$tip.label)
-
-  for (e in seq_len(n_edges)) {
-    descendant <- tree$edge[e, 2]
-    if (descendant <= n_tips) {
-      # Terminal edge: abundance of that tip
-      tip_idx <- tip_order[descendant]
-      if (!is.na(tip_idx)) {
-        edge_abundances[e] <- abundances[tree$tip.label[descendant]]
-      }
-    }
-  }
-
-  # Post-order traversal: propagate abundances up internal edges
-  # Compute from tips upward
-  for (e in rev(seq_len(n_edges))) {
-    parent <- tree$edge[e, 1]
-    descendant <- tree$edge[e, 2]
-    if (descendant > n_tips) {
-      # Internal node: sum of descendant edge abundances
-      child_edges <- which(tree$edge[, 1] == descendant)
-      edge_abundances[e] <- sum(edge_abundances[child_edges])
-    }
-  }
-
-  # Compute phylogenetic Hill number
-  L <- tree$edge.length
-  a <- edge_abundances
-  p <- a / N  # relative abundance per branch
-
-  # Only branches with positive abundance contribute
-  keep <- a > 0 & L > 0
-  if (sum(keep) == 0) return(0)
-
-  L_k <- L[keep]
-  p_k <- p[keep]
-
-  if (abs(q - 1) < 1e-10) {
-    # q = 1: exponential of phylogenetic entropy
-    H <- -sum(L_k / T_max * p_k * log(p_k))
-    return(exp(H))
-  } else {
-    # General q
-    val <- sum(L_k / T_max * p_k^q)
-    return(val^(1 / (1 - q)))
-  }
-}
-
-
-# ============================================================================
-# FUNCTIONAL DIVERSITY PROFILE
-# ============================================================================
-
-# Internal helper: compute functional Hill number for one site
-calc_hill_func_site <- function(abundances, Z, q) {
-  # abundances: named vector
-  # Z: similarity matrix (species x species), values in [0,1]
-  N <- sum(abundances)
-  if (N == 0) return(0)
-
-  p <- abundances / N
-  keep <- p > 0
-  if (sum(keep) < 1) return(0)
-
-  p_k <- p[keep]
-  Z_k <- Z[keep, keep, drop = FALSE]
-
-  # Mean similarity: Zp = Z %*% p
-  Zp <- as.vector(Z_k %*% p_k)
-
-  if (abs(q - 1) < 1e-10) {
-    # q = 1
-    return(exp(-sum(p_k * log(Zp))))
-  } else {
-    val <- sum(p_k * Zp^(q - 1))
-    return(val^(1 / (1 - q)))
-  }
-}
-
-

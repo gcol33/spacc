@@ -42,6 +42,29 @@ inline Rcpp::List split_components(const Rcpp::NumericMatrix& flat,
   return out;
 }
 
+// Unpack a flat (n_seeds * n_comp * k) x n_sites matrix, laid out per seed as
+// [component][k], into a named list over components of named lists over k of
+// n_seeds x n_sites matrices.
+inline Rcpp::List split_component_blocks(const Rcpp::NumericMatrix& flat, int n_seeds,
+                                         const Rcpp::CharacterVector& comp_names,
+                                         const Rcpp::CharacterVector& names) {
+  const int n_comp = comp_names.size(), k = names.size(), n_sites = flat.ncol();
+  Rcpp::List out(n_comp);
+  for (int comp = 0; comp < n_comp; comp++) {
+    Rcpp::NumericMatrix comp_flat(n_seeds * k, n_sites);
+    for (int s = 0; s < n_seeds; s++) {
+      for (int i = 0; i < k; i++) {
+        for (int st = 0; st < n_sites; st++) {
+          comp_flat(s * k + i, st) = flat(s * n_comp * k + comp * k + i, st);
+        }
+      }
+    }
+    out[comp] = split_components(comp_flat, n_seeds, k, names);
+  }
+  out.attr("names") = comp_names;
+  return out;
+}
+
 // Names "q0.0", "q1.0", ... for a vector of Hill orders.
 inline Rcpp::CharacterVector q_names(const Rcpp::NumericVector& q_values) {
   Rcpp::CharacterVector names(q_values.size());

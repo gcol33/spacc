@@ -151,6 +151,39 @@ struct PhyloTree {
     return pd;
   }
 
+  // Phylogenetic Hill number of order q, the mean phylogenetic diversity of
+  // Chao et al. (2010): with a_e the relative abundance descending from edge
+  // e and T = sum_e L_e a_e the abundance-weighted mean root-to-tip depth (the
+  // tree depth for an ultrametric tree),
+  //   qD(T) = (sum_e (L_e / T) a_e^q)^(1/(1-q)),  exp(-sum_e (L_e/T) a_e log a_e) at q = 1,
+  // in effective numbers of lineages; it equals the taxonomic Hill number on
+  // a star tree. abundance(tip) for tips 0..n_tips-1.
+  template<class AbundanceFn>
+  double hill(const AbundanceFn& abundance, double q) const {
+    std::vector<double> below(parent_of.size(), 0.0);
+    double total = 0.0;
+    for (int tip = 0; tip < n_tips; tip++) {
+      const double a = abundance(tip);
+      if (a > 0) { below[tip + 1] = a; total += a; }
+    }
+    if (total <= 0.0) return 0.0;
+    for (int v : postorder) below[parent_of[v]] += below[v];
+
+    double depth = 0.0;
+    for (int v : postorder) depth += edge_length[edge_into[v]] * below[v] / total;
+    if (depth <= 0.0) return 0.0;
+
+    const bool shannon = std::abs(q - 1.0) < 1e-10;
+    double sum = 0.0;
+    for (int v : postorder) {
+      const double a = below[v] / total;
+      if (a <= 0.0) continue;
+      const double w = edge_length[edge_into[v]] / depth;
+      sum += shannon ? -w * a * std::log(a) : w * std::pow(a, q);
+    }
+    return shannon ? std::exp(sum) : std::pow(sum, 1.0 / (1.0 - q));
+  }
+
   // EvoHeritage phi_rho of the present tips (Rosindell et al. 2024, Eqns. 5
   // and 9). Heritage is gained along each edge and attrited at rate rho per
   // unit length; p(v) is the fraction of the heritage at node v that survives

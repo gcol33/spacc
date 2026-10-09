@@ -19,11 +19,20 @@
   K of Wojcik et al. (2024) with its four facets (`k_richness`,
   `k_biomass_evenness`, `k_trait_evenness`, `k_dispersion`); K is defined
   from two species on (#8).
+- `spaccRedundancy()` tracks phylogenetic or functional redundancy along the
+  accumulation: the ratio of the taxonomic Hill number to the phylogenetic
+  (Chao et al. 2010) or similarity-sensitive functional (Leinster & Cobbold
+  2012) Hill number of the accumulated community (#9).
 - New C++ engine for size- and coverage-based rarefaction and extrapolation
   of Hill numbers (`src/core/inext_core.h`), matching iNEXT.3D.
 
 ## Bug fixes
 
+- `diversityProfile(tree = )` scaled branch lengths by the maximum
+  root-to-tip depth. It now uses the abundance-weighted mean depth of Chao et
+  al. (2010), which is the same for an ultrametric tree and keeps the profile
+  equal to the taxonomic one on a star tree otherwise. Phylogenetic and
+  functional profiles run on the C++ kernels shared with `spaccRedundancy()`.
 - `rarefy()` with `q = 1` or `q = 2` returned the Hill number of the full
   sample at every size (q = 1 plugged the sample proportions into Shannon,
   q = 2 ignored the subsample size). It now returns the expected Hill number

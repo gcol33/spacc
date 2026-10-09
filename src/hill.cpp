@@ -224,26 +224,11 @@ List cpp_order_hill_beta_parallel(IntegerMatrix species_mat, IntegerMatrix order
                         ISNAN(coverage_target) ? std::nan("") : coverage_target);
   run_order_metric<int>(species_mat, orders, metric, n_cores);
 
-  // Regroup the per-seed [component][q] blocks into one flat matrix per
-  // component, then split each by q.
-  CharacterVector names = q_names(q_values);
-  const char* comp_names[HillBetaMetric::kStandardized] =
+  const char* all_names[HillBetaMetric::kStandardized] =
     {"gamma", "alpha", "beta", "1-CqN", "1-UqN", "1-VqN", "1-SqN"};
-  List out(n_comp);
-  CharacterVector out_names(n_comp);
-  for (int comp = 0; comp < n_comp; comp++) {
-    NumericMatrix comp_flat(n_seeds * n_q, n_sites);
-    for (int s = 0; s < n_seeds; s++) {
-      for (int qi = 0; qi < n_q; qi++) {
-        for (int st = 0; st < n_sites; st++) {
-          comp_flat(s * n_q + qi, st) = flat(s * n_comp * n_q + comp * n_q + qi, st);
-        }
-      }
-    }
-    out[comp] = split_components(comp_flat, n_seeds, n_q, names);
-    out_names[comp] = comp_names[comp];
-  }
-  out.attr("names") = out_names;
+  CharacterVector comp_names(n_comp);
+  for (int c = 0; c < n_comp; c++) comp_names[c] = all_names[c];
+  List out = split_component_blocks(flat, n_seeds, comp_names, q_names(q_values));
   if (standardize) {
     out.push_back(coverage, "coverage");
   }

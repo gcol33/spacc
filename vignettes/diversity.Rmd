@@ -578,6 +578,25 @@ fp <- diversityProfile(species, traits = traits, q = seq(0, 3, by = 0.5))
 fp
 ```
 
+The ratio of the taxonomic to the phylogenetic Hill number is never below 1,
+and equals 1 only when all species are equally and maximally distinct (a star
+tree). `spaccRedundancy()` tracks this ratio along the accumulation, with a
+`tree` or with `traits` (similarity-sensitive Hill numbers, Leinster & Cobbold
+2012). A ratio that rises as sites accumulate says the region keeps adding
+species that are close relatives of, or functionally similar to, those already
+present.
+
+```{r redundancy, eval = requireNamespace("ape", quietly = TRUE)}
+red <- spaccRedundancy(species, coords, tree = tree, n_seeds = 20, progress = FALSE)
+red
+```
+
+```{r plot-redundancy, fig.cap = "Taxonomic over phylogenetic Hill number along accumulation.", eval = requireNamespace("ape", quietly = TRUE)}
+plot(red) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
 ## Rao's quadratic entropy
 
 Rao's quadratic entropy combines relative abundance with pairwise distance

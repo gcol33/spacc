@@ -109,6 +109,18 @@ cpp_phylo_order_parallel <- function(species_pa, orders, phylo_dist_mat, metrics
     .Call(`_spacc_cpp_phylo_order_parallel`, species_pa, orders, phylo_dist_mat, metrics, n_cores, tree_edge, tree_edge_length, tree_n_tips, species_tip, rho)
 }
 
+calc_hill_phylo <- function(edge, edge_length, n_tips, tip_abundance, q) {
+    .Call(`_spacc_calc_hill_phylo`, edge, edge_length, n_tips, tip_abundance, q)
+}
+
+calc_hill_similarity <- function(similarity, abundances, q) {
+    .Call(`_spacc_calc_hill_similarity`, similarity, abundances, q)
+}
+
+cpp_redundancy_order_parallel <- function(species_mat, orders, q_values, n_cores = 1L, tree_edge = NULL, tree_edge_length = NULL, tree_n_tips = 0L, species_tip = integer(), similarity_mat = NULL) {
+    .Call(`_spacc_cpp_redundancy_order_parallel`, species_mat, orders, q_values, n_cores, tree_edge, tree_edge_length, tree_n_tips, species_tip, similarity_mat)
+}
+
 calc_fdis <- function(traits, species_present, abundances) {
     .Call(`_spacc_calc_fdis`, traits, species_present, abundances)
 }

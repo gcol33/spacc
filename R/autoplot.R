@@ -33,6 +33,7 @@
 #' S3method(ggplot2::autoplot, spacc_metrics)
 #' S3method(ggplot2::autoplot, spacc_model_compare)
 #' S3method(ggplot2::autoplot, spacc_rare)
+#' S3method(ggplot2::autoplot, spacc_redundancy)
 #' S3method(ggplot2::autoplot, spacc_ses)
 #' S3method(ggplot2::autoplot, spacc_zeta)
 NULL
@@ -48,7 +49,7 @@ NULL
   "spacc", "spacc_beta", "spacc_completeness", "spacc_coverage", "spacc_decay",
   "spacc_endemism", "spacc_fit", "spacc_hill", "spacc_hill_beta",
   "spacc_hill_coverage", "spacc_mem", "spacc_mem_partition", "spacc_metrics",
-  "spacc_model_compare", "spacc_rare", "spacc_ses", "spacc_zeta"
+  "spacc_model_compare", "spacc_rare", "spacc_redundancy", "spacc_ses", "spacc_zeta"
 )
 for (.cls in .autoplot_classes) {
   assign(paste0("autoplot.", .cls), .autoplot_via_plot)

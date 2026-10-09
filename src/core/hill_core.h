@@ -108,6 +108,31 @@ double calc_inverse_simpson(const std::vector<T>& abundances) {
   return (D > 0) ? 1.0 / D : 0.0;
 }
 
+// Similarity-sensitive Hill number of order q (Leinster & Cobbold 2012): with
+// relative abundances p and a species similarity matrix Z (Z(i, i) = 1),
+//   qD^Z = (sum_i p_i (Zp)_i^(q-1))^(1/(1-q)),  exp(-sum_i p_i log (Zp)_i) at q = 1.
+// Equals the Hill number for Z = identity, and 1 when all species are
+// identical (Z = 1). similarity(i, j) and abundance(i) over 0..n_species-1.
+template<class SimilarityFn, class AbundanceFn>
+double similarity_hill(const SimilarityFn& similarity, const AbundanceFn& abundance,
+                       int n_species, double q) {
+  std::vector<int> present;
+  double total = 0.0;
+  for (int i = 0; i < n_species; i++) {
+    if (abundance(i) > 0) { present.push_back(i); total += abundance(i); }
+  }
+  if (total <= 0.0) return 0.0;
+  const bool shannon = std::abs(q - 1.0) < 1e-10;
+  double sum = 0.0;
+  for (int i : present) {
+    double zp = 0.0;
+    for (int j : present) zp += similarity(i, j) * abundance(j) / total;
+    const double p = abundance(i) / total;
+    sum += shannon ? -p * std::log(zp) : p * std::pow(zp, q - 1.0);
+  }
+  return shannon ? std::exp(sum) : std::pow(sum, 1.0 / (1.0 - q));
+}
+
 // Count species richness (number of species with abundance > 0)
 template<typename T>
 int count_species_richness(const std::vector<T>& abundances) {

@@ -7,6 +7,7 @@
 #include <vector>
 #include "core/phylo_core.h"
 #include "core/func_core.h"
+#include "core/hill_core.h"
 #include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
@@ -196,6 +197,120 @@ List cpp_phylo_order_parallel(NumericMatrix species_pa, IntegerMatrix orders,
   PhyloMetric metric(phylo_dist_mat, flat, metric_names(metrics), rho, tree, species_tip);
   run_order_metric<double>(species_pa, orders, metric, n_cores);
   return run_metric_list(flat, n_seeds, metrics);
+}
+
+
+// ===========================================================================
+// PHYLOGENETIC AND FUNCTIONAL HILL NUMBERS, REDUNDANCY
+// ===========================================================================
+
+// Phylogenetic Hill numbers (Chao et al. 2010) of one community, one per q;
+// tip_abundance is indexed by tip.
+// [[Rcpp::export]]
+NumericVector calc_hill_phylo(IntegerMatrix edge, NumericVector edge_length, int n_tips,
+                              NumericVector tip_abundance, NumericVector q) {
+  spacc::PhyloTree tree = build_tree(edge, edge_length, n_tips);
+  NumericVector out(q.size());
+  for (int i = 0; i < q.size(); i++) {
+    out[i] = tree.hill([&](int tip) { return tip_abundance[tip]; }, q[i]);
+  }
+  return out;
+}
+
+
+// Similarity-sensitive Hill numbers (Leinster & Cobbold 2012) of one
+// community, one per q.
+// [[Rcpp::export]]
+NumericVector calc_hill_similarity(NumericMatrix similarity, NumericVector abundances,
+                                   NumericVector q) {
+  NumericVector out(q.size());
+  for (int i = 0; i < q.size(); i++) {
+    out[i] = spacc::similarity_hill([&](int a, int b) { return similarity(a, b); },
+                                    [&](int a) { return abundances[a]; },
+                                    abundances.size(), q[i]);
+  }
+  return out;
+}
+
+
+// Taxonomic Hill number, phylogenetic or functional Hill number, and their
+// ratio (redundancy) of the accumulated community, per q.
+struct RedundancyMetric {
+  RMatrix<double> out;        // (n_seeds * 3 * n_q) x n_sites: [taxonomic | dimension | ratio]
+  RVector<double> q;
+  std::shared_ptr<const spacc::PhyloTree> tree;   // phylogenetic when set
+  RMatrix<double> similarity;                     // functional otherwise
+  std::vector<int> species_of_tip;
+
+  RedundancyMetric(NumericMatrix& out_, const NumericVector& q_,
+                   std::shared_ptr<const spacc::PhyloTree> tree_,
+                   const NumericMatrix& similarity_, const IntegerVector& species_tip)
+    : out(out_), q(q_), tree(tree_), similarity(similarity_) {
+    if (tree) {
+      species_of_tip.assign(tree->n_tips, -1);
+      for (int sp = 0; sp < species_tip.size(); sp++) species_of_tip[species_tip[sp]] = sp;
+    }
+  }
+
+  struct Scratch {};
+  Scratch scratch(int) const { return Scratch(); }
+
+  void at_step(std::size_t s, int step, int, const std::vector<double>& cumulative,
+               Scratch&) {
+    const std::size_t n_q = q.size();
+    const std::size_t base = s * 3 * n_q;
+    for (std::size_t qi = 0; qi < n_q; qi++) {
+      const double taxonomic = spacc::calc_hill_number(cumulative, q[qi]);
+      double dimension;
+      if (tree) {
+        dimension = tree->hill([&](int tip) {
+          const int sp = species_of_tip[tip];
+          return sp >= 0 ? cumulative[sp] : 0.0;
+        }, q[qi]);
+      } else {
+        dimension = spacc::similarity_hill([&](int a, int b) { return similarity(a, b); },
+                                           [&](int a) { return cumulative[a]; },
+                                           static_cast<int>(cumulative.size()), q[qi]);
+      }
+      out(base + qi, step) = taxonomic;
+      out(base + n_q + qi, step) = dimension;
+      out(base + 2 * n_q + qi, step) = dimension > 0 ? taxonomic / dimension : NA_REAL;
+    }
+  }
+};
+
+// [[Rcpp::export]]
+List cpp_redundancy_order_parallel(NumericMatrix species_mat, IntegerMatrix orders,
+                                   NumericVector q_values, int n_cores = 1,
+                                   Rcpp::Nullable<IntegerMatrix> tree_edge = R_NilValue,
+                                   Rcpp::Nullable<NumericVector> tree_edge_length = R_NilValue,
+                                   int tree_n_tips = 0,
+                                   IntegerVector species_tip = IntegerVector(),
+                                   Rcpp::Nullable<NumericMatrix> similarity_mat = R_NilValue) {
+  std::shared_ptr<const spacc::PhyloTree> tree;
+  NumericMatrix similarity(0, 0);
+  if (tree_edge.isNotNull() && tree_edge_length.isNotNull()) {
+    tree = std::make_shared<const spacc::PhyloTree>(
+      build_tree(Rcpp::as<IntegerMatrix>(tree_edge),
+                 Rcpp::as<NumericVector>(tree_edge_length), tree_n_tips));
+    if (species_tip.size() != species_mat.ncol()) {
+      Rcpp::stop("species_tip must give one tip per species column");
+    }
+  } else {
+    if (similarity_mat.isNull()) Rcpp::stop("supply a tree or a similarity matrix");
+    similarity = Rcpp::as<NumericMatrix>(similarity_mat);
+    if (similarity.nrow() != species_mat.ncol() || similarity.ncol() != species_mat.ncol()) {
+      Rcpp::stop("similarity must be a species x species matrix");
+    }
+  }
+  const int n_seeds = orders.nrow(), n_q = q_values.size(), n_sites = species_mat.nrow();
+  NumericMatrix flat(n_seeds * 3 * n_q, n_sites);
+  RedundancyMetric metric(flat, q_values, tree, similarity, species_tip);
+  run_order_metric<double>(species_mat, orders, metric, n_cores);
+
+  return split_component_blocks(flat, n_seeds,
+                                CharacterVector::create("taxonomic", "dimension", "redundancy"),
+                                q_names(q_values));
 }
 
 

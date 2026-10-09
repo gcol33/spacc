@@ -4,6 +4,7 @@
 #include "catch.hpp"
 #include "../core/phylo_core.h"
 #include "../core/func_core.h"
+#include "../core/hill_core.h"
 #include <cmath>
 #include <vector>
 
@@ -223,5 +224,52 @@ TEST_CASE("functional_facets_K", "[func]") {
 
   SECTION("one species gives K = 0") {
     REQUIRE(facets({0.3}, {5}, 1.0).K == Approx(0.0));
+  }
+}
+
+
+TEST_CASE("PhyloTree::hill and similarity_hill", "[phylo][hill]") {
+  // star tree: four tips of length 2 from the root
+  std::vector<int> parent = {5, 5, 5, 5};
+  std::vector<int> child = {1, 2, 3, 4};
+  std::vector<double> len = {2, 2, 2, 2};
+  PhyloTree star(4, [&](int e) { return parent[e]; }, [&](int e) { return child[e]; },
+                 [&](int e) { return len[e]; }, 4);
+  std::vector<double> ab = {4, 1, 1, 2};
+  auto abundance = [&](int i) { return ab[i]; };
+
+  SECTION("a star tree gives the taxonomic Hill number") {
+    for (double q : {0.0, 1.0, 2.0, 0.5}) {
+      REQUIRE(star.hill(abundance, q) == Approx(calc_hill_number(ab, q)));
+    }
+  }
+
+  SECTION("an identity similarity gives the taxonomic Hill number") {
+    auto identity = [](int i, int j) { return i == j ? 1.0 : 0.0; };
+    for (double q : {0.0, 1.0, 2.0}) {
+      REQUIRE(similarity_hill(identity, abundance, 4, q) == Approx(calc_hill_number(ab, q)));
+    }
+  }
+
+  SECTION("identical species give one effective species") {
+    auto ones = [](int, int) { return 1.0; };
+    for (double q : {0.0, 1.0, 2.0}) {
+      REQUIRE(similarity_hill(ones, abundance, 4, q) == Approx(1.0));
+    }
+  }
+
+  SECTION("phylogenetic Hill numbers never exceed taxonomic ones") {
+    // ((t1:1, t2:1):1, t3:2); tips 1..3, root 4, inner 5
+    std::vector<int> p2 = {4, 5, 5, 4};
+    std::vector<int> c2 = {5, 1, 2, 3};
+    std::vector<double> l2 = {1, 1, 1, 2};
+    PhyloTree tree(4, [&](int e) { return p2[e]; }, [&](int e) { return c2[e]; },
+                   [&](int e) { return l2[e]; }, 3);
+    std::vector<double> a3 = {2, 3, 1};
+    for (double q : {0.0, 1.0, 2.0}) {
+      REQUIRE(tree.hill([&](int i) { return a3[i]; }, q) <= calc_hill_number(a3, q) + 1e-12);
+    }
+    // q = 0: sum L_e / T over the four edges with T = 2: (1 + 1 + 1 + 2) / 2
+    REQUIRE(tree.hill([&](int i) { return a3[i]; }, 0.0) == Approx(2.5));
   }
 }
