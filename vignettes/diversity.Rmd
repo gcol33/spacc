@@ -393,6 +393,36 @@ asks whether dissimilarity is replacement or loss, while Hill beta asks how many
 distinct communities the accumulated set is worth. Reporting both is reasonable
 when the distinction matters.
 
+Part of that rise is a sampling effect. Each site is an incomplete sample, so
+the alpha of a few sites and the gamma of their pool are estimated at different
+completeness, and their ratio grows with the number of sites even where
+composition does not change (Chao et al. 2023). In a region where every site
+samples the same species pool, true beta is 1 at every step:
+
+```{r hillbeta-homog}
+set.seed(42)
+lambda <- rlnorm(80, -0.5, 1.3)
+homog <- matrix(rpois(60 * 80, rep(lambda, each = 60)), nrow = 60)
+homog_xy <- data.frame(x = runif(60, 0, 100), y = runif(60, 0, 100))
+
+hb_obs <- spaccHillBeta(homog, homog_xy, n_seeds = 15, progress = FALSE, seed = 1)
+hb_std <- spaccHillBeta(homog, homog_xy, n_seeds = 15, progress = FALSE, seed = 1,
+                        standardize = "coverage")
+at <- c(2, 10, 30, 60)
+drift <- rbind(observed = colMeans(hb_obs$beta$q0)[at],
+               standardised = colMeans(hb_std$beta$q0)[at])
+colnames(drift) <- paste(at, "sites")
+drift
+```
+
+The observed $q = 0$ beta climbs from about 1.3 at two sites to 1.9 at sixty,
+while the coverage-standardised beta stays close to 1. With
+`standardize = "coverage"`, gamma and alpha are both brought to the same sample
+coverage before their ratio is taken (the iNEXT.beta3D standardisation), and the
+result carries the four dissimilarities of Chao et al. (2023), such as the
+Sorensen-type `1-CqN`. A fixed `coverage = 0.9`, for example, puts every step
+and every dataset on the same completeness level.
+
 When species carry traits, functional beta weights turnover by how different the
 incoming and outgoing species are in trait space. Passing `traits` to
 `spaccBeta()` scales the

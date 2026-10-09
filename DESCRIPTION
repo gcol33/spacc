@@ -50,6 +50,8 @@ Suggests:
     areaOfEffect,
     ape,
     iNEXT,
+    iNEXT.3D,
+    iNEXT.beta3D,
     betapart,
     cluster,
     vegan

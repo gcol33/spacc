@@ -25,12 +25,16 @@
 
 
 # Per-step mean, quantile band and (optionally) sd of a seeds x steps matrix.
+# A step undefined for every seed (all NA) gives NA throughout.
 .curve_stats <- function(mat, ci_level = 0.95, sd = FALSE) {
   alpha <- (1 - ci_level) / 2
+  band <- function(p) apply(mat, 2, function(v) {
+    if (all(is.na(v))) NA_real_ else stats::quantile(v, probs = p, names = FALSE)
+  })
   out <- data.frame(
     mean = colMeans(mat),
-    lower = apply(mat, 2, stats::quantile, probs = alpha),
-    upper = apply(mat, 2, stats::quantile, probs = 1 - alpha)
+    lower = band(alpha),
+    upper = band(1 - alpha)
   )
   if (sd) out$sd <- apply(mat, 2, stats::sd)
   rownames(out) <- NULL

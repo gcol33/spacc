@@ -37,12 +37,20 @@ calc_hill_number <- function(abundances, q) {
     .Call(`_spacc_calc_hill_number`, abundances, q)
 }
 
+calc_hill_at_size <- function(abundances, m, q) {
+    .Call(`_spacc_calc_hill_at_size`, abundances, m, q)
+}
+
+calc_hill_at_coverage <- function(abundances, C, q) {
+    .Call(`_spacc_calc_hill_at_coverage`, abundances, C, q)
+}
+
 cpp_order_hill_parallel <- function(species_mat, orders, q_values, n_cores = 1L) {
     .Call(`_spacc_cpp_order_hill_parallel`, species_mat, orders, q_values, n_cores)
 }
 
-cpp_order_hill_beta_parallel <- function(species_mat, orders, q_values, n_cores = 1L) {
-    .Call(`_spacc_cpp_order_hill_beta_parallel`, species_mat, orders, q_values, n_cores)
+cpp_order_hill_beta_parallel <- function(species_mat, orders, q_values, n_cores = 1L, standardize = FALSE, coverage_target = NA_real_) {
+    .Call(`_spacc_cpp_order_hill_beta_parallel`, species_mat, orders, q_values, n_cores, standardize, coverage_target)
 }
 
 cpp_order_hill_coverage_parallel <- function(species_mat, orders, q_values, n_cores = 1L) {

@@ -11,6 +11,12 @@
   reaches the observed richness when every unit is sampled instead of
   overestimating it. `extrapolate(n_units = )` compares the asymptote with
   MoRE and uses it as the reference for the disagreement warning (#14).
+- `spaccHillBeta(standardize = "coverage", coverage = )` standardises gamma
+  and alpha to a common sample coverage at every step (iNEXT.beta3D, Chao et
+  al. 2023) and returns the four dissimilarities `1-CqN`, `1-UqN`, `1-VqN`,
+  `1-SqN`. Final-step values match `iNEXT.beta3D::iNEXTbeta3D()` (#6).
+- New C++ engine for size- and coverage-based rarefaction and extrapolation
+  of Hill numbers (`src/core/inext_core.h`), matching iNEXT.3D.
 
 ## Bug fixes
 

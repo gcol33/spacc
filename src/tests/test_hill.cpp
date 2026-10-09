@@ -3,6 +3,7 @@
 
 #include "catch.hpp"
 #include "../core/hill_core.h"
+#include "../core/inext_core.h"
 #include <cmath>
 
 using namespace spacc;
@@ -215,5 +216,56 @@ TEST_CASE("Hill numbers with integer vector", "[hill]") {
     REQUIRE(calc_hill_number(abundances, 0.0) == Approx(4.0));
     REQUIRE(calc_hill_number(abundances, 1.0) > 0);
     REQUIRE(calc_hill_number(abundances, 2.0) > 0);
+  }
+}
+
+
+TEST_CASE("inext_core: digamma", "[hill][inext]") {
+  REQUIRE(spacc::digamma(1.0) == Approx(-0.5772156649015329).epsilon(1e-12));
+  REQUIRE(spacc::digamma(10.0) == Approx(2.251752589066721).epsilon(1e-12));
+  REQUIRE(spacc::digamma(0.5) == Approx(-1.963510026021423).epsilon(1e-12));
+}
+
+
+TEST_CASE("inext_core: rarefaction endpoints and closed forms", "[hill][inext]") {
+  spacc::AbundanceSample s(std::vector<int>{1, 1, 2, 3, 5, 8, 13});
+  const double n = s.n;
+
+  SECTION("one individual is one species at every order") {
+    for (double q : {0.0, 1.0, 2.0, 0.5}) {
+      REQUIRE(spacc::rarefied_hill(s, 1.0, q) == Approx(1.0));
+    }
+  }
+
+  SECTION("the full sample gives the observed Hill numbers") {
+    for (double q : {0.0, 1.0, 2.0, 0.5}) {
+      REQUIRE(spacc::hill_at_size(s, n, q) == Approx(spacc::observed_hill(s, q)));
+      REQUIRE(spacc::rarefied_hill(s, n - 1, q) < spacc::observed_hill(s, q));
+    }
+  }
+
+  SECTION("q = 2 closed form agrees with the pmf sum near q = 2") {
+    const double closed = spacc::rarefied_hill(s, 9.0, 2.0);
+    const double summed = spacc::rarefied_hill(s, 9.0, 2.0 + 1e-7);
+    REQUIRE(summed == Approx(closed).epsilon(1e-5));
+  }
+
+  SECTION("coverage increases with size and inverts") {
+    double prev = 0.0;
+    for (double m = 1; m <= 3 * n; m += 0.5) {
+      const double c = spacc::coverage_at_size(s, m);
+      REQUIRE(c >= prev - 1e-12);
+      prev = c;
+    }
+    for (double C : {0.3, 0.6, 0.9}) {
+      REQUIRE(spacc::coverage_at_size(s, spacc::size_at_coverage(s, C)) ==
+              Approx(C).epsilon(1e-8));
+    }
+  }
+
+  SECTION("extrapolation reaches the asymptote") {
+    for (double q : {0.0, 1.0, 2.0}) {
+      REQUIRE(spacc::hill_at_size(s, 1e7, q) == Approx(spacc::asymptotic_hill(s, q)).epsilon(1e-6));
+    }
   }
 }

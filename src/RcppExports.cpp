@@ -129,6 +129,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calc_hill_at_size
+List calc_hill_at_size(NumericVector abundances, NumericVector m, NumericVector q);
+RcppExport SEXP _spacc_calc_hill_at_size(SEXP abundancesSEXP, SEXP mSEXP, SEXP qSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type m(mSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type q(qSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_hill_at_size(abundances, m, q));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_hill_at_coverage
+List calc_hill_at_coverage(NumericVector abundances, NumericVector C, NumericVector q);
+RcppExport SEXP _spacc_calc_hill_at_coverage(SEXP abundancesSEXP, SEXP CSEXP, SEXP qSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type C(CSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type q(qSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_hill_at_coverage(abundances, C, q));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_order_hill_parallel
 List cpp_order_hill_parallel(IntegerMatrix species_mat, IntegerMatrix orders, NumericVector q_values, int n_cores);
 RcppExport SEXP _spacc_cpp_order_hill_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP) {
@@ -144,8 +170,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_order_hill_beta_parallel
-List cpp_order_hill_beta_parallel(IntegerMatrix species_mat, IntegerMatrix orders, NumericVector q_values, int n_cores);
-RcppExport SEXP _spacc_cpp_order_hill_beta_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP) {
+List cpp_order_hill_beta_parallel(IntegerMatrix species_mat, IntegerMatrix orders, NumericVector q_values, int n_cores, bool standardize, double coverage_target);
+RcppExport SEXP _spacc_cpp_order_hill_beta_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP q_valuesSEXP, SEXP n_coresSEXP, SEXP standardizeSEXP, SEXP coverage_targetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -153,7 +179,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type q_values(q_valuesSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_order_hill_beta_parallel(species_mat, orders, q_values, n_cores));
+    Rcpp::traits::input_parameter< bool >::type standardize(standardizeSEXP);
+    Rcpp::traits::input_parameter< double >::type coverage_target(coverage_targetSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_order_hill_beta_parallel(species_mat, orders, q_values, n_cores, standardize, coverage_target));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -425,8 +453,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_interpolate_at_coverage", (DL_FUNC) &_spacc_interpolate_at_coverage, 3},
     {"_spacc_cpp_distance_matrix", (DL_FUNC) &_spacc_cpp_distance_matrix, 3},
     {"_spacc_calc_hill_number", (DL_FUNC) &_spacc_calc_hill_number, 2},
+    {"_spacc_calc_hill_at_size", (DL_FUNC) &_spacc_calc_hill_at_size, 3},
+    {"_spacc_calc_hill_at_coverage", (DL_FUNC) &_spacc_calc_hill_at_coverage, 3},
     {"_spacc_cpp_order_hill_parallel", (DL_FUNC) &_spacc_cpp_order_hill_parallel, 4},
-    {"_spacc_cpp_order_hill_beta_parallel", (DL_FUNC) &_spacc_cpp_order_hill_beta_parallel, 4},
+    {"_spacc_cpp_order_hill_beta_parallel", (DL_FUNC) &_spacc_cpp_order_hill_beta_parallel, 6},
     {"_spacc_cpp_order_hill_coverage_parallel", (DL_FUNC) &_spacc_cpp_order_hill_coverage_parallel, 4},
     {"_spacc_cpp_focal_order", (DL_FUNC) &_spacc_cpp_focal_order, 6},
     {"_spacc_cpp_nn_walk_order", (DL_FUNC) &_spacc_cpp_nn_walk_order, 3},

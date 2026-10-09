@@ -52,6 +52,8 @@ by both the Rcpp layer and the Catch2 tests:
 - `beta_core.h` - Baselga beta diversity partitioning
 - `hill_core.h` - Hill numbers
 - `coverage_core.h` - Chao-Jost and Chiu sample coverage
+- `inext_core.h` - size- and coverage-based rarefaction/extrapolation of Hill
+  numbers for one abundance sample (iNEXT.3D estimators)
 - `phylo_core.h` - MPD, MNTD, Rao's Q, Faith's PD (`PhyloTree`)
 - `func_core.h` - FDis, range-volume FRic, trait Rao's Q
 
