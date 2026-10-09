@@ -2,291 +2,93 @@
 #include <Rcpp.h>
 #include <RcppParallel.h>
 #include <vector>
-#include <set>
-#include <algorithm>
+#include "core/beta_core.h"
+#include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
 
-// ============================================================================
-// BETA DIVERSITY CALCULATIONS (Baselga 2010)
-// ============================================================================
-
-// Structure to hold beta diversity components
-struct BetaComponents {
-  double total;
-  double turnover;
-  double nestedness;
-};
-
-
-// Calculate Sorensen-based beta diversity and its components
-// a = shared species, b = unique to set1, c = unique to set2
-BetaComponents calc_beta_sorensen(int a, int b, int c) {
-  BetaComponents result = {0.0, 0.0, 0.0};
-
-  if (a + b + c == 0) return result;
-
-  // Total beta (Sorensen dissimilarity)
-  result.total = (double)(b + c) / (2.0 * a + b + c);
-
-  // Turnover component (Simpson)
-  int min_bc = std::min(b, c);
-  if (a + min_bc > 0) {
-    result.turnover = (double)min_bc / (a + min_bc);
-  }
-
-  // Nestedness component (total - turnover)
-  result.nestedness = result.total - result.turnover;
-
-  return result;
-}
-
-
-// Calculate Jaccard-based beta diversity and its components
-BetaComponents calc_beta_jaccard(int a, int b, int c) {
-  BetaComponents result = {0.0, 0.0, 0.0};
-
-  if (a + b + c == 0) return result;
-
-  // Total beta (Jaccard dissimilarity)
-  result.total = (double)(b + c) / (a + b + c);
-
-  // Turnover component
-  int min_bc = std::min(b, c);
-  if (a + min_bc > 0) {
-    result.turnover = 2.0 * (double)min_bc / (a + 2.0 * min_bc);
-  }
-
-  // Nestedness component
-  result.nestedness = result.total - result.turnover;
-
-  return result;
-}
-
-
-// Count shared and unique species between two sets
-void count_abc(const std::set<int>& set1, const std::set<int>& set2,
-               int& a, int& b, int& c) {
-  a = 0; b = 0; c = 0;
-
-  for (int sp : set1) {
-    if (set2.count(sp) > 0) {
-      a++;
-    } else {
-      b++;
-    }
-  }
-
-  for (int sp : set2) {
-    if (set1.count(sp) == 0) {
-      c++;
-    }
-  }
-}
-
-
-// [[Rcpp::export]]
-List cpp_beta_order_single(IntegerMatrix species_pa,
-                           NumericMatrix dist_mat,
-                           IntegerVector order,
-                           bool use_jaccard = false) {
-  int n_sites = species_pa.nrow();
-  int n_species = species_pa.ncol();
-
-  // Output vectors (n_sites - 1 comparisons)
-  NumericVector beta_total(n_sites - 1);
-  NumericVector beta_turn(n_sites - 1);
-  NumericVector beta_nest(n_sites - 1);
-  NumericVector cum_distance(n_sites - 1);
-  IntegerVector n_species_acc(n_sites);
-
-  std::set<int> accumulated_species;
-  std::set<int> new_site_species;
-
-  int current = order[0];
-
-  // Initialize with first site
-  for (int sp = 0; sp < n_species; sp++) {
-    if (species_pa(current, sp) > 0) {
-      accumulated_species.insert(sp);
-    }
-  }
-  n_species_acc[0] = accumulated_species.size();
-
-  double total_dist = 0.0;
-
-  for (int step = 0; step < n_sites - 1; step++) {
-    int next = order[step + 1];
-    total_dist += dist_mat(current, next);
-    cum_distance[step] = total_dist;
-
-    // Get species at new site
-    new_site_species.clear();
-    for (int sp = 0; sp < n_species; sp++) {
-      if (species_pa(next, sp) > 0) {
-        new_site_species.insert(sp);
-      }
-    }
-
-    // Calculate beta between accumulated and new site
-    int a, b, c;
-    count_abc(accumulated_species, new_site_species, a, b, c);
-
-    BetaComponents beta;
-    if (use_jaccard) {
-      beta = calc_beta_jaccard(a, b, c);
-    } else {
-      beta = calc_beta_sorensen(a, b, c);
-    }
-
-    beta_total[step] = beta.total;
-    beta_turn[step] = beta.turnover;
-    beta_nest[step] = beta.nestedness;
-
-    // Add new species to accumulated set
-    for (int sp : new_site_species) {
-      accumulated_species.insert(sp);
-    }
-    n_species_acc[step + 1] = accumulated_species.size();
-
-    current = next;
-  }
-
-  return List::create(
-    Named("beta_total") = beta_total,
-    Named("beta_turnover") = beta_turn,
-    Named("beta_nestedness") = beta_nest,
-    Named("distance") = cum_distance,
-    Named("richness") = n_species_acc
-  );
-}
-
-
-// Worker for parallel beta accumulation
-struct BetaOrderWorker : public Worker {
-  const RMatrix<int> species_pa;
-  const RMatrix<double> dist_mat;
-  const RMatrix<int> orders;
-  const bool use_jaccard;
-
+// Baselga (2010) partition of the dissimilarity between the accumulated
+// species pool and each newly added site, along each order. Step k compares
+// the pool of the first k sites with site k + 1, so outputs have n_sites - 1
+// columns.
+struct BetaMetric {
+  RMatrix<int> species;
+  RMatrix<double> dist;
   RMatrix<double> beta_total;
-  RMatrix<double> beta_turn;
-  RMatrix<double> beta_nest;
-  RMatrix<double> distances;
+  RMatrix<double> beta_turnover;
+  RMatrix<double> beta_nestedness;
+  RMatrix<double> distance;
+  bool use_jaccard;
 
-  BetaOrderWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                const IntegerMatrix& ord, bool jac,
-                NumericMatrix& bt, NumericMatrix& btu,
-                NumericMatrix& bn, NumericMatrix& d)
-    : species_pa(sp), dist_mat(dm), orders(ord), use_jaccard(jac),
-      beta_total(bt), beta_turn(btu), beta_nest(bn), distances(d) {}
+  BetaMetric(const IntegerMatrix& species_, const NumericMatrix& dist_,
+             NumericMatrix& total_, NumericMatrix& turnover_,
+             NumericMatrix& nestedness_, NumericMatrix& distance_, bool jaccard)
+    : species(species_), dist(dist_), beta_total(total_), beta_turnover(turnover_),
+      beta_nestedness(nestedness_), distance(distance_), use_jaccard(jaccard) {}
 
-  void operator()(std::size_t begin, std::size_t end) {
-    int n_sites = species_pa.nrow();
-    int n_species = species_pa.ncol();
+  struct Scratch {
+    std::vector<bool> pool;   // species present in the accumulated sites
+    int current;
+    double cum_distance;
+  };
+  Scratch scratch(int n_species) const {
+    Scratch sc;
+    sc.pool.assign(n_species, false);
+    sc.current = -1;
+    sc.cum_distance = 0.0;
+    return sc;
+  }
 
-    for (std::size_t s = begin; s < end; s++) {
-      std::set<int> accumulated;
-      std::set<int> new_species;
-
-      int current = orders(s, 0);
-
-      for (int sp = 0; sp < n_species; sp++) {
-        if (species_pa(current, sp) > 0) {
-          accumulated.insert(sp);
-        }
-      }
-
-      double total_dist = 0.0;
-
-      for (int step = 0; step < n_sites - 1; step++) {
-        int next = orders(s, step + 1);
-        total_dist += dist_mat(current, next);
-        distances(s, step) = total_dist;
-
-        new_species.clear();
-        for (int sp = 0; sp < n_species; sp++) {
-          if (species_pa(next, sp) > 0) {
-            new_species.insert(sp);
-          }
-        }
-
-        int a = 0, b = 0, c = 0;
-        for (int sp : accumulated) {
-          if (new_species.count(sp) > 0) a++;
-          else b++;
-        }
-        for (int sp : new_species) {
-          if (accumulated.count(sp) == 0) c++;
-        }
-
-        BetaComponents beta;
-        if (use_jaccard) {
-          beta = calc_beta_jaccard(a, b, c);
-        } else {
-          beta = calc_beta_sorensen(a, b, c);
-        }
-
-        beta_total(s, step) = beta.total;
-        beta_turn(s, step) = beta.turnover;
-        beta_nest(s, step) = beta.nestedness;
-
-        for (int sp : new_species) {
-          accumulated.insert(sp);
-        }
-
-        current = next;
-      }
+  void at_step(std::size_t s, int step, int site, const std::vector<int>&,
+               Scratch& sc) {
+    const int n_species = species.ncol();
+    if (step == 0) {
+      for (int sp = 0; sp < n_species; sp++) sc.pool[sp] = species(site, sp) > 0;
+      sc.current = site;
+      return;
     }
+
+    sc.cum_distance += dist(sc.current, site);
+    distance(s, step - 1) = sc.cum_distance;
+
+    int a = 0, b = 0, c = 0;
+    for (int sp = 0; sp < n_species; sp++) {
+      const bool in_pool = sc.pool[sp];
+      const bool in_site = species(site, sp) > 0;
+      if (in_pool && in_site) a++;
+      else if (in_pool) b++;
+      else if (in_site) c++;
+      if (in_site) sc.pool[sp] = true;
+    }
+
+    spacc::BetaComponents beta = use_jaccard
+      ? spacc::calc_beta_jaccard(a, b, c)
+      : spacc::calc_beta_sorensen(a, b, c);
+    beta_total(s, step - 1) = beta.total;
+    beta_turnover(s, step - 1) = beta.turnover;
+    beta_nestedness(s, step - 1) = beta.nestedness;
+    sc.current = site;
   }
 };
 
-
 // [[Rcpp::export]]
-List cpp_beta_order_parallel(IntegerMatrix species_pa,
-                             NumericMatrix dist_mat,
-                             IntegerMatrix orders,
-                             bool use_jaccard = false,
-                             int n_cores = 1,
-                             bool progress = false) {
-  int n_sites = species_pa.nrow();
-  int n_steps = n_sites - 1;
-
-  int n_seeds = orders.nrow();
-
+List cpp_beta_order_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat,
+                             IntegerMatrix orders, bool use_jaccard = false,
+                             int n_cores = 1) {
+  const int n_seeds = orders.nrow();
+  const int n_steps = species_pa.nrow() - 1;
   NumericMatrix beta_total(n_seeds, n_steps);
-  NumericMatrix beta_turn(n_seeds, n_steps);
-  NumericMatrix beta_nest(n_seeds, n_steps);
-  NumericMatrix distances(n_seeds, n_steps);
-
-  if (n_cores > 1) {
-    BetaOrderWorker worker(species_pa, dist_mat, orders, use_jaccard,
-                         beta_total, beta_turn, beta_nest, distances);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector order = orders(s, _);
-      List single = cpp_beta_order_single(species_pa, dist_mat,
-                                          order, use_jaccard);
-      NumericVector bt = single["beta_total"];
-      NumericVector btu = single["beta_turnover"];
-      NumericVector bn = single["beta_nestedness"];
-      NumericVector d = single["distance"];
-
-      for (int step = 0; step < n_steps; step++) {
-        beta_total(s, step) = bt[step];
-        beta_turn(s, step) = btu[step];
-        beta_nest(s, step) = bn[step];
-        distances(s, step) = d[step];
-      }
-    }
-  }
-
+  NumericMatrix beta_turnover(n_seeds, n_steps);
+  NumericMatrix beta_nestedness(n_seeds, n_steps);
+  NumericMatrix distance(n_seeds, n_steps);
+  BetaMetric metric(species_pa, dist_mat, beta_total, beta_turnover,
+                    beta_nestedness, distance, use_jaccard);
+  run_order_metric<int>(species_pa, orders, metric, n_cores);
   return List::create(
     Named("beta_total") = beta_total,
-    Named("beta_turnover") = beta_turn,
-    Named("beta_nestedness") = beta_nest,
-    Named("distance") = distances
+    Named("beta_turnover") = beta_turnover,
+    Named("beta_nestedness") = beta_nestedness,
+    Named("distance") = distance
   );
 }

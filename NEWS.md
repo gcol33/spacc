@@ -1,3 +1,44 @@
+# spacc 0.11.0
+
+## Internals
+
+- Every accumulation method is now an order generator (`src/orders.cpp`),
+  and one kernel accumulates species along those orders
+  (`src/accumulate.cpp`). The per-method serial/parallel/tree copies of the
+  traversal (`knn.cpp`, `kncn.cpp`, `random.cpp`, `methods.cpp`,
+  `metrics.cpp`) are gone; `spacc()`, `spaccMetrics()`, `spaccDiversity()`
+  and the metric front doors all take their site orders from
+  `.accumulation_orders()`.
+- The Hill, coverage, beta, phylogenetic and functional accumulations run on
+  one templated worker (`OrderMetricWorker` in `src/parallel_utils.h`); each
+  metric is a small struct with an `at_step()` method. The pure kernels live
+  in `src/core/` (`phylo_core.h` and `func_core.h` are new) and are the single
+  implementation behind both the exported single-community functions
+  (`calc_mpd()`, `calc_fdis()`, ...) and the accumulation workers.
+- Faith's PD precomputes the parent of every tree node once per call instead
+  of scanning the edge list at every step.
+- The S3 methods of the curve classes share `.curve_stats()`,
+  `.curve_frame()`, `.plot_curves_by()`, `.plot_site_map()` and
+  `.as_sf_site_values()`; the `autoplot()` methods are one delegating
+  function registered per class.
+- `spacc` objects carry the site `orders` their curves were accumulated along.
+
+## Behaviour changes
+
+- `method = "gaussian"` draws from R's random number generator, so `seed`
+  (or `set.seed()`) now reproduces its curves. It previously used an
+  unseeded C++ generator.
+- `method = "kncn"` with `distance = "haversine"` measures centroid distances
+  with the haversine formula on both backends; the exact backend used planar
+  distances on longitude/latitude.
+- `.accumulation_orders()` computes a distance matrix only for the methods
+  that need one, so `spaccHill()`, `spaccPhylo()`, `spaccFunc()`,
+  `spaccCoverage()` and `spaccEndemism()` no longer build an `n x n` matrix
+  for the fixed-focus `knn` method.
+- `as_sf()` and `plot(type = "map")` on an object computed without
+  `map = TRUE` fail with one message for every class:
+  "No map data. Rerun <constructor>() with map = TRUE."
+
 # spacc 0.10.2
 
 ## API Changes

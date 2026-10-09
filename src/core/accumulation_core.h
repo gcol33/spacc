@@ -1,6 +1,15 @@
 // core/accumulation_core.h
-// Pure C++ species accumulation algorithms for spacc
-// No Rcpp dependencies - testable with Catch2
+// Site-visitation orders and accumulation along an order.
+// Pure C++ (no Rcpp): every routine takes accessors (lambdas or functors) so
+// the same code runs on Rcpp views inside the package and on std::vector
+// containers in the Catch2 tests.
+//
+// Accessor conventions
+//   species(site, sp)   abundance (> 0 means present)
+//   d(i, j)             distance between sites i and j
+//   order(step)         0-based site visited at `step`
+//   next(current, vis)  nearest unvisited site to site `current`
+//   nearest(qx, qy, vis) nearest unvisited site to the point (qx, qy)
 
 #ifndef SPACC_CORE_ACCUMULATION_H
 #define SPACC_CORE_ACCUMULATION_H
@@ -8,211 +17,233 @@
 #include "types.h"
 #include "distance_core.h"
 #include <algorithm>
+#include <cmath>
 #include <limits>
+#include <utility>
+#include <vector>
 
 namespace spacc {
 
-// Accumulate species from a site into the seen set
-// species_pa: presence-absence row for site
-// Returns number of new species added
-inline int accumulate_species(
-    const std::vector<int>& species_pa,
-    SpeciesSet& seen) {
+// ---------------------------------------------------------------------------
+// Nearest-unvisited searches (brute force)
+// ---------------------------------------------------------------------------
 
-  int new_species = 0;
-  for (size_t sp = 0; sp < species_pa.size(); sp++) {
-    if (species_pa[sp] > 0) {
-      auto result = seen.insert(static_cast<int>(sp));
-      if (result.second) new_species++;
+template<class DistFn>
+int nearest_unvisited(const DistFn& d, int current, int n_sites,
+                      const VisitedFlags& visited) {
+  double best = std::numeric_limits<double>::infinity();
+  int nearest = -1;
+  for (int j = 0; j < n_sites; j++) {
+    if (!visited[j] && d(current, j) < best) {
+      best = d(current, j);
+      nearest = j;
     }
   }
-  return new_species;
+  return nearest;
 }
 
-// Accumulate abundances from a site into cumulative vector
-inline void accumulate_abundances(
-    const std::vector<int>& site_abundances,
-    std::vector<int>& cumulative) {
-
-  for (size_t sp = 0; sp < site_abundances.size(); sp++) {
-    cumulative[sp] += site_abundances[sp];
+template<class PointDistFn>
+int nearest_unvisited_point(double qx, double qy,
+                            const std::vector<double>& x,
+                            const std::vector<double>& y,
+                            const VisitedFlags& visited,
+                            const PointDistFn& dist) {
+  double best = std::numeric_limits<double>::infinity();
+  int nearest = -1;
+  const int n = static_cast<int>(x.size());
+  for (int j = 0; j < n; j++) {
+    if (visited[j]) continue;
+    double dj = dist(qx, qy, x[j], y[j]);
+    if (dj < best) {
+      best = dj;
+      nearest = j;
+    }
   }
+  return nearest;
 }
 
-// Run a nearest-neighbour walk from a single seed
-// Returns curve of cumulative species richness at each step
-inline Curve knn_accumulate_single(
-    const SiteSpeciesMatrix& species_pa,
-    const DistanceMatrix& dist_mat,
-    int seed) {
+// ---------------------------------------------------------------------------
+// Order generators. Each fills `order` (length n_sites) with 0-based sites.
+// ---------------------------------------------------------------------------
 
-  size_t n_sites = species_pa.size();
-  size_t n_species = species_pa[0].size();
-
-  Curve curve(n_sites);
+// Nearest-neighbour walk: the reference point moves to the last visited site.
+template<class NextFn>
+void nn_walk_order(int n_sites, int seed, const NextFn& next,
+                   std::vector<int>& order) {
+  order.assign(n_sites, -1);
   VisitedFlags visited(n_sites, false);
-  SpeciesSet species_seen;
-
   int current = seed;
   visited[current] = true;
-
-  // Record species at starting site
-  for (size_t sp = 0; sp < n_species; sp++) {
-    if (species_pa[current][sp] > 0) {
-      species_seen.insert(static_cast<int>(sp));
-    }
-  }
-  curve[0] = static_cast<int>(species_seen.size());
-
-  // Visit remaining sites
-  for (size_t step = 1; step < n_sites; step++) {
-    // Find nearest unvisited
-    int nearest = find_nearest_unvisited(dist_mat, current, visited);
-
-    // Move to nearest
-    current = nearest;
+  order[0] = current;
+  for (int step = 1; step < n_sites; step++) {
+    current = next(current, visited);
     visited[current] = true;
-
-    // Add new species
-    for (size_t sp = 0; sp < n_species; sp++) {
-      if (species_pa[current][sp] > 0) {
-        species_seen.insert(static_cast<int>(sp));
-      }
-    }
-    curve[step] = static_cast<int>(species_seen.size());
+    order[step] = current;
   }
-
-  return curve;
 }
 
-// Run kNCN (k-Nearest Centroid Neighbor) accumulation from a single seed
-// After each step, find nearest to centroid of visited sites
-inline Curve kncn_accumulate_single(
-    const SiteSpeciesMatrix& species_pa,
-    const std::vector<double>& x,
-    const std::vector<double>& y,
-    int seed) {
-
-  size_t n_sites = species_pa.size();
-  size_t n_species = species_pa[0].size();
-
-  Curve curve(n_sites);
+// Nearest-centroid walk: the reference point is the running centroid of the
+// visited sites.
+template<class NearestFn>
+void kncn_order(const std::vector<double>& x, const std::vector<double>& y,
+                int seed, const NearestFn& nearest, std::vector<int>& order) {
+  const int n_sites = static_cast<int>(x.size());
+  order.assign(n_sites, -1);
   VisitedFlags visited(n_sites, false);
-  SpeciesSet species_seen;
-
-  // Centroid tracking
-  double cx = x[seed];
-  double cy = y[seed];
-  int n_visited = 1;
-
+  double sum_x = x[seed], sum_y = y[seed];
   int current = seed;
   visited[current] = true;
-
-  // Record species at starting site
-  for (size_t sp = 0; sp < n_species; sp++) {
-    if (species_pa[current][sp] > 0) {
-      species_seen.insert(static_cast<int>(sp));
-    }
+  order[0] = current;
+  for (int step = 1; step < n_sites; step++) {
+    double cx = sum_x / step, cy = sum_y / step;
+    current = nearest(cx, cy, visited);
+    visited[current] = true;
+    sum_x += x[current];
+    sum_y += y[current];
+    order[step] = current;
   }
-  curve[0] = static_cast<int>(species_seen.size());
+}
 
-  // Visit remaining sites
-  for (size_t step = 1; step < n_sites; step++) {
-    // Find nearest unvisited to centroid
-    double min_dist = std::numeric_limits<double>::infinity();
-    int nearest = -1;
+// Fixed-focus order: every site ranked by its distance from one focal point,
+// ties broken by site index.
+template<class DistToFocusFn>
+void focal_order(int n_sites, const DistToFocusFn& dist_to_focus,
+                 std::vector<int>& order) {
+  std::vector<std::pair<double, int>> ranked(n_sites);
+  for (int site = 0; site < n_sites; site++) {
+    ranked[site] = std::make_pair(dist_to_focus(site), site);
+  }
+  std::stable_sort(ranked.begin(), ranked.end());
+  order.resize(n_sites);
+  for (int step = 0; step < n_sites; step++) order[step] = ranked[step].second;
+}
 
-    for (size_t j = 0; j < n_sites; j++) {
+// Gaussian-weighted walk: the next site is drawn among the unvisited ones with
+// probability proportional to exp(-d^2 / (2 sigma^2)) from the current site.
+// `unif()` returns a uniform deviate in [0, 1).
+template<class DistFn, class UnifFn>
+void gaussian_order(const DistFn& d, int n_sites, int seed, double sigma,
+                    const UnifFn& unif, std::vector<int>& order) {
+  order.assign(n_sites, -1);
+  VisitedFlags visited(n_sites, false);
+  const double two_sigma2 = 2.0 * sigma * sigma;
+  std::vector<double> weight(n_sites);
+  int current = seed;
+  visited[current] = true;
+  order[0] = current;
+  for (int step = 1; step < n_sites; step++) {
+    double total = 0.0;
+    for (int j = 0; j < n_sites; j++) {
+      double w = 0.0;
       if (!visited[j]) {
-        double d = euclidean_distance(cx, cy, x[j], y[j]);
-        if (d < min_dist) {
-          min_dist = d;
-          nearest = static_cast<int>(j);
-        }
+        double dj = d(current, j);
+        w = std::exp(-(dj * dj) / two_sigma2);
+      }
+      weight[j] = w;
+      total += w;
+    }
+    int chosen = -1;
+    if (total > 0.0) {
+      double u = unif() * total;
+      double acc = 0.0;
+      for (int j = 0; j < n_sites; j++) {
+        if (visited[j]) continue;
+        acc += weight[j];
+        if (u < acc) { chosen = j; break; }
       }
     }
-
-    // Move to nearest
-    current = nearest;
+    if (chosen < 0) {
+      // All weights underflowed to zero (or rounding at the top end): take the
+      // nearest unvisited site, which is also the argmax of the weights.
+      chosen = nearest_unvisited(d, current, n_sites, visited);
+    }
+    current = chosen;
     visited[current] = true;
+    order[step] = current;
+  }
+}
 
-    // Update centroid
-    cx = (cx * n_visited + x[current]) / (n_visited + 1);
-    cy = (cy * n_visited + y[current]) / (n_visited + 1);
-    n_visited++;
+// Directional cone: sites inside the angular window around `angle` (seen from
+// the seed) are visited first by increasing distance, then the remaining sites
+// by increasing distance.
+inline void cone_order(const std::vector<double>& x, const std::vector<double>& y,
+                       int seed, double angle, double width,
+                       std::vector<int>& order) {
+  const int n_sites = static_cast<int>(x.size());
+  std::vector<std::pair<double, int>> in_cone, out_cone;
+  in_cone.reserve(n_sites);
+  out_cone.reserve(n_sites);
+  for (int i = 0; i < n_sites; i++) {
+    double dx = x[i] - x[seed], dy = y[i] - y[seed];
+    double dist = std::sqrt(dx * dx + dy * dy);
+    double diff = std::fabs(std::atan2(dy, dx) - angle);
+    if (diff > PI) diff = 2.0 * PI - diff;
+    if (diff <= width || i == seed) in_cone.emplace_back(dist, i);
+    else out_cone.emplace_back(dist, i);
+  }
+  std::sort(in_cone.begin(), in_cone.end());
+  std::sort(out_cone.begin(), out_cone.end());
+  order.clear();
+  order.reserve(n_sites);
+  for (const auto& p : in_cone) order.push_back(p.second);
+  for (const auto& p : out_cone) order.push_back(p.second);
+}
 
-    // Add new species
-    for (size_t sp = 0; sp < n_species; sp++) {
-      if (species_pa[current][sp] > 0) {
-        species_seen.insert(static_cast<int>(sp));
+// ---------------------------------------------------------------------------
+// Accumulation along an order
+// ---------------------------------------------------------------------------
+
+// Add each visited site's row into `cumulative`, then call at_step(step, site).
+template<class SpeciesFn, class OrderFn, class T, class StepFn>
+void accumulate_along_order(const SpeciesFn& species, int n_sites, int n_species,
+                            const OrderFn& order, std::vector<T>& cumulative,
+                            const StepFn& at_step) {
+  for (int step = 0; step < n_sites; step++) {
+    const int site = order(step);
+    for (int sp = 0; sp < n_species; sp++) {
+      cumulative[sp] += static_cast<T>(species(site, sp));
+    }
+    at_step(step, site);
+  }
+}
+
+// Cumulative species richness along an order; curve(step) receives the count.
+template<class SpeciesFn, class OrderFn, class CurveFn>
+void richness_along_order(const SpeciesFn& species, int n_sites, int n_species,
+                          const OrderFn& order, const CurveFn& curve) {
+  std::vector<bool> seen(n_species, false);
+  int richness = 0;
+  for (int step = 0; step < n_sites; step++) {
+    const int site = order(step);
+    for (int sp = 0; sp < n_species; sp++) {
+      if (!seen[sp] && species(site, sp) > 0) {
+        seen[sp] = true;
+        richness++;
       }
     }
-    curve[step] = static_cast<int>(species_seen.size());
+    curve(step, richness);
   }
-
-  return curve;
 }
 
-// Run multiple nearest-neighbour walks and return a matrix
-inline CurveMatrix knn_accumulate_multi(
-    const SiteSpeciesMatrix& species_pa,
-    const DistanceMatrix& dist_mat,
-    const std::vector<int>& seeds) {
-
-  size_t n_seeds = seeds.size();
-  CurveMatrix curves(n_seeds);
-
-  for (size_t s = 0; s < n_seeds; s++) {
-    curves[s] = knn_accumulate_single(species_pa, dist_mat, seeds[s]);
-  }
-
-  return curves;
-}
-
-// Calculate mean curve from multiple curves
-inline CurveDouble mean_curve(const CurveMatrix& curves) {
-  if (curves.empty()) return CurveDouble();
-
-  size_t n_steps = curves[0].size();
-  size_t n_curves = curves.size();
-  CurveDouble mean(n_steps, 0.0);
-
-  for (size_t step = 0; step < n_steps; step++) {
-    double sum = 0.0;
-    for (size_t c = 0; c < n_curves; c++) {
-      sum += curves[c][step];
+// Species richness and site count within `radius` of `seed`.
+template<class SpeciesFn, class DistFn>
+std::pair<int, int> richness_within_radius(const SpeciesFn& species,
+                                           const DistFn& d,
+                                           int n_sites, int n_species,
+                                           int seed, double radius) {
+  std::vector<bool> seen(n_species, false);
+  int richness = 0, included = 0;
+  for (int i = 0; i < n_sites; i++) {
+    if (d(seed, i) > radius) continue;
+    included++;
+    for (int sp = 0; sp < n_species; sp++) {
+      if (!seen[sp] && species(i, sp) > 0) {
+        seen[sp] = true;
+        richness++;
+      }
     }
-    mean[step] = sum / n_curves;
   }
-
-  return mean;
-}
-
-// Calculate quantile of curves at each step
-inline CurveDouble curve_quantile(const CurveMatrix& curves, double prob) {
-  if (curves.empty()) return CurveDouble();
-
-  size_t n_steps = curves[0].size();
-  size_t n_curves = curves.size();
-  CurveDouble result(n_steps, 0.0);
-
-  for (size_t step = 0; step < n_steps; step++) {
-    std::vector<double> values(n_curves);
-    for (size_t c = 0; c < n_curves; c++) {
-      values[c] = static_cast<double>(curves[c][step]);
-    }
-    std::sort(values.begin(), values.end());
-
-    // Simple quantile calculation
-    double idx = prob * (n_curves - 1);
-    size_t lo = static_cast<size_t>(idx);
-    size_t hi = std::min(lo + 1, n_curves - 1);
-    double frac = idx - lo;
-
-    result[step] = values[lo] * (1 - frac) + values[hi] * frac;
-  }
-
-  return result;
+  return std::make_pair(richness, included);
 }
 
 } // namespace spacc

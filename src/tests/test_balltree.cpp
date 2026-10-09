@@ -4,48 +4,6 @@
 #include "catch.hpp"
 #include "../balltree.h"
 
-TEST_CASE("haversine distance", "[balltree]") {
-  SECTION("same point gives zero") {
-    double d = haversine(0.0, 0.0, 0.0, 0.0);
-    REQUIRE(d == Approx(0.0).margin(1e-10));
-  }
-
-  SECTION("known distance Paris to London") {
-    // Paris: 2.3522 E, 48.8566 N
-    // London: -0.1276 W, 51.5074 N
-    double d = haversine(2.3522, 48.8566, -0.1276, 51.5074);
-    // Actual distance is about 344 km
-    REQUIRE(d == Approx(344.0).margin(10.0));
-  }
-
-  SECTION("known distance New York to Los Angeles") {
-    // NYC: -74.006, 40.7128
-    // LA: -118.2437, 34.0522
-    double d = haversine(-74.006, 40.7128, -118.2437, 34.0522);
-    // Actual distance is about 3944 km
-    REQUIRE(d == Approx(3944.0).margin(50.0));
-  }
-
-  SECTION("antipodal points") {
-    // 0,0 to 180,0
-    double d = haversine(0.0, 0.0, 180.0, 0.0);
-    // Half Earth circumference ~ 20015 km
-    REQUIRE(d == Approx(20015.0).margin(100.0));
-  }
-
-  SECTION("symmetric") {
-    double d1 = haversine(10.0, 20.0, 30.0, 40.0);
-    double d2 = haversine(30.0, 40.0, 10.0, 20.0);
-    REQUIRE(d1 == Approx(d2));
-  }
-
-  SECTION("equatorial distance") {
-    // 1 degree of longitude at equator ~ 111 km
-    double d = haversine(0.0, 0.0, 1.0, 0.0);
-    REQUIRE(d == Approx(111.0).margin(5.0));
-  }
-}
-
 TEST_CASE("BallTree construction", "[balltree]") {
   SECTION("small tree") {
     std::vector<double> x = {0.0, 1.0, 2.0};
@@ -90,22 +48,22 @@ TEST_CASE("BallTree find_nearest_unvisited", "[balltree]") {
     std::vector<bool> visited(3, false);
 
     // Query from (0,0) - nearest should be itself (index 0)
-    int nearest = tree.find_nearest_unvisited(0.0, 0.0, visited);
+    int nearest = tree.nearest_unvisited(0.0, 0.0, visited);
     REQUIRE(nearest == 0);
 
     // Mark index 0 as visited
     visited[0] = true;
-    nearest = tree.find_nearest_unvisited(0.0, 0.0, visited);
+    nearest = tree.nearest_unvisited(0.0, 0.0, visited);
     REQUIRE(nearest == 1);  // Next nearest is (1,0)
 
     // Mark index 1 as visited
     visited[1] = true;
-    nearest = tree.find_nearest_unvisited(0.0, 0.0, visited);
+    nearest = tree.nearest_unvisited(0.0, 0.0, visited);
     REQUIRE(nearest == 2);  // Only (2,0) left
 
     // Mark all visited
     visited[2] = true;
-    nearest = tree.find_nearest_unvisited(0.0, 0.0, visited);
+    nearest = tree.nearest_unvisited(0.0, 0.0, visited);
     REQUIRE(nearest == -1);  // None left
   }
 
@@ -117,7 +75,7 @@ TEST_CASE("BallTree find_nearest_unvisited", "[balltree]") {
     std::vector<bool> visited(3, false);
 
     // Query from (11,0) - nearest should be (10,0) which is index 1
-    int nearest = tree.find_nearest_unvisited(11.0, 0.0, visited);
+    int nearest = tree.nearest_unvisited(11.0, 0.0, visited);
     REQUIRE(nearest == 1);
   }
 
@@ -128,7 +86,7 @@ TEST_CASE("BallTree find_nearest_unvisited", "[balltree]") {
     BallTree tree(x, y);
     std::vector<bool> visited = {true, true};
 
-    int nearest = tree.find_nearest_unvisited(0.5, 0.0, visited);
+    int nearest = tree.nearest_unvisited(0.5, 0.0, visited);
     REQUIRE(nearest == -1);
   }
 
@@ -146,7 +104,7 @@ TEST_CASE("BallTree find_nearest_unvisited", "[balltree]") {
     std::vector<bool> visited(100, false);
 
     // Query from (4.5, 4.5) - should find one of the nearby points
-    int nearest = tree.find_nearest_unvisited(4.5, 4.5, visited);
+    int nearest = tree.nearest_unvisited(4.5, 4.5, visited);
     REQUIRE(nearest >= 0);
     REQUIRE(nearest < 100);
 
@@ -170,7 +128,7 @@ TEST_CASE("BallTree find_nearest_unvisited", "[balltree]") {
     // Starting from (0,0), progressively find nearest
     double qx = 0.0, qy = 0.0;
     for (int i = 0; i < 5; i++) {
-      int nearest = tree.find_nearest_unvisited(qx, qy, visited);
+      int nearest = tree.nearest_unvisited(qx, qy, visited);
       REQUIRE(nearest != -1);
       order.push_back(nearest);
       visited[nearest] = true;
@@ -215,11 +173,11 @@ TEST_CASE("BallTree with geographic coordinates", "[balltree]") {
     std::vector<bool> visited(8, false);
 
     // From Paris, nearest should be Brussels (index 5) at ~265 km
-    int nearest = tree.find_nearest_unvisited(2.3522, 48.8566, visited);
+    int nearest = tree.nearest_unvisited(2.3522, 48.8566, visited);
     REQUIRE(nearest == 0);  // Paris itself
 
     visited[0] = true;  // Mark Paris visited
-    nearest = tree.find_nearest_unvisited(2.3522, 48.8566, visited);
+    nearest = tree.nearest_unvisited(2.3522, 48.8566, visited);
     // Brussels (5) or London (1) should be closest
     REQUIRE((nearest == 5 || nearest == 1));
   }

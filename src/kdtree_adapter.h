@@ -2,6 +2,8 @@
 #define SPACC_KDTREE_ADAPTER_H
 
 #include <nanoflann.hpp>
+#include <algorithm>
+#include <memory>
 #include <vector>
 #include <cstddef>
 #include <cstdint>
@@ -21,54 +23,50 @@ struct PointCloud2D {
   bool kdtree_get_bbox(BBOX&) const { return false; }
 };
 
-// Use uint32_t as index type to match nanoflann default
 typedef uint32_t IndexType;
 
-// Convenience typedefs
 typedef nanoflann::KDTreeSingleIndexAdaptor<
   nanoflann::L2_Simple_Adaptor<double, PointCloud2D>,
   PointCloud2D, 2, IndexType
 > KDTree2D;
 
-// Build a k-d tree from coordinate vectors
-// Caller owns the returned pointer (use delete)
-inline KDTree2D* build_kdtree(const PointCloud2D& cloud) {
-  auto* tree = new KDTree2D(2, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  tree->buildIndex();
-  return tree;
-}
-
-// Find the nearest unvisited site to a query point.
-// Searches expanding k-NN queries until an unvisited site is found.
-// Returns the index into the original point cloud.
-inline int find_nearest_unvisited(KDTree2D& tree, double qx, double qy,
-                                   const std::vector<bool>& visited,
-                                   int n_sites) {
-  double query[2] = {qx, qy};
-
-  // Start with k=8, expand if all results are visited
-  size_t k = 8;
-
-  while (true) {
-    if (k > static_cast<size_t>(n_sites)) k = static_cast<size_t>(n_sites);
-
-    std::vector<IndexType> indices(k);
-    std::vector<double> dists_sq(k);
-
-    size_t found = tree.knnSearch(query, k, indices.data(), dists_sq.data());
-
-    for (size_t i = 0; i < found; i++) {
-      if (!visited[indices[i]]) {
-        return static_cast<int>(indices[i]);
-      }
-    }
-
-    // All k results were visited; double k and retry
-    if (k >= static_cast<size_t>(n_sites)) {
-      return -1;
-    }
-    k = std::min(k * 2, static_cast<size_t>(n_sites));
+// k-d tree over planar coordinates with the same nearest_unvisited() interface
+// as BallTree, so the order generators are written once against either index.
+class KdTree {
+public:
+  // The cloud is heap-allocated because the nanoflann index keeps a reference
+  // to it; the KdTree object itself can then be moved safely.
+  KdTree(const std::vector<double>& x, const std::vector<double>& y)
+    : n_sites(static_cast<int>(x.size())), cloud(new PointCloud2D()) {
+    cloud->pts_x = x;
+    cloud->pts_y = y;
+    tree.reset(new KDTree2D(2, *cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10)));
+    tree->buildIndex();
   }
-}
+
+  // Nearest unvisited site to (qx, qy): expanding k-NN queries until an
+  // unvisited site appears; -1 when all are visited.
+  int nearest_unvisited(double qx, double qy,
+                        const std::vector<bool>& visited) const {
+    double query[2] = {qx, qy};
+    size_t k = 8;
+    while (true) {
+      if (k > static_cast<size_t>(n_sites)) k = static_cast<size_t>(n_sites);
+      std::vector<IndexType> indices(k);
+      std::vector<double> dists_sq(k);
+      size_t found = tree->knnSearch(query, k, indices.data(), dists_sq.data());
+      for (size_t i = 0; i < found; i++) {
+        if (!visited[indices[i]]) return static_cast<int>(indices[i]);
+      }
+      if (k >= static_cast<size_t>(n_sites)) return -1;
+      k = std::min(k * 2, static_cast<size_t>(n_sites));
+    }
+  }
+
+private:
+  int n_sites;
+  std::unique_ptr<PointCloud2D> cloud;
+  std::unique_ptr<KDTree2D> tree;
+};
 
 #endif // SPACC_KDTREE_ADAPTER_H

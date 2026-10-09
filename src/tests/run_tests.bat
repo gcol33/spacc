@@ -12,6 +12,7 @@ g++ -std=c++17 -Wall -Wextra -I../core -I.. -I. -O2 -o run_tests.exe ^
     test_hill.cpp ^
     test_coverage.cpp ^
     test_accumulation.cpp ^
+    test_phylofunc.cpp ^
     test_balltree.cpp
 
 if %ERRORLEVEL% neq 0 (

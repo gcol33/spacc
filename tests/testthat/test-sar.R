@@ -441,7 +441,7 @@ test_that("spaccEndemism plot(type = 'map') errors without map", {
   result <- spaccEndemism(species, coords, n_seeds = 3,
                            parallel = FALSE, progress = FALSE, seed = 1)
 
-  expect_error(plot(result, type = "map"), "per-site data")
+  expect_error(plot(result, type = "map"), "spaccEndemism\\(\\) with map = TRUE")
 })
 
 
@@ -473,5 +473,5 @@ test_that("as_sf.spacc_endemism errors without map", {
   result <- spaccEndemism(species, coords, n_seeds = 3,
                            parallel = FALSE, progress = FALSE, seed = 1)
 
-  expect_error(as_sf(result), "per-site data")
+  expect_error(as_sf(result), "spaccEndemism\\(\\) with map = TRUE")
 })

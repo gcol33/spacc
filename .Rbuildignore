@@ -16,15 +16,11 @@
 ^codecov\.yml$
 .*\.tar\.gz$
 .*\.Rcheck$
-^API\.md$
-^PLAN\.md$
-^IMPLEMENTATION_PLAN\.md$
-^FEATURES\.md$
 ^src/tests$
-^plan\.md$
 ^src/.*\.o$
 ^src/.*\.so$
 ^src/.*\.dll$
 ^dev_notes$
 ^paper$
 ^figure$
+^refs$

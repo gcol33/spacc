@@ -92,48 +92,21 @@ spaccPhylo <- function(x,
   n_cores <- resolve_cores(n_cores, parallel)
 
   x <- as.matrix(x)
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    site_dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    site_dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   site_dist_mat, focal_points, focal_domain)
-  n_seeds <- ordering$n_seeds
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
 
-  # Get phylogenetic distance matrix
-  if (inherits(tree, "phylo")) {
-    check_suggests("ape")
-    phylo_dist_mat <- as.matrix(ape::cophenetic.phylo(tree))
-
-    # Match species order
-    if (!is.null(colnames(x))) {
-      if (!all(colnames(x) %in% tree$tip.label)) {
-        stop("Some species in x are not in the tree")
-      }
-      phylo_dist_mat <- phylo_dist_mat[colnames(x), colnames(x)]
-    }
-  } else if (is.matrix(tree)) {
-    phylo_dist_mat <- tree
-    if ("pd" %in% metric) {
-      warning("PD requires full tree object; removing 'pd' from metrics")
-      metric <- setdiff(metric, "pd")
-    }
-  } else {
-    stop("tree must be a phylo object or distance matrix")
+  phylo_dist_mat <- .phylo_distances(tree, colnames(x))
+  if (is.matrix(tree) && "pd" %in% metric) {
+    warning("PD requires full tree object; removing 'pd' from metrics")
+    metric <- setdiff(metric, "pd")
   }
-
   stopifnot("Phylo distance matrix must match species" = ncol(phylo_dist_mat) == n_species)
 
   # Keep abundances as doubles. Presence metrics (mpd/mntd/pd) read
@@ -145,45 +118,31 @@ spaccPhylo <- function(x,
   if (progress) cli_info(sprintf("Computing phylogenetic diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
 
-  # Prepare tree edge data for PD if requested
+  # Tree edge data for Faith's PD
   tree_edge <- NULL
   tree_edge_length <- NULL
   tree_n_tips <- 0L
-
   if ("pd" %in% metric && inherits(tree, "phylo")) {
     tree_edge <- tree$edge
     tree_edge_length <- tree$edge.length
     tree_n_tips <- length(tree$tip.label)
   }
 
-  if (length(metric) > 0) {
-    result <- cpp_phylo_order_parallel(species_pa, ordering$orders - 1L,
-                                      phylo_dist_mat, metric, n_cores, progress,
-                                      tree_edge, tree_edge_length, tree_n_tips)
-  } else {
-    result <- list()
+  run <- function(orders) {
+    if (length(metric) == 0) return(list())
+    cpp_phylo_order_parallel(species_pa, orders - 1L, phylo_dist_mat, metric, n_cores,
+                             tree_edge, tree_edge_length, tree_n_tips)
   }
+
+  result <- run(ordering$orders)
 
   if (progress) cli_success("Done")
 
-  # Compute per-site map values if requested
   site_values <- NULL
   if (map && length(metric) > 0) {
     if (progress) cli_info("Computing per-site phylo map values (all sites as seeds)")
-    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
-                                       site_dist_mat, all_sites = TRUE)
-    map_result <- cpp_phylo_order_parallel(species_pa, map_orders$orders - 1L,
-                                          phylo_dist_mat, metric, n_cores, progress,
-                                          tree_edge, tree_edge_length, tree_n_tips)
-
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y
-    )
-    for (i in seq_along(metric)) {
-      site_values[[metric[i]]] <- map_result[[i]][cbind(seq_len(n_sites), n_sites)]
-    }
+    site_values <- .site_map_values(method, coord_data, distance, site$dist_mat, n_cores,
+                                    function(orders) lapply(run(orders), .final_per_seed))
     if (progress) cli_success("Map values computed")
   }
 
@@ -193,7 +152,7 @@ spaccPhylo <- function(x,
       metric = metric,
       coords = coord_data,
       site_values = site_values,
-      n_seeds = n_seeds,
+      n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
@@ -203,6 +162,39 @@ spaccPhylo <- function(x,
     ),
     class = "spacc_phylo"
   )
+}
+
+
+# Pairwise phylogenetic distances between the species in `species_names`,
+# from a phylo tree (cophenetic distances) or a supplied matrix.
+.phylo_distances <- function(tree, species_names) {
+  if (inherits(tree, "phylo")) {
+    check_suggests("ape")
+    phylo_dist <- as.matrix(ape::cophenetic.phylo(tree))
+    if (!is.null(species_names)) {
+      if (!all(species_names %in% tree$tip.label)) {
+        stop("Some species in x are not in the tree")
+      }
+      phylo_dist <- phylo_dist[species_names, species_names]
+    }
+    return(phylo_dist)
+  }
+  if (is.matrix(tree)) return(tree)
+  stop("tree must be a phylo object or distance matrix")
+}
+
+
+# Reorder a species-by-traits matrix to the species in `species_names`.
+.match_traits <- function(traits, species_names, n_species) {
+  traits <- as.matrix(traits)
+  if (!is.null(species_names) && !is.null(rownames(traits))) {
+    if (!all(species_names %in% rownames(traits))) {
+      stop("Some species in x are not in traits")
+    }
+    traits <- traits[species_names, , drop = FALSE]
+  }
+  stopifnot("Traits must have one row per species" = nrow(traits) == n_species)
+  traits
 }
 
 
@@ -290,37 +282,17 @@ spaccFunc <- function(x,
   n_cores <- resolve_cores(n_cores, parallel)
 
   x <- as.matrix(x)
-  traits <- as.matrix(traits)
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    site_dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    site_dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
-  n_traits <- ncol(traits)
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   site_dist_mat, focal_points, focal_domain)
-  n_seeds <- ordering$n_seeds
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
 
-  # Match traits to species
-  if (!is.null(colnames(x)) && !is.null(rownames(traits))) {
-    if (!all(colnames(x) %in% rownames(traits))) {
-      stop("Some species in x are not in traits")
-    }
-    traits <- traits[colnames(x), , drop = FALSE]
-  }
-
-  stopifnot("Traits must have one row per species" = nrow(traits) == n_species)
+  traits <- .match_traits(traits, colnames(x), n_species)
 
   # Keep abundance data as doubles (supports non-integer abundances,
   # e.g. cover or biomass, for FDis and Rao weighting)
@@ -329,28 +301,19 @@ spaccFunc <- function(x,
   if (progress) cli_info(sprintf("Computing functional diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
 
-  result <- cpp_func_order_parallel(x, ordering$orders - 1L, traits,
-                                    metric, n_cores, progress)
+  run <- function(orders) {
+    cpp_func_order_parallel(x, orders - 1L, traits, metric, n_cores)
+  }
+
+  result <- run(ordering$orders)
 
   if (progress) cli_success("Done")
 
-  # Compute per-site map values if requested
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site functional map values (all sites as seeds)")
-    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
-                                       site_dist_mat, all_sites = TRUE)
-    map_result <- cpp_func_order_parallel(x, map_orders$orders - 1L, traits,
-                                          metric, n_cores, progress)
-
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y
-    )
-    for (i in seq_along(metric)) {
-      site_values[[metric[i]]] <- map_result[[i]][cbind(seq_len(n_sites), n_sites)]
-    }
+    site_values <- .site_map_values(method, coord_data, distance, site$dist_mat, n_cores,
+                                    function(orders) lapply(run(orders), .final_per_seed))
     if (progress) cli_success("Map values computed")
   }
 
@@ -361,10 +324,10 @@ spaccFunc <- function(x,
       traits = traits,
       coords = coord_data,
       site_values = site_values,
-      n_seeds = n_seeds,
+      n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
-      n_traits = n_traits,
+      n_traits = ncol(traits),
       method = method,
       distance = distance,
       focal_points = ordering$focal_points,
@@ -375,86 +338,51 @@ spaccFunc <- function(x,
 }
 
 
+# Shared curve/map plot for the per-metric accumulation classes.
+.plot_metric_curves <- function(x, type, ci, ci_alpha, metric, point_size, palette,
+                                map_title, ylab, title) {
+  if (type == "map") {
+    if (is.null(metric)) metric <- x$metric[1]
+    return(.plot_site_map(x, metric,
+                          title = sprintf(map_title, toupper(metric)),
+                          subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                          point_size = point_size, palette = palette))
+  }
+  summ <- summary(x)
+  summ$metric <- factor(toupper(summ$metric))
+  .plot_curves_by(summ, "metric", "Metric",
+                  xlab = "Sites accumulated", ylab = ylab, title = title,
+                  ci = ci, ci_alpha = ci_alpha)
+}
+
+
 # S3 methods for spacc_phylo -----------------------------------------------
 
 #' @export
 print.spacc_phylo <- function(x, ...) {
-  cat(sprintf("spacc phylogenetic diversity: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
-  cat(sprintf("Metrics: %s\n", paste(x$metric, collapse = ", ")))
-  invisible(x)
+  .print_curves(x, "spacc phylogenetic diversity",
+                sprintf("Metrics: %s", paste(x$metric, collapse = ", ")))
 }
 
 
 #' @export
 summary.spacc_phylo <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
-  result <- lapply(seq_along(object$metric), function(i) {
-    metric_name <- object$metric[i]
-    mat <- object$curves[[i]]
-
-    data.frame(
-      metric = metric_name,
-      sites = 1:object$n_sites,
-      mean = colMeans(mat),
-      lower = apply(mat, 2, stats::quantile, alpha),
-      upper = apply(mat, 2, stats::quantile, 1 - alpha)
-    )
-  })
-
-  do.call(rbind, result)
+  .curve_frame(object$curves, "metric", object$metric, ci_level)
 }
 
 
 #' @export
 plot.spacc_phylo <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0.2,
                               metric = NULL, point_size = 3, palette = "viridis", ...) {
-  type <- match.arg(type)
-
-  if (type == "map") {
-    if (is.null(x$site_values)) stop("No map data. Rerun spaccPhylo() with map = TRUE.")
-    if (is.null(metric)) metric <- x$metric[1]
-    stopifnot("metric not found" = metric %in% names(x$site_values))
-    return(plot_spatial_map(x$site_values, metric,
-                            title = sprintf("Phylogenetic diversity map: %s", toupper(metric)),
-                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
-                            point_size = point_size, palette = palette))
-  }
-
-  check_suggests("ggplot2")
-
-  summ <- summary(x)
-  summ$metric <- factor(toupper(summ$metric))
-
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean, color = metric))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper, fill = metric),
-      alpha = ci_alpha, color = NA
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1) +
-    ggplot2::labs(
-      x = "Sites accumulated",
-      y = "Phylogenetic diversity",
-      color = "Metric",
-      fill = "Metric",
-      title = "Spatial Phylogenetic Diversity Accumulation"
-    ) +
-    spacc_theme() +
-    ggplot2::theme(legend.position = "bottom")
+  .plot_metric_curves(x, match.arg(type), ci, ci_alpha, metric, point_size, palette,
+                      map_title = "Phylogenetic diversity map: %s",
+                      ylab = "Phylogenetic diversity",
+                      title = "Spatial Phylogenetic Diversity Accumulation")
 }
 
 
 #' @export
-as_sf.spacc_phylo <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No map data. Rerun spaccPhylo() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_phylo <- function(x, crs = NULL) .as_sf_site_values(x, crs)
 
 
 # S3 methods for spacc_func -----------------------------------------------
@@ -470,70 +398,19 @@ print.spacc_func <- function(x, ...) {
 
 #' @export
 summary.spacc_func <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
-  result <- lapply(seq_along(object$metric), function(i) {
-    metric_name <- object$metric[i]
-    mat <- object$curves[[i]]
-
-    data.frame(
-      metric = metric_name,
-      sites = 1:object$n_sites,
-      mean = colMeans(mat),
-      lower = apply(mat, 2, stats::quantile, alpha),
-      upper = apply(mat, 2, stats::quantile, 1 - alpha)
-    )
-  })
-
-  do.call(rbind, result)
+  .curve_frame(object$curves, "metric", object$metric, ci_level)
 }
 
 
 #' @export
 plot.spacc_func <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0.2,
                              metric = NULL, point_size = 3, palette = "viridis", ...) {
-  type <- match.arg(type)
-
-  if (type == "map") {
-    if (is.null(x$site_values)) stop("No map data. Rerun spaccFunc() with map = TRUE.")
-    if (is.null(metric)) metric <- x$metric[1]
-    stopifnot("metric not found" = metric %in% names(x$site_values))
-    return(plot_spatial_map(x$site_values, metric,
-                            title = sprintf("Functional diversity map: %s", toupper(metric)),
-                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
-                            point_size = point_size, palette = palette))
-  }
-
-  check_suggests("ggplot2")
-
-  summ <- summary(x)
-  summ$metric <- factor(toupper(summ$metric))
-
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean, color = metric))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper, fill = metric),
-      alpha = ci_alpha, color = NA
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1) +
-    ggplot2::labs(
-      x = "Sites accumulated",
-      y = "Functional diversity",
-      color = "Metric",
-      fill = "Metric",
-      title = "Spatial Functional Diversity Accumulation"
-    ) +
-    spacc_theme() +
-    ggplot2::theme(legend.position = "bottom")
+  .plot_metric_curves(x, match.arg(type), ci, ci_alpha, metric, point_size, palette,
+                      map_title = "Functional diversity map: %s",
+                      ylab = "Functional diversity",
+                      title = "Spatial Functional Diversity Accumulation")
 }
 
 
 #' @export
-as_sf.spacc_func <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No map data. Rerun spaccFunc() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_func <- function(x, crs = NULL) .as_sf_site_values(x, crs)

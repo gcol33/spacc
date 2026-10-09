@@ -86,64 +86,39 @@ spaccHill <- function(x,
 
   n_cores <- resolve_cores(n_cores, parallel)
 
-  # Validate inputs
   x <- as.matrix(x)
   stopifnot(
     "q must be numeric and >= 0" = is.numeric(q) && all(q >= 0),
     "n_seeds must be positive" = n_seeds > 0
   )
 
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot(
-      "coords must have x and y columns" = all(c("x", "y") %in% names(coords))
-    )
-    coord_data <- coords
-    if (progress) cli_info(sprintf("Computing distances (%d x %d)", nrow(x), nrow(x)))
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
-  stopifnot(
-    "x and coords must have same rows" = nrow(x) == nrow(coord_data)
-  )
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  dist_mat <- site$dist_mat
+  stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
-
-  # Ensure integer matrix (abundances preserved)
   storage.mode(x) <- "integer"
 
   if (progress) cli_info(sprintf("Computing Hill numbers (q = %s, %d seeds)",
                                   paste(q, collapse = ", "), n_seeds))
 
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   dist_mat, focal_points, focal_domain)
-  n_seeds <- ordering$n_seeds
-  curves <- cpp_order_hill_parallel(x, ordering$orders - 1L, q, n_cores, progress)
+                                   dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
+  curves <- cpp_order_hill_parallel(x, ordering$orders - 1L, q, n_cores)
 
   if (progress) cli_success("Done")
 
-  # Compute per-site map values if requested
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site Hill map values (all sites as seeds)")
-    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
-                                       dist_mat, all_sites = TRUE)
-    map_curves <- cpp_order_hill_parallel(x, map_orders$orders - 1L, q,
-                                          n_cores, progress)
-
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y
-    )
-    for (i in seq_along(q)) {
-      # Each site's final Hill number when used as seed
-      site_values[[paste0("q", q[i])]] <- map_curves[[i]][cbind(seq_len(n_sites), n_sites)]
-    }
+    site_values <- .site_map_values(method, coord_data, distance, dist_mat, n_cores,
+      function(orders) {
+        map_curves <- cpp_order_hill_parallel(x, orders - 1L, q, n_cores)
+        stats::setNames(lapply(map_curves, .final_per_seed), paste0("q", q))
+      })
     if (progress) cli_success("Map values computed")
   }
 
@@ -153,7 +128,7 @@ spaccHill <- function(x,
       q = q,
       coords = coord_data,
       site_values = site_values,
-      n_seeds = n_seeds,
+      n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
@@ -169,37 +144,15 @@ spaccHill <- function(x,
 
 #' @export
 print.spacc_hill <- function(x, ...) {
-  cat(sprintf("spacc Hill numbers: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
-  cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
-  cat(sprintf("Method: %s\n", x$method))
-  invisible(x)
+  .print_curves(x, "spacc Hill numbers",
+                sprintf("Orders (q): %s", paste(x$q, collapse = ", ")),
+                sprintf("Method: %s", x$method))
 }
 
 
 #' @export
 summary.spacc_hill <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
-  result <- lapply(seq_along(object$q), function(i) {
-    q_val <- object$q[i]
-    q_name <- names(object$curves)[i]
-    mat <- object$curves[[i]]
-
-    mean_curve <- colMeans(mat)
-    lower <- apply(mat, 2, stats::quantile, probs = alpha)
-    upper <- apply(mat, 2, stats::quantile, probs = 1 - alpha)
-
-    data.frame(
-      q = q_val,
-      sites = 1:object$n_sites,
-      mean = mean_curve,
-      lower = lower,
-      upper = upper
-    )
-  })
-
-  do.call(rbind, result)
+  .curve_frame(object$curves, "q", object$q, ci_level)
 }
 
 
@@ -209,51 +162,24 @@ plot.spacc_hill <- function(x, type = c("curve", "map"), ci = TRUE, ci_alpha = 0
   type <- match.arg(type)
 
   if (type == "map") {
-    if (is.null(x$site_values)) stop("No map data. Rerun spaccHill() with map = TRUE.")
     if (is.null(q)) q <- x$q[1]
-    q_col <- paste0("q", q)
-    stopifnot("q value not found" = q_col %in% names(x$site_values))
-
-    return(plot_spatial_map(x$site_values, q_col,
-                            title = sprintf("Hill number map (q = %s)", q),
-                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
-                            point_size = point_size, palette = palette))
+    return(.plot_site_map(x, paste0("q", q),
+                          title = sprintf("Hill number map (q = %s)", q),
+                          subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                          point_size = point_size, palette = palette))
   }
 
-  # Default curve plot
-  check_suggests("ggplot2")
   summ <- summary(x)
-  summ$q_label <- factor(paste0("q = ", summ$q),
-                          levels = paste0("q = ", sort(unique(summ$q))))
-
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean, color = q_label))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper, fill = q_label),
-      alpha = ci_alpha, color = NA
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1) +
-    ggplot2::labs(
-      x = "Sites accumulated",
-      y = "Hill number (effective species)",
-      color = "Order",
-      fill = "Order",
-      title = "Spatial Hill Number Accumulation"
-    ) +
-    spacc_theme() +
-    ggplot2::theme(legend.position = "bottom")
+  summ$q_label <- .q_label(summ$q)
+  .plot_curves_by(summ, "q_label", "Order",
+                  xlab = "Sites accumulated", ylab = "Hill number (effective species)",
+                  title = "Spatial Hill Number Accumulation",
+                  ci = ci, ci_alpha = ci_alpha)
 }
 
 
 #' @export
-as_sf.spacc_hill <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No map data. Rerun spaccHill() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_hill <- function(x, crs = NULL) .as_sf_site_values(x, crs)
 
 
 # ============================================================================
@@ -337,17 +263,8 @@ spaccHillBeta <- function(x,
     "n_seeds must be positive" = n_seeds > 0
   )
 
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info(sprintf("Computing distances (%d x %d)", nrow(x), nrow(x)))
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
@@ -358,10 +275,9 @@ spaccHillBeta <- function(x,
                                   paste(q, collapse = ", "), n_seeds))
 
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   dist_mat, focal_points, focal_domain)
-  n_seeds <- ordering$n_seeds
-  result <- cpp_order_hill_beta_parallel(x, ordering$orders - 1L, q,
-                                         n_cores, progress)
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
+  result <- cpp_order_hill_beta_parallel(x, ordering$orders - 1L, q, n_cores)
 
   if (progress) cli_success("Done")
 
@@ -372,7 +288,7 @@ spaccHillBeta <- function(x,
       beta = result$beta,
       q = q,
       coords = coord_data,
-      n_seeds = n_seeds,
+      n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
@@ -389,40 +305,19 @@ spaccHillBeta <- function(x,
 
 #' @export
 print.spacc_hill_beta <- function(x, ...) {
-  cat(sprintf("spacc Hill beta diversity: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
-  cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
-
-  # Mean final beta per q
-  for (i in seq_along(x$q)) {
-    mean_beta <- mean(x$beta[[i]][, x$n_sites])
-    cat(sprintf("  q = %s: mean final beta = %.2f\n", x$q[i], mean_beta))
-  }
-  invisible(x)
+  final_beta <- vapply(seq_along(x$q), function(i) mean(x$beta[[i]][, x$n_sites]), numeric(1))
+  .print_curves(x, "spacc Hill beta diversity",
+                sprintf("Orders (q): %s", paste(x$q, collapse = ", ")),
+                sprintf("  q = %s: mean final beta = %.2f", x$q, final_beta))
 }
 
 
 #' @export
 summary.spacc_hill_beta <- function(object, ci_level = 0.95, ...) {
-  alpha_ci <- (1 - ci_level) / 2
-
-  results <- list()
-  for (comp in c("gamma", "alpha", "beta")) {
-    comp_list <- object[[comp]]
-    for (i in seq_along(object$q)) {
-      mat <- comp_list[[i]]
-      results[[length(results) + 1]] <- data.frame(
-        component = comp,
-        q = object$q[i],
-        sites = seq_len(object$n_sites),
-        mean = colMeans(mat),
-        lower = apply(mat, 2, stats::quantile, probs = alpha_ci),
-        upper = apply(mat, 2, stats::quantile, probs = 1 - alpha_ci)
-      )
-    }
-  }
-
-  do.call(rbind, results)
+  do.call(rbind, lapply(c("gamma", "alpha", "beta"), function(comp) {
+    cbind(component = comp,
+          .curve_frame(object[[comp]], "q", object$q, ci_level))
+  }))
 }
 
 
@@ -436,69 +331,22 @@ as.data.frame.spacc_hill_beta <- function(x, row.names = NULL, optional = FALSE,
 plot.spacc_hill_beta <- function(x, component = c("beta", "gamma", "alpha", "all"),
                                   ci = TRUE, ci_alpha = 0.2, ...) {
   component <- match.arg(component)
-  check_suggests("ggplot2")
-
   summ <- summary(x)
+  summ$q_label <- .q_label(summ$q)
 
   if (component != "all") {
-    plot_df <- summ[summ$component == component, ]
-    plot_df$q_label <- factor(paste0("q = ", plot_df$q),
-                               levels = paste0("q = ", sort(unique(plot_df$q))))
-
-    p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = sites, y = mean, color = q_label))
-
-    if (ci) {
-      p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = lower, ymax = upper, fill = q_label),
-        alpha = ci_alpha, color = NA
-      )
-    }
-
-    p +
-      ggplot2::geom_line(linewidth = 1) +
-      ggplot2::labs(
-        x = "Sites accumulated",
-        y = paste0(tools::toTitleCase(component), " diversity"),
-        color = "Order", fill = "Order",
-        title = sprintf("Hill %s Diversity along Accumulation",
-                         tools::toTitleCase(component))
-      ) +
-      spacc_theme() +
-      ggplot2::theme(legend.position = "bottom")
-
-  } else {
-    # Facet by q, show all three components
-    summ$q_label <- factor(paste0("q = ", summ$q),
-                            levels = paste0("q = ", sort(unique(summ$q))))
-    summ$component <- factor(summ$component,
-                              levels = c("gamma", "alpha", "beta"))
-
-    p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean, color = component))
-
-    if (ci) {
-      p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = lower, ymax = upper, fill = component),
-        alpha = ci_alpha, color = NA
-      )
-    }
-
-    p +
-      ggplot2::geom_line(linewidth = 1) +
-      ggplot2::facet_wrap(~ q_label, scales = "free_y") +
-      ggplot2::labs(
-        x = "Sites accumulated",
-        y = "Diversity",
-        color = "Component", fill = "Component",
-        title = "Hill Number Diversity Partitioning"
-      ) +
-      spacc_theme() +
-      ggplot2::theme(legend.position = "bottom")
+    return(.plot_curves_by(summ[summ$component == component, ], "q_label", "Order",
+                           xlab = "Sites accumulated",
+                           ylab = paste0(tools::toTitleCase(component), " diversity"),
+                           title = sprintf("Hill %s Diversity along Accumulation",
+                                           tools::toTitleCase(component)),
+                           ci = ci, ci_alpha = ci_alpha))
   }
-}
 
-
-#' @rawNamespace S3method(ggplot2::autoplot, spacc_hill_beta)
-autoplot.spacc_hill_beta <- function(object, ...) {
-  check_suggests("ggplot2")
-  plot(object, ...)
+  summ$component <- factor(summ$component, levels = c("gamma", "alpha", "beta"))
+  .plot_curves_by(summ, "component", "Component",
+                  xlab = "Sites accumulated", ylab = "Diversity",
+                  title = "Hill Number Diversity Partitioning",
+                  ci = ci, ci_alpha = ci_alpha) +
+    ggplot2::facet_wrap(~ q_label, scales = "free_y")
 }

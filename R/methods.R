@@ -9,12 +9,9 @@ print.spacc <- function(x, ...) {
   if (is_grouped(x)) {
     cat(sprintf("spacc: %d groups (%s)\n", length(x$group_names), x$method))
     for (i in seq_along(x$group_names)) {
-      # Get n_sites from curves matrix (groups may have different site counts)
-      group_n_sites <- ncol(x$curves[[i]])
+      # Groups may have different site counts: read them off the curves
       cat(sprintf("  %s: %d sites, %d species\n",
-                  x$group_names[i],
-                  group_n_sites,
-                  x$n_species[[i]]))
+                  x$group_names[i], ncol(x$curves[[i]]), x$n_species[[i]]))
     }
   } else {
     cat(sprintf(
@@ -26,52 +23,46 @@ print.spacc <- function(x, ...) {
 }
 
 
+# Apply `fun(ungrouped_spacc, ...)` to every group of a grouped spacc object.
+.lapply_groups <- function(object, fun, ...) {
+  out <- lapply(seq_along(object$group_names), function(i) {
+    tmp <- object
+    tmp$curves <- object$curves[[i]]
+    tmp$n_species <- object$n_species[[i]]
+    tmp$n_sites <- ncol(tmp$curves)
+    class(tmp) <- "spacc"
+    fun(tmp, ...)
+  })
+  names(out) <- object$group_names
+  out
+}
+
+
 #' @export
 summary.spacc <- function(object, saturation_threshold = 0.9, ci_level = 0.95, ...) {
 
   if (is_grouped(object)) {
-    # Summarize each group
-    summaries <- lapply(seq_along(object$group_names), function(i) {
-      # Create a temporary ungrouped spacc for summary
-      tmp <- object
-      tmp$curves <- object$curves[[i]]
-      tmp$n_species <- object$n_species[[i]]
-      # Get n_sites from the curves matrix (groups may have different site counts)
-      tmp$n_sites <- ncol(tmp$curves)
-      class(tmp) <- "spacc"
-      summary(tmp, saturation_threshold = saturation_threshold, ci_level = ci_level, ...)
-    })
-    names(summaries) <- object$group_names
-    return(summaries)
+    return(.lapply_groups(object, summary, saturation_threshold = saturation_threshold,
+                          ci_level = ci_level, ...))
   }
 
-  curves <- object$curves
   n_sites <- object$n_sites
+  stats <- .curve_stats(object$curves, ci_level, sd = TRUE)
 
-  alpha <- (1 - ci_level) / 2
+  # Saturation point: first site where the mean reaches threshold * final mean
+  threshold_value <- saturation_threshold * stats$mean[n_sites]
+  saturation_point <- which(stats$mean >= threshold_value)[1]
 
-  # Compute statistics per site position
-  mean_curve <- colMeans(curves)
-  lower <- apply(curves, 2, stats::quantile, probs = alpha)
-  upper <- apply(curves, 2, stats::quantile, probs = 1 - alpha)
-  sd_curve <- apply(curves, 2, stats::sd)
-
-  # Saturation point: first site where mean reaches threshold * max
-  max_species <- mean_curve[n_sites]
-  threshold_value <- saturation_threshold * max_species
-  saturation_point <- which(mean_curve >= threshold_value)[1]
-
-  # CV at midpoint
   midpoint <- ceiling(n_sites / 2)
-  cv_midpoint <- sd_curve[midpoint] / mean_curve[midpoint] * 100
+  cv_midpoint <- stats$sd[midpoint] / stats$mean[midpoint] * 100
 
   structure(
     list(
       sites = seq_len(n_sites),
-      mean = mean_curve,
-      lower = lower,
-      upper = upper,
-      sd = sd_curve,
+      mean = stats$mean,
+      lower = stats$lower,
+      upper = stats$upper,
+      sd = stats$sd,
       saturation_point = saturation_point,
       saturation_threshold = saturation_threshold,
       cv_midpoint = cv_midpoint,
@@ -106,31 +97,24 @@ print.summary.spacc <- function(x, ...) {
 }
 
 
+# Data frame of the curve statistics in a summary.spacc object.
+.summary_frame <- function(s, group = NULL) {
+  df <- data.frame(sites = s$sites, mean = s$mean, lower = s$lower,
+                   upper = s$upper, sd = s$sd)
+  if (!is.null(group)) df$group <- group
+  df
+}
+
+
 #' @export
 as.data.frame.spacc <- function(x, row.names = NULL, optional = FALSE, ...) {
   if (is_grouped(x)) {
     summaries <- summary(x)
-    df_list <- lapply(names(summaries), function(g) {
-      s <- summaries[[g]]
-      data.frame(
-        sites = s$sites,
-        mean = s$mean,
-        lower = s$lower,
-        upper = s$upper,
-        sd = s$sd,
-        group = g
-      )
-    })
-    return(do.call(rbind, df_list))
+    return(do.call(rbind, lapply(names(summaries), function(g) {
+      .summary_frame(summaries[[g]], group = g)
+    })))
   }
-  summ <- summary(x)
-  data.frame(
-    sites = summ$sites,
-    mean = summ$mean,
-    lower = summ$lower,
-    upper = summ$upper,
-    sd = summ$sd
-  )
+  .summary_frame(summary(x))
 }
 
 
@@ -171,13 +155,7 @@ predict.spacc <- function(object, n = NULL, ci = TRUE,
     summaries <- summary(object, ci_level = ci_level)
     results <- lapply(names(summaries), function(g) {
       s <- summaries[[g]]
-      n_default <- if (is.null(n)) {
-        ns <- length(s$sites)
-        unique(c(floor(ns / 4), floor(ns / 2), ns))
-      } else {
-        n
-      }
-      res <- .predict_from_summary(s, n_default, ci = ci, warn = warn)
+      res <- .predict_from_summary(s, n %||% .default_predict_sites(s), ci = ci, warn = warn)
       if (ci) {
         res$group <- g
       } else {
@@ -185,21 +163,18 @@ predict.spacc <- function(object, n = NULL, ci = TRUE,
       }
       res
     })
-    if (ci) {
-      return(do.call(rbind, results))
-    } else {
-      return(unlist(results))
-    }
+    return(if (ci) do.call(rbind, results) else unlist(results))
   }
 
   summ <- summary(object, ci_level = ci_level)
+  .predict_from_summary(summ, n %||% .default_predict_sites(summ), ci = ci, warn = warn)
+}
 
-  if (is.null(n)) {
-    ns <- length(summ$sites)
-    n <- unique(c(floor(ns / 4), floor(ns / 2), ns))
-  }
 
-  .predict_from_summary(summ, n, ci = ci, warn = warn)
+# Default interpolation points: a quarter, a half and all of the sites.
+.default_predict_sites <- function(summ) {
+  ns <- length(summ$sites)
+  unique(c(floor(ns / 4), floor(ns / 2), ns))
 }
 
 
@@ -207,7 +182,6 @@ predict.spacc <- function(object, n = NULL, ci = TRUE,
 .predict_from_summary <- function(summ, n, ci, warn) {
   sites <- summ$sites
 
-  # Warn about out-of-range
   out_of_range <- n < min(sites) | n > max(sites)
   if (warn && any(out_of_range)) {
     warning(sprintf(
@@ -225,14 +199,11 @@ predict.spacc <- function(object, n = NULL, ci = TRUE,
     return(out)
   }
 
-  interp_lower <- stats::approx(sites, summ$lower, xout = n, rule = 1)$y
-  interp_upper <- stats::approx(sites, summ$upper, xout = n, rule = 1)$y
-
   data.frame(
     n = n,
     mean = interp_mean,
-    lower = interp_lower,
-    upper = interp_upper
+    lower = stats::approx(sites, summ$lower, xout = n, rule = 1)$y,
+    upper = stats::approx(sites, summ$upper, xout = n, rule = 1)$y
   )
 }
 
@@ -252,88 +223,63 @@ as.data.frame.spacc_fit <- function(x, row.names = NULL, optional = FALSE, ...) 
 
 #' @export
 as.data.frame.spacc_hill <- function(x, row.names = NULL, optional = FALSE, ...) {
-  # curves is a list of matrices, one per q value
-  df_list <- lapply(seq_along(x$q), function(i) {
-    curves <- x$curves[[i]]
-    data.frame(
-      sites = seq_len(ncol(curves)),
-      q = x$q[i],
-      mean = colMeans(curves),
-      lower = apply(curves, 2, stats::quantile, probs = 0.025),
-      upper = apply(curves, 2, stats::quantile, probs = 0.975),
-      sd = apply(curves, 2, stats::sd)
-    )
-  })
-  do.call(rbind, df_list)
+  .curve_frame(x$curves, "q", x$q, sd = TRUE)
+}
+
+
+#' @export
+as.data.frame.spacc_phylo <- function(x, row.names = NULL, optional = FALSE, ...) {
+  .curve_frame(x$curves, "metric", x$metric, sd = TRUE)
+}
+
+
+#' @export
+as.data.frame.spacc_func <- function(x, row.names = NULL, optional = FALSE, ...) {
+  .curve_frame(x$curves, "metric", x$metric, sd = TRUE)
+}
+
+
+#' @export
+as.data.frame.spacc_dar <- function(x, row.names = NULL, optional = FALSE, ...) {
+  summary(x, sd = TRUE)
+}
+
+
+# Column means and sds of the seed matrices named in `fields`.
+.field_means <- function(x, fields, sd_fields = fields) {
+  out <- data.frame(sites = seq_len(ncol(x[[fields[1]]])))
+  for (f in fields) out[[f]] <- colMeans(x[[f]])
+  for (f in sd_fields) out[[paste0(f, "_sd")]] <- apply(x[[f]], 2, stats::sd)
+  out
 }
 
 
 #' @export
 as.data.frame.spacc_beta <- function(x, row.names = NULL, optional = FALSE, ...) {
-  # beta_total, beta_turnover, beta_nestedness are matrices (seeds x sites)
-  data.frame(
-    sites = seq_len(ncol(x$beta_total)),
-    beta_total = colMeans(x$beta_total),
-    beta_turnover = colMeans(x$beta_turnover),
-    beta_nestedness = colMeans(x$beta_nestedness),
-    beta_total_sd = apply(x$beta_total, 2, stats::sd),
-    beta_turnover_sd = apply(x$beta_turnover, 2, stats::sd),
-    beta_nestedness_sd = apply(x$beta_nestedness, 2, stats::sd)
-  )
+  .field_means(x, c("beta_total", "beta_turnover", "beta_nestedness"))
 }
 
 
 #' @export
 as.data.frame.spacc_coverage <- function(x, row.names = NULL, optional = FALSE, ...) {
-  # richness, individuals, coverage are matrices (seeds x sites)
-  data.frame(
-    sites = seq_len(ncol(x$richness)),
-    richness = colMeans(x$richness),
-    individuals = colMeans(x$individuals),
-    coverage = colMeans(x$coverage),
-    richness_sd = apply(x$richness, 2, stats::sd),
-    coverage_sd = apply(x$coverage, 2, stats::sd)
-  )
+  .field_means(x, c("richness", "individuals", "coverage"),
+               sd_fields = c("richness", "coverage"))
 }
 
 
 #' @export
 as.data.frame.spacc_wavefront <- function(x, row.names = NULL, optional = FALSE, ...) {
-  # curves is a matrix (seeds x steps), radius is a vector per step
-  # sites_included is a matrix (seeds x steps) - take mean per step
-  curves <- x$curves
-  n_steps <- ncol(curves)
-
-  # sites_included may be a matrix or need reshaping
-  if (is.matrix(x$sites_included)) {
-    sites_mean <- colMeans(x$sites_included)
-  } else {
-    # Reshape vector to matrix if needed
-    sites_mean <- colMeans(matrix(x$sites_included, nrow = nrow(curves), ncol = n_steps))
-  }
-
-  data.frame(
-    step = seq_len(n_steps),
-    radius = x$radius,
-    sites = sites_mean,
-    mean = colMeans(curves),
-    lower = apply(curves, 2, stats::quantile, probs = 0.025),
-    upper = apply(curves, 2, stats::quantile, probs = 0.975),
-    sd = apply(curves, 2, stats::sd)
+  cbind(
+    data.frame(step = seq_along(x$radius), radius = x$radius,
+               sites = colMeans(x$sites_included)),
+    .curve_stats(x$curves, sd = TRUE)
   )
 }
 
 
 #' @export
 as.data.frame.spacc_decay <- function(x, row.names = NULL, optional = FALSE, ...) {
-  curves <- x$curves
-  data.frame(
-    distance = x$breaks,
-    mean = colMeans(curves),
-    lower = apply(curves, 2, stats::quantile, probs = 0.025),
-    upper = apply(curves, 2, stats::quantile, probs = 0.975),
-    sd = apply(curves, 2, stats::sd)
-  )
+  cbind(data.frame(distance = x$breaks), .curve_stats(x$curves, sd = TRUE))
 }
 
 
@@ -354,40 +300,6 @@ as.data.frame.spacc_comp <- function(x, row.names = NULL, optional = FALSE, ...)
 
 
 #' @export
-as.data.frame.spacc_phylo <- function(x, row.names = NULL, optional = FALSE, ...) {
-  df_list <- lapply(seq_along(x$metric), function(i) {
-    curves <- x$curves[[i]]
-    data.frame(
-      sites = seq_len(ncol(curves)),
-      metric = x$metric[i],
-      mean = colMeans(curves),
-      lower = apply(curves, 2, stats::quantile, probs = 0.025),
-      upper = apply(curves, 2, stats::quantile, probs = 0.975),
-      sd = apply(curves, 2, stats::sd)
-    )
-  })
-  do.call(rbind, df_list)
-}
-
-
-#' @export
-as.data.frame.spacc_func <- function(x, row.names = NULL, optional = FALSE, ...) {
-  df_list <- lapply(seq_along(x$metric), function(i) {
-    curves <- x$curves[[i]]
-    data.frame(
-      sites = seq_len(ncol(curves)),
-      metric = x$metric[i],
-      mean = colMeans(curves),
-      lower = apply(curves, 2, stats::quantile, probs = 0.025),
-      upper = apply(curves, 2, stats::quantile, probs = 0.975),
-      sd = apply(curves, 2, stats::sd)
-    )
-  })
-  do.call(rbind, df_list)
-}
-
-
-#' @export
 as.data.frame.spacc_metrics <- function(x, row.names = NULL, optional = FALSE, ...) {
   df <- x$metrics
   if (!is.null(x$coords)) {
@@ -399,32 +311,15 @@ as.data.frame.spacc_metrics <- function(x, row.names = NULL, optional = FALSE, .
 
 
 #' @export
-as.data.frame.spacc_dar <- function(x, row.names = NULL, optional = FALSE, ...) {
-  df_list <- lapply(seq_along(x$q), function(i) {
-    mat <- x$hill$curves[[i]]
-    data.frame(
-      sites = seq_len(x$n_sites),
-      q = x$q[i],
-      mean_area = colMeans(x$area),
-      mean_diversity = colMeans(mat),
-      lower = apply(mat, 2, stats::quantile, probs = 0.025),
-      upper = apply(mat, 2, stats::quantile, probs = 0.975),
-      sd = apply(mat, 2, stats::sd)
-    )
-  })
-  do.call(rbind, df_list)
-}
-
-
-#' @export
 as.data.frame.spacc_endemism <- function(x, row.names = NULL, optional = FALSE, ...) {
+  stats <- .curve_stats(x$endemism, sd = TRUE)
   data.frame(
     sites = seq_len(x$n_sites),
     mean_richness = colMeans(x$richness),
-    mean_endemism = colMeans(x$endemism),
-    endemism_lower = apply(x$endemism, 2, stats::quantile, probs = 0.025),
-    endemism_upper = apply(x$endemism, 2, stats::quantile, probs = 0.975),
-    endemism_sd = apply(x$endemism, 2, stats::sd)
+    mean_endemism = stats$mean,
+    endemism_lower = stats$lower,
+    endemism_upper = stats$upper,
+    endemism_sd = stats$sd
   )
 }
 
@@ -442,8 +337,7 @@ as.data.frame.spacc_partition <- function(x, row.names = NULL, optional = FALSE,
 
 #' @export
 as.data.frame.spacc_alpha <- function(x, row.names = NULL, optional = FALSE, ...) {
-  df <- x$values
-  df
+  x$values
 }
 
 
@@ -454,6 +348,7 @@ as.data.frame.spacc_alpha <- function(x, row.names = NULL, optional = FALSE, ...
     x$n_seeds <- nrow(x$curves[[1]])
   } else {
     x$curves <- x$curves[i, , drop = FALSE]
+    if (!is.null(x$orders)) x$orders <- x$orders[i, , drop = FALSE]
     x$n_seeds <- nrow(x$curves)
   }
   x
@@ -467,37 +362,9 @@ as.data.frame.spacc_alpha <- function(x, row.names = NULL, optional = FALSE, ...
 #' @export
 c.spacc <- function(...) {
   objects <- list(...)
-
-  # Get names
   nms <- names(objects)
-  if (is.null(nms)) {
-    nms <- paste0("group_", seq_along(objects))
-  }
-
-  # Use first object as template
-  base <- objects[[1]]
-
-  structure(
-    list(
-      curves = stats::setNames(lapply(objects, `[[`, "curves"), nms),
-      group_names = nms,
-      coords = base$coords,
-      n_seeds = base$n_seeds,
-      n_sites = base$n_sites,
-      n_species = stats::setNames(lapply(objects, `[[`, "n_species"), nms),
-      method = base$method,
-      distance = base$distance,
-      backend = base$backend,
-      sigma = base$sigma,
-      cone_width = base$cone_width,
-      time = base$time,
-      w_space = base$w_space,
-      w_time = base$w_time,
-      support = base$support,
-      call = match.call()
-    ),
-    class = "spacc"
-  )
+  if (is.null(nms)) nms <- paste0("group_", seq_along(objects))
+  .grouped_spacc(objects, nms, call = match.call())
 }
 
 
@@ -567,27 +434,7 @@ print.summary.spacc_rare <- function(x, ...) {
 #' @return A combined `spacc_hill` object with more seeds.
 #' @export
 c.spacc_hill <- function(...) {
-  objects <- list(...)
-  base <- objects[[1]]
-
-  # Validate compatible objects
-  for (i in seq_along(objects)[-1]) {
-    if (objects[[i]]$n_sites != base$n_sites) {
-      stop("All objects must have the same number of sites")
-    }
-  }
-
-  # Stack curves (list of matrices, one per q)
-  combined_curves <- lapply(seq_along(base$curves), function(q_idx) {
-    do.call(rbind, lapply(objects, function(obj) obj$curves[[q_idx]]))
-  })
-  names(combined_curves) <- names(base$curves)
-
-  total_seeds <- sum(vapply(objects, function(o) o$n_seeds, numeric(1)))
-
-  base$curves <- combined_curves
-  base$n_seeds <- total_seeds
-  base
+  .stack_seeds(list(...), "curves")
 }
 
 
@@ -600,22 +447,7 @@ c.spacc_hill <- function(...) {
 #' @return A combined `spacc_beta` object with more seeds.
 #' @export
 c.spacc_beta <- function(...) {
-  objects <- list(...)
-  base <- objects[[1]]
-
-  for (i in seq_along(objects)[-1]) {
-    if (objects[[i]]$n_sites != base$n_sites) {
-      stop("All objects must have the same number of sites")
-    }
-  }
-
-  base$beta_total <- do.call(rbind, lapply(objects, `[[`, "beta_total"))
-  base$beta_turnover <- do.call(rbind, lapply(objects, `[[`, "beta_turnover"))
-  base$beta_nestedness <- do.call(rbind, lapply(objects, `[[`, "beta_nestedness"))
-  base$distance <- do.call(rbind, lapply(objects, `[[`, "distance"))
-  base$n_seeds <- sum(vapply(objects, function(o) o$n_seeds, numeric(1)))
-
-  base
+  .stack_seeds(list(...), c("beta_total", "beta_turnover", "beta_nestedness", "distance"))
 }
 
 
@@ -628,19 +460,5 @@ c.spacc_beta <- function(...) {
 #' @return A combined `spacc_coverage` object with more seeds.
 #' @export
 c.spacc_coverage <- function(...) {
-  objects <- list(...)
-  base <- objects[[1]]
-
-  for (i in seq_along(objects)[-1]) {
-    if (objects[[i]]$n_sites != base$n_sites) {
-      stop("All objects must have the same number of sites")
-    }
-  }
-
-  base$richness <- do.call(rbind, lapply(objects, `[[`, "richness"))
-  base$individuals <- do.call(rbind, lapply(objects, `[[`, "individuals"))
-  base$coverage <- do.call(rbind, lapply(objects, `[[`, "coverage"))
-  base$n_seeds <- sum(vapply(objects, function(o) o$n_seeds, numeric(1)))
-
-  base
+  .stack_seeds(list(...), c("richness", "individuals", "coverage"))
 }

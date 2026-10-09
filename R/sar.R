@@ -81,14 +81,9 @@ dar <- function(x,
                          focal_points = focal_points,
                          focal_domain = focal_domain)
 
-  # Get coordinate data
-  if (inherits(coords, "spacc_dist")) {
-    coord_data <- attr(coords, "coords")
-  } else {
-    coord_data <- coords
-  }
-
+  coord_data <- hill_obj$coords
   n_sites <- nrow(coord_data)
+  n_seeds <- hill_obj$n_seeds
 
   # Compute cumulative area along the same site orders used for diversity.
   if (area_method == "count") {
@@ -151,57 +146,28 @@ print.spacc_dar <- function(x, ...) {
 
 
 #' @export
-summary.spacc_dar <- function(object, ...) {
-  result <- lapply(seq_along(object$q), function(i) {
-    q_val <- object$q[i]
-    mat <- object$hill$curves[[i]]
-    data.frame(
-      q = q_val,
-      sites = seq_len(object$n_sites),
-      mean_area = colMeans(object$area),
-      mean_diversity = colMeans(mat),
-      lower = apply(mat, 2, stats::quantile, 0.025),
-      upper = apply(mat, 2, stats::quantile, 0.975)
-    )
-  })
-  do.call(rbind, result)
+summary.spacc_dar <- function(object, ci_level = 0.95, sd = FALSE, ...) {
+  summ <- .curve_frame(object$hill$curves, "q", object$q, ci_level, sd = sd)
+  names(summ)[names(summ) == "mean"] <- "mean_diversity"
+  summ$mean_area <- rep(colMeans(object$area), length(object$q))
+  cols <- c("q", "sites", "mean_area", "mean_diversity", "lower", "upper", if (sd) "sd")
+  summ[, cols]
 }
 
 
 #' @export
 plot.spacc_dar <- function(x, log_scale = FALSE, ci = TRUE, ci_alpha = 0.2, ...) {
-  check_suggests("ggplot2")
-
   summ <- summary(x)
-  summ$q_label <- factor(paste0("q = ", summ$q),
-                          levels = paste0("q = ", sort(unique(summ$q))))
+  summ$q_label <- .q_label(summ$q)
 
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = mean_area, y = mean_diversity,
-                                            color = q_label))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper, fill = q_label),
-      alpha = ci_alpha, color = NA
-    )
-  }
-
-  p <- p +
-    ggplot2::geom_line(linewidth = 1) +
-    ggplot2::labs(
-      x = "Cumulative area",
-      y = "Diversity (Hill number)",
-      color = "Order",
-      fill = "Order",
-      title = "Diversity-Area Relationship (DAR)"
-    ) +
-    spacc_theme() +
-    ggplot2::theme(legend.position = "bottom")
+  p <- .plot_curves_by(summ, "q_label", "Order",
+                       x = "mean_area", y = "mean_diversity",
+                       xlab = "Cumulative area", ylab = "Diversity (Hill number)",
+                       title = "Diversity-Area Relationship (DAR)",
+                       ci = ci, ci_alpha = ci_alpha)
 
   if (log_scale) {
-    p <- p +
-      ggplot2::scale_x_log10() +
-      ggplot2::scale_y_log10()
+    p <- p + ggplot2::scale_x_log10() + ggplot2::scale_y_log10()
   }
 
   p
@@ -574,69 +540,52 @@ spaccEndemism <- function(x,
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(species_pa)
   n_species <- ncol(species_pa)
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   dist_mat, focal_points, focal_domain)
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
   n_seeds <- ordering$n_seeds
 
-  # Total species occurrences across all sites
+  # A species is endemic to the accumulated area once all of its occurrences
+  # have been visited.
   total_occ <- colSums(species_pa)
+  endemism_along <- function(visit_order) {
+    accumulated <- integer(n_species)
+    out <- matrix(0L, 2L, n_sites)
+    for (k in seq_len(n_sites)) {
+      accumulated <- accumulated + species_pa[visit_order[k], ]
+      out[1L, k] <- sum(accumulated > 0)
+      out[2L, k] <- sum(accumulated > 0 & accumulated == total_occ)
+    }
+    out
+  }
 
   if (progress) cli_info(sprintf("Computing endemism accumulation (%d seeds)", n_seeds))
 
   richness_mat <- matrix(0L, n_seeds, n_sites)
   endemism_mat <- matrix(0L, n_seeds, n_sites)
-
   for (s in seq_len(n_seeds)) {
-    visit_order <- ordering$orders[s, ]
-
-    # Compute cumulative richness and endemism along visit order
-    accumulated <- integer(n_species)  # cumulative occurrences in visited sites
-    for (k in seq_len(n_sites)) {
-      accumulated <- accumulated + species_pa[visit_order[k], ]
-      richness_mat[s, k] <- sum(accumulated > 0)
-
-      # Endemic = present in accumulated but absent from remaining
-      # A species is endemic if accumulated[sp] > 0 AND total_occ[sp] == accumulated[sp]
-      endemic_count <- sum(accumulated > 0 & accumulated == total_occ)
-      endemism_mat[s, k] <- endemic_count
-    }
+    along <- endemism_along(ordering$orders[s, ])
+    richness_mat[s, ] <- along[1L, ]
+    endemism_mat[s, ] <- along[2L, ]
   }
 
-  # Per-site endemism map
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site endemism map")
-    # Run accumulation from each site, record final endemism count
-    site_endemism <- numeric(n_sites)
-    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
-                                       dist_mat, all_sites = TRUE)$orders
-    for (s in seq_len(n_sites)) {
-      visit_order <- map_orders[s, ]
-
-      # Count endemics at final step (= species only found in the accumulated area)
-      accumulated <- colSums(species_pa[visit_order, , drop = FALSE])
-      site_endemism[s] <- sum(accumulated > 0 & accumulated == total_occ)
-    }
-
-    site_values <- data.frame(
-      x = coord_data$x,
-      y = coord_data$y,
-      endemism = site_endemism,
-      endemism_prop = site_endemism / sum(total_occ > 0)
-    )
+    site_values <- .site_map_values(method, coord_data, distance, site$dist_mat, n_cores,
+      function(orders) {
+        site_endemism <- vapply(seq_len(nrow(orders)), function(s) {
+          endemism_along(orders[s, ])[2L, n_sites]
+        }, numeric(1))
+        list(endemism = site_endemism,
+             endemism_prop = site_endemism / sum(total_occ > 0))
+      })
   }
 
   if (progress) cli_success("Done")
@@ -662,26 +611,24 @@ spaccEndemism <- function(x,
 
 #' @export
 print.spacc_endemism <- function(x, ...) {
-  cat(sprintf("spacc endemism: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
   final_end <- mean(x$endemism[, x$n_sites])
-  cat(sprintf("Final mean endemism: %.1f species (%.0f%% of total)\n",
-              final_end, 100 * final_end / x$n_species))
-  invisible(x)
+  .print_curves(x, "spacc endemism",
+                sprintf("Final mean endemism: %.1f species (%.0f%% of total)",
+                        final_end, 100 * final_end / x$n_species))
 }
 
 
 #' @export
 summary.spacc_endemism <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
+  endemism <- .curve_stats(object$endemism, ci_level)
+  mean_richness <- colMeans(object$richness)
   data.frame(
     sites = seq_len(object$n_sites),
-    mean_richness = colMeans(object$richness),
-    mean_endemism = colMeans(object$endemism),
-    endemism_lower = apply(object$endemism, 2, stats::quantile, alpha),
-    endemism_upper = apply(object$endemism, 2, stats::quantile, 1 - alpha),
-    endemism_proportion = colMeans(object$endemism) /
-      pmax(colMeans(object$richness), 1)
+    mean_richness = mean_richness,
+    mean_endemism = endemism$mean,
+    endemism_lower = endemism$lower,
+    endemism_upper = endemism$upper,
+    endemism_proportion = endemism$mean / pmax(mean_richness, 1)
   )
 }
 
@@ -694,12 +641,11 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
   type <- match.arg(type)
 
   if (type == "map") {
-    if (is.null(x$site_values)) stop("No per-site data. Rerun spaccEndemism() with map = TRUE.")
     metric <- match.arg(metric)
-    return(plot_spatial_map(x$site_values, metric,
-                            title = sprintf("Per-site %s", gsub("_", " ", metric)),
-                            subtitle = sprintf("%d sites", x$n_sites),
-                            point_size = point_size, palette = palette))
+    return(.plot_site_map(x, metric,
+                          title = sprintf("Per-site %s", gsub("_", " ", metric)),
+                          subtitle = sprintf("%d sites", x$n_sites),
+                          point_size = point_size, palette = palette))
   }
 
   check_suggests("ggplot2")
@@ -751,7 +697,4 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
 
 
 #' @export
-as_sf.spacc_endemism <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No per-site data. Rerun spaccEndemism() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_endemism <- function(x, crs = NULL) .as_sf_site_values(x, crs)

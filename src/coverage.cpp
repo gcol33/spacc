@@ -2,227 +2,83 @@
 #include <Rcpp.h>
 #include <RcppParallel.h>
 #include <vector>
-#include <algorithm>
 #include "core/coverage_core.h"
+#include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
 
-// ============================================================================
-// COVERAGE CALCULATIONS (Chao & Jost 2012)
-// ============================================================================
-
+// Chao & Jost (2012) individual-based sample coverage.
 // [[Rcpp::export]]
 double calc_coverage(NumericVector abundances) {
   std::vector<int> v(abundances.size());
-  for (int i = 0; i < abundances.size(); i++) {
-    v[i] = (int)abundances[i];
-  }
+  for (int i = 0; i < abundances.size(); i++) v[i] = static_cast<int>(abundances[i]);
   return spacc::calc_chao_coverage(v);
 }
 
 
-// Internal version for std::vector — delegates to core
-inline double calc_coverage_internal(const std::vector<int>& abundances) {
-  return spacc::calc_chao_coverage(abundances);
-}
-
-
-// Internal Chiu (2023) sample-based coverage — delegates to core
-inline double calc_chiu_coverage_internal(const std::vector<int>& abundances,
-                                          const std::vector<int>& incidences,
-                                          int T_sites) {
-  return spacc::calc_chiu_coverage(abundances, incidences, T_sites);
-}
-
-
+// Chiu (2023) sample-based coverage from incidence frequencies.
 // [[Rcpp::export]]
-double calc_chiu_coverage(NumericVector abundances,
-                          IntegerVector incidences,
-                          int T_sites) {
+double calc_chiu_coverage(NumericVector abundances, IntegerVector incidences, int T_sites) {
   std::vector<int> abund(abundances.size());
-  std::vector<int> incid(incidences.size());
-  for (int i = 0; i < abundances.size(); i++) {
-    abund[i] = (int)abundances[i];
-  }
-  for (int i = 0; i < incidences.size(); i++) {
-    incid[i] = incidences[i];
-  }
-  return calc_chiu_coverage_internal(abund, incid, T_sites);
+  for (int i = 0; i < abundances.size(); i++) abund[i] = static_cast<int>(abundances[i]);
+  std::vector<int> incid(incidences.begin(), incidences.end());
+  return spacc::calc_chiu_coverage(abund, incid, T_sites);
 }
 
 
+// Richness, individuals and coverage of the pooled community along each order.
 // coverage_type: 0 = Chao-Jost (individual-based), 1 = Chiu (sample-based)
-// [[Rcpp::export]]
-List cpp_order_coverage_single(IntegerMatrix species_mat,
-                               IntegerVector order,
-                               int coverage_type = 0) {
-  int n_sites = species_mat.nrow();
-  int n_species = species_mat.ncol();
-
-  IntegerVector richness(n_sites);
-  IntegerVector individuals(n_sites);
-  NumericVector coverage(n_sites);
-
-  std::vector<int> cumulative(n_species, 0);
-  std::vector<int> incidence(n_species, 0);  // per-species site count
-
-  int current = order[0];
-  int T_accum = 1;  // number of accumulated sites
-
-  // Add first site
-  int total_ind = 0;
-  int total_sp = 0;
-  for (int sp = 0; sp < n_species; sp++) {
-    cumulative[sp] += species_mat(current, sp);
-    total_ind += species_mat(current, sp);
-    if (species_mat(current, sp) > 0) incidence[sp]++;
-    if (cumulative[sp] > 0) total_sp++;
-  }
-
-  richness[0] = total_sp;
-  individuals[0] = total_ind;
-  if (coverage_type == 1) {
-    coverage[0] = calc_chiu_coverage_internal(cumulative, incidence, T_accum);
-  } else {
-    coverage[0] = calc_coverage_internal(cumulative);
-  }
-
-  for (int step = 1; step < n_sites; step++) {
-    current = order[step];
-    T_accum++;
-
-    // Accumulate
-    total_sp = 0;
-    for (int sp = 0; sp < n_species; sp++) {
-      cumulative[sp] += species_mat(current, sp);
-      total_ind += species_mat(current, sp);
-      if (species_mat(current, sp) > 0) incidence[sp]++;
-      if (cumulative[sp] > 0) total_sp++;
-    }
-
-    richness[step] = total_sp;
-    individuals[step] = total_ind;
-    if (coverage_type == 1) {
-      coverage[step] = calc_chiu_coverage_internal(cumulative, incidence, T_accum);
-    } else {
-      coverage[step] = calc_coverage_internal(cumulative);
-    }
-  }
-
-  return List::create(
-    Named("richness") = richness,
-    Named("individuals") = individuals,
-    Named("coverage") = coverage
-  );
-}
-
-
-// Worker for parallel coverage accumulation
-struct CoverageOrderWorker : public Worker {
-  const RMatrix<int> species_mat;
-  const RMatrix<int> orders;
-
+struct CoverageMetric {
+  RMatrix<int> species;
   RMatrix<int> richness;
   RMatrix<int> individuals;
   RMatrix<double> coverage;
-  int coverage_type;  // 0 = Chao-Jost, 1 = Chiu
+  int coverage_type;
 
-  CoverageOrderWorker(const IntegerMatrix& sp, const IntegerMatrix& ord,
-                    IntegerMatrix& r, IntegerMatrix& ind, NumericMatrix& c,
-                    int cov_type = 0)
-    : species_mat(sp), orders(ord),
-      richness(r), individuals(ind), coverage(c),
-      coverage_type(cov_type) {}
+  CoverageMetric(const IntegerMatrix& species_, IntegerMatrix& richness_,
+                 IntegerMatrix& individuals_, NumericMatrix& coverage_, int type)
+    : species(species_), richness(richness_), individuals(individuals_),
+      coverage(coverage_), coverage_type(type) {}
 
-  void operator()(std::size_t begin, std::size_t end) {
-    int n_sites = species_mat.nrow();
-    int n_species = species_mat.ncol();
+  struct Scratch {
+    std::vector<int> incidence;   // sites per species so far
+    int total_individuals;
+  };
+  Scratch scratch(int n_species) const {
+    Scratch sc;
+    sc.incidence.assign(n_species, 0);
+    sc.total_individuals = 0;
+    return sc;
+  }
 
-    for (std::size_t s = begin; s < end; s++) {
-      std::vector<int> cumulative(n_species, 0);
-      std::vector<int> incidence(n_species, 0);
-
-      int current = orders(s, 0);
-      int T_accum = 1;
-
-      int total_ind = 0;
-      int total_sp = 0;
-      for (int sp = 0; sp < n_species; sp++) {
-        cumulative[sp] += species_mat(current, sp);
-        total_ind += species_mat(current, sp);
-        if (species_mat(current, sp) > 0) incidence[sp]++;
-        if (cumulative[sp] > 0) total_sp++;
-      }
-
-      richness(s, 0) = total_sp;
-      individuals(s, 0) = total_ind;
-      if (coverage_type == 1) {
-        coverage(s, 0) = calc_chiu_coverage_internal(cumulative, incidence, T_accum);
-      } else {
-        coverage(s, 0) = calc_coverage_internal(cumulative);
-      }
-
-      for (int step = 1; step < n_sites; step++) {
-        current = orders(s, step);
-        T_accum++;
-
-        total_sp = 0;
-        for (int sp = 0; sp < n_species; sp++) {
-          cumulative[sp] += species_mat(current, sp);
-          total_ind += species_mat(current, sp);
-          if (species_mat(current, sp) > 0) incidence[sp]++;
-          if (cumulative[sp] > 0) total_sp++;
-        }
-
-        richness(s, step) = total_sp;
-        individuals(s, step) = total_ind;
-        if (coverage_type == 1) {
-          coverage(s, step) = calc_chiu_coverage_internal(cumulative, incidence, T_accum);
-        } else {
-          coverage(s, step) = calc_coverage_internal(cumulative);
-        }
-      }
+  void at_step(std::size_t s, int step, int site, const std::vector<int>& cumulative,
+               Scratch& sc) {
+    const int n_species = species.ncol();
+    int n_present = 0;
+    for (int sp = 0; sp < n_species; sp++) {
+      const int a = species(site, sp);
+      sc.total_individuals += a;
+      if (a > 0) sc.incidence[sp]++;
+      if (cumulative[sp] > 0) n_present++;
     }
+    richness(s, step) = n_present;
+    individuals(s, step) = sc.total_individuals;
+    coverage(s, step) = coverage_type == 1
+      ? spacc::calc_chiu_coverage(cumulative, sc.incidence, step + 1)
+      : spacc::calc_chao_coverage(cumulative);
   }
 };
 
-
-// coverage_type: 0 = Chao-Jost (individual-based), 1 = Chiu (sample-based)
 // [[Rcpp::export]]
-List cpp_order_coverage_parallel(IntegerMatrix species_mat,
-                                 IntegerMatrix orders,
-                                 int n_cores = 1,
-                                 bool progress = false,
-                                 int coverage_type = 0) {
-  int n_sites = species_mat.nrow();
-  int n_seeds = orders.nrow();
-
+List cpp_order_coverage_parallel(IntegerMatrix species_mat, IntegerMatrix orders,
+                                 int coverage_type = 0, int n_cores = 1) {
+  const int n_seeds = orders.nrow(), n_sites = species_mat.nrow();
   IntegerMatrix richness(n_seeds, n_sites);
   IntegerMatrix individuals(n_seeds, n_sites);
   NumericMatrix coverage(n_seeds, n_sites);
-
-  if (n_cores > 1) {
-    CoverageOrderWorker worker(species_mat, orders,
-                             richness, individuals, coverage,
-                             coverage_type);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      IntegerVector order = orders(s, _);
-      List single = cpp_order_coverage_single(species_mat, order, coverage_type);
-      IntegerVector r = single["richness"];
-      IntegerVector ind = single["individuals"];
-      NumericVector c = single["coverage"];
-
-      for (int step = 0; step < n_sites; step++) {
-        richness(s, step) = r[step];
-        individuals(s, step) = ind[step];
-        coverage(s, step) = c[step];
-      }
-    }
-  }
-
+  CoverageMetric metric(species_mat, richness, individuals, coverage, coverage_type);
+  run_order_metric<int>(species_mat, orders, metric, n_cores);
   return List::create(
     Named("richness") = richness,
     Named("individuals") = individuals,
@@ -231,46 +87,17 @@ List cpp_order_coverage_parallel(IntegerMatrix species_mat,
 }
 
 
+// Linear interpolation of a richness curve at target coverage values; NA
+// where the target exceeds the final coverage.
 // [[Rcpp::export]]
-NumericVector interpolate_at_coverage(NumericVector richness,
-                                       NumericVector coverage,
-                                       NumericVector targets) {
-  int n = richness.size();
-  int n_targets = targets.size();
-  NumericVector result(n_targets);
-
-  for (int t = 0; t < n_targets; t++) {
-    double target = targets[t];
-
-    if (target > coverage[n-1]) {
-      // Target above max coverage
-      result[t] = NA_REAL;
-      continue;
-    }
-
-    if (target <= coverage[0]) {
-      result[t] = richness[0];
-      continue;
-    }
-
-    // Find bracketing indices
-    for (int i = 1; i < n; i++) {
-      if (coverage[i] >= target) {
-        // Linear interpolation
-        double c0 = coverage[i-1];
-        double c1 = coverage[i];
-        double r0 = richness[i-1];
-        double r1 = richness[i];
-
-        if (c1 == c0) {
-          result[t] = r1;
-        } else {
-          result[t] = r0 + (target - c0) * (r1 - r0) / (c1 - c0);
-        }
-        break;
-      }
-    }
+NumericVector interpolate_at_coverage(NumericVector richness, NumericVector coverage,
+                                      NumericVector targets) {
+  std::vector<double> r(richness.begin(), richness.end());
+  std::vector<double> c(coverage.begin(), coverage.end());
+  NumericVector result(targets.size());
+  for (int t = 0; t < targets.size(); t++) {
+    double value = spacc::interpolate_richness_at_coverage(r, c, targets[t]);
+    result[t] = value < 0 ? NA_REAL : value;
   }
-
   return result;
 }

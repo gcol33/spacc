@@ -1,296 +1,223 @@
 // test_accumulation.cpp
-// Catch2 tests for spacc accumulation algorithms
+// Catch2 tests for the order generators and accumulation kernels
 
 #include "catch.hpp"
 #include "../core/accumulation_core.h"
 
 using namespace spacc;
 
-TEST_CASE("accumulate_species", "[accumulation]") {
-  SECTION("adds new species") {
-    std::vector<int> species_pa = {1, 0, 1, 1, 0};
-    SpeciesSet seen;
+namespace {
 
-    int new_count = accumulate_species(species_pa, seen);
+// Accessors over std containers
+struct Species {
+  SiteSpeciesMatrix m;
+  int operator()(int site, int sp) const { return m[site][sp]; }
+};
 
-    REQUIRE(new_count == 3);
-    REQUIRE(seen.size() == 3);
-    REQUIRE(seen.count(0) == 1);
-    REQUIRE(seen.count(2) == 1);
-    REQUIRE(seen.count(3) == 1);
-  }
+struct Dist {
+  DistanceMatrix d;
+  double operator()(int i, int j) const { return d[i][j]; }
+};
 
-  SECTION("no duplicates") {
-    std::vector<int> species_pa = {1, 1, 0};
-    SpeciesSet seen = {0};  // Species 0 already seen
+struct OrderOf {
+  std::vector<int> v;
+  int operator()(int step) const { return v[step]; }
+};
 
-    int new_count = accumulate_species(species_pa, seen);
-
-    REQUIRE(new_count == 1);  // Only species 1 is new
-    REQUIRE(seen.size() == 2);
-  }
-
-  SECTION("empty site") {
-    std::vector<int> species_pa = {0, 0, 0};
-    SpeciesSet seen = {0, 1};
-
-    int new_count = accumulate_species(species_pa, seen);
-
-    REQUIRE(new_count == 0);
-    REQUIRE(seen.size() == 2);
-  }
-
-  SECTION("all already seen") {
-    std::vector<int> species_pa = {1, 1, 1};
-    SpeciesSet seen = {0, 1, 2};
-
-    int new_count = accumulate_species(species_pa, seen);
-
-    REQUIRE(new_count == 0);
-    REQUIRE(seen.size() == 3);
-  }
+std::vector<int> richness_curve(const SiteSpeciesMatrix& species, const std::vector<int>& order) {
+  std::vector<int> curve(order.size());
+  richness_along_order(Species{species}, static_cast<int>(species.size()),
+                       static_cast<int>(species[0].size()), OrderOf{order},
+                       [&](int step, int r) { curve[step] = r; });
+  return curve;
 }
 
-TEST_CASE("accumulate_abundances", "[accumulation]") {
-  SECTION("adds abundances") {
-    std::vector<int> site = {5, 3, 0, 2};
-    std::vector<int> cumulative = {10, 0, 5, 0};
-
-    accumulate_abundances(site, cumulative);
-
-    REQUIRE(cumulative[0] == 15);
-    REQUIRE(cumulative[1] == 3);
-    REQUIRE(cumulative[2] == 5);
-    REQUIRE(cumulative[3] == 2);
-  }
+std::vector<int> walk_by_matrix(const DistanceMatrix& d, int seed) {
+  const int n = static_cast<int>(d.size());
+  Dist dist{d};
+  std::vector<int> order;
+  nn_walk_order(n, seed,
+    [&](int current, const VisitedFlags& visited) {
+      return nearest_unvisited(dist, current, n, visited);
+    }, order);
+  return order;
 }
 
-TEST_CASE("knn_accumulate_single", "[accumulation]") {
-  SECTION("simple 3-site case") {
-    // Sites arranged in a line: 0 -- 1 -- 2
-    // Site 0: species A
-    // Site 1: species A, B
-    // Site 2: species B, C
-    SiteSpeciesMatrix species_pa = {
-      {1, 0, 0},  // Site 0: species 0
-      {1, 1, 0},  // Site 1: species 0, 1
-      {0, 1, 1}   // Site 2: species 1, 2
-    };
+bool is_permutation(const std::vector<int>& order, int n) {
+  std::vector<int> sorted(order);
+  std::sort(sorted.begin(), sorted.end());
+  for (int i = 0; i < n; i++) if (sorted[i] != i) return false;
+  return static_cast<int>(order.size()) == n;
+}
 
-    DistanceMatrix dist_mat = {
-      {0.0, 1.0, 2.0},
-      {1.0, 0.0, 1.0},
-      {2.0, 1.0, 0.0}
-    };
+} // namespace
 
-    // Start from site 0
-    Curve curve = knn_accumulate_single(species_pa, dist_mat, 0);
 
-    REQUIRE(curve.size() == 3);
-    REQUIRE(curve[0] == 1);  // Site 0: 1 species
-    REQUIRE(curve[1] == 2);  // Site 0+1: 2 species (0 and 1)
-    REQUIRE(curve[2] == 3);  // All: 3 species
+TEST_CASE("richness_along_order", "[accumulation]") {
+  SiteSpeciesMatrix species = {
+    {1, 0, 0},  // site 0: species 0
+    {1, 1, 0},  // site 1: species 0, 1
+    {0, 1, 1}   // site 2: species 1, 2
+  };
+
+  SECTION("counts new species along the order") {
+    std::vector<int> curve = richness_curve(species, {0, 1, 2});
+    REQUIRE(curve == std::vector<int>{1, 2, 3});
   }
 
-  SECTION("monotonic increase") {
-    SiteSpeciesMatrix species_pa = {
-      {1, 0, 0, 0},
-      {0, 1, 0, 0},
-      {0, 0, 1, 0},
-      {0, 0, 0, 1}
-    };
-
-    DistanceMatrix dist_mat = {
-      {0.0, 1.0, 2.0, 3.0},
-      {1.0, 0.0, 1.0, 2.0},
-      {2.0, 1.0, 0.0, 1.0},
-      {3.0, 2.0, 1.0, 0.0}
-    };
-
-    Curve curve = knn_accumulate_single(species_pa, dist_mat, 0);
-
-    for (size_t i = 1; i < curve.size(); i++) {
-      REQUIRE(curve[i] >= curve[i-1]);
-    }
+  SECTION("order changes the curve, not the endpoint") {
+    std::vector<int> curve = richness_curve(species, {2, 0, 1});
+    REQUIRE(curve == std::vector<int>{2, 3, 3});
   }
 
   SECTION("same species everywhere") {
-    SiteSpeciesMatrix species_pa = {
-      {1, 1},
-      {1, 1},
-      {1, 1}
-    };
-
-    DistanceMatrix dist_mat = {
-      {0.0, 1.0, 2.0},
-      {1.0, 0.0, 1.0},
-      {2.0, 1.0, 0.0}
-    };
-
-    Curve curve = knn_accumulate_single(species_pa, dist_mat, 0);
-
-    // All sites have same 2 species
-    REQUIRE(curve[0] == 2);
-    REQUIRE(curve[1] == 2);
-    REQUIRE(curve[2] == 2);
+    SiteSpeciesMatrix same = {{1, 1}, {1, 1}, {1, 1}};
+    REQUIRE(richness_curve(same, {0, 1, 2}) == std::vector<int>{2, 2, 2});
   }
 
   SECTION("single site") {
-    SiteSpeciesMatrix species_pa = {{1, 1, 0, 1}};
-    DistanceMatrix dist_mat = {{0.0}};
-
-    Curve curve = knn_accumulate_single(species_pa, dist_mat, 0);
-
-    REQUIRE(curve.size() == 1);
-    REQUIRE(curve[0] == 3);
+    SiteSpeciesMatrix one = {{1, 1, 0, 1}};
+    REQUIRE(richness_curve(one, {0}) == std::vector<int>{3});
   }
 }
 
-TEST_CASE("kncn_accumulate_single", "[accumulation]") {
-  SECTION("simple case") {
-    SiteSpeciesMatrix species_pa = {
-      {1, 0, 0},
-      {0, 1, 0},
-      {0, 0, 1}
-    };
 
-    // Sites at (0,0), (2,0), (1,2)
-    std::vector<double> x = {0, 2, 1};
-    std::vector<double> y = {0, 0, 2};
+TEST_CASE("accumulate_along_order", "[accumulation]") {
+  SiteSpeciesMatrix species = {{5, 0}, {1, 2}, {0, 3}};
+  std::vector<int> cumulative(2, 0);
+  std::vector<std::vector<int>> seen;
+  accumulate_along_order(Species{species}, 3, 2, OrderOf{{2, 0, 1}}, cumulative,
+    [&](int, int) { seen.push_back(cumulative); });
 
-    Curve curve = kncn_accumulate_single(species_pa, x, y, 0);
+  REQUIRE(seen.size() == 3);
+  REQUIRE(seen[0] == std::vector<int>{0, 3});
+  REQUIRE(seen[1] == std::vector<int>{5, 3});
+  REQUIRE(seen[2] == std::vector<int>{6, 5});
+}
 
-    REQUIRE(curve.size() == 3);
-    REQUIRE(curve[0] == 1);
-    // After site 0, centroid is (0,0)
-    // Nearest to (0,0): site 1 at (2,0) dist=2, site 2 at (1,2) dist=sqrt(5)
-    // So site 1 is next
-    REQUIRE(curve[1] == 2);
-    REQUIRE(curve[2] == 3);
+
+TEST_CASE("nn_walk_order", "[accumulation]") {
+  // Sites on a line: 0 -- 1 -- 2 -- 3
+  DistanceMatrix d = {
+    {0.0, 1.0, 2.0, 3.0},
+    {1.0, 0.0, 1.0, 2.0},
+    {2.0, 1.0, 0.0, 1.0},
+    {3.0, 2.0, 1.0, 0.0}
+  };
+
+  SECTION("walks away from the seed along the line") {
+    REQUIRE(walk_by_matrix(d, 0) == std::vector<int>{0, 1, 2, 3});
+    REQUIRE(walk_by_matrix(d, 3) == std::vector<int>{3, 2, 1, 0});
   }
 
-  SECTION("monotonic increase") {
-    SiteSpeciesMatrix species_pa = {
-      {1, 0, 0},
-      {0, 1, 0},
-      {0, 0, 1}
-    };
+  SECTION("from the middle, ties resolve to the lowest index then continue") {
+    REQUIRE(walk_by_matrix(d, 1) == std::vector<int>{1, 0, 2, 3});
+  }
 
-    std::vector<double> x = {0, 1, 2};
-    std::vector<double> y = {0, 1, 0};
-
-    Curve curve = kncn_accumulate_single(species_pa, x, y, 0);
-
-    for (size_t i = 1; i < curve.size(); i++) {
-      REQUIRE(curve[i] >= curve[i-1]);
-    }
+  SECTION("visits every site once") {
+    REQUIRE(is_permutation(walk_by_matrix(d, 2), 4));
   }
 }
 
-TEST_CASE("knn_accumulate_multi", "[accumulation]") {
-  SECTION("multiple seeds") {
-    SiteSpeciesMatrix species_pa = {
-      {1, 0},
-      {0, 1},
-      {1, 1}
-    };
 
-    DistanceMatrix dist_mat = {
-      {0.0, 1.0, 1.5},
-      {1.0, 0.0, 0.5},
-      {1.5, 0.5, 0.0}
-    };
+TEST_CASE("kncn_order", "[accumulation]") {
+  // Sites at (0,0), (2,0), (1,2): from (0,0) the centroid is the seed, so
+  // (2,0) at distance 2 beats (1,2) at sqrt(5).
+  std::vector<double> x = {0, 2, 1};
+  std::vector<double> y = {0, 0, 2};
+  PointDistance euclid{false};
+  std::vector<int> order;
+  kncn_order(x, y, 0,
+    [&](double cx, double cy, const VisitedFlags& visited) {
+      return nearest_unvisited_point(cx, cy, x, y, visited, euclid);
+    }, order);
 
-    std::vector<int> seeds = {0, 1, 2};
-    CurveMatrix curves = knn_accumulate_multi(species_pa, dist_mat, seeds);
+  REQUIRE(order == std::vector<int>{0, 1, 2});
+}
 
-    REQUIRE(curves.size() == 3);
-    REQUIRE(curves[0].size() == 3);
-    REQUIRE(curves[1].size() == 3);
-    REQUIRE(curves[2].size() == 3);
+
+TEST_CASE("focal_order", "[accumulation]") {
+  std::vector<double> x = {0.0, 3.0, 1.0, 1.0};
+  std::vector<double> y = {0.0, 0.0, 0.0, 0.0};
+  std::vector<int> order;
+
+  SECTION("ranks sites by distance from the focus") {
+    double fx = 2.9;
+    focal_order(4, [&](int site) { return std::fabs(x[site] - fx); }, order);
+    REQUIRE(order == std::vector<int>{1, 2, 3, 0});
+  }
+
+  SECTION("ties keep site index order") {
+    double fx = 1.0;
+    focal_order(4, [&](int site) { return std::fabs(x[site] - fx); }, order);
+    REQUIRE(order == std::vector<int>{2, 3, 0, 1});
   }
 }
 
-TEST_CASE("mean_curve", "[accumulation]") {
-  SECTION("simple average") {
-    CurveMatrix curves = {
-      {2, 4, 6},
-      {4, 6, 8}
-    };
 
-    CurveDouble mean = mean_curve(curves);
+TEST_CASE("gaussian_order", "[accumulation]") {
+  DistanceMatrix d = {
+    {0.0, 1.0, 10.0},
+    {1.0, 0.0, 9.0},
+    {10.0, 9.0, 0.0}
+  };
+  Dist dist{d};
+  std::vector<int> order;
 
-    REQUIRE(mean.size() == 3);
-    REQUIRE(mean[0] == Approx(3.0));
-    REQUIRE(mean[1] == Approx(5.0));
-    REQUIRE(mean[2] == Approx(7.0));
+  SECTION("a draw of zero always takes the first unvisited candidate") {
+    gaussian_order(dist, 3, 0, 1.0, []() { return 0.0; }, order);
+    REQUIRE(order == std::vector<int>{0, 1, 2});
   }
 
-  SECTION("single curve") {
-    CurveMatrix curves = {{1, 2, 3, 4, 5}};
-
-    CurveDouble mean = mean_curve(curves);
-
-    REQUIRE(mean.size() == 5);
-    for (size_t i = 0; i < 5; i++) {
-      REQUIRE(mean[i] == Approx(static_cast<double>(i + 1)));
-    }
+  SECTION("a draw just below one takes the last candidate with positive weight") {
+    gaussian_order(dist, 3, 0, 5.0, []() { return 0.999999; }, order);
+    REQUIRE(order == std::vector<int>{0, 2, 1});
   }
 
-  SECTION("empty") {
-    CurveMatrix curves = {};
-    CurveDouble mean = mean_curve(curves);
-    REQUIRE(mean.empty());
+  SECTION("underflowed weights fall back to the nearest unvisited site") {
+    gaussian_order(dist, 3, 0, 1e-3, []() { return 0.5; }, order);
+    REQUIRE(order == std::vector<int>{0, 1, 2});
+  }
+
+  SECTION("always a permutation") {
+    double u = 0.37;
+    gaussian_order(dist, 3, 2, 2.0, [&]() { u = std::fmod(u * 7.1, 1.0); return u; }, order);
+    REQUIRE(is_permutation(order, 3));
   }
 }
 
-TEST_CASE("curve_quantile", "[accumulation]") {
-  SECTION("median of odd count") {
-    CurveMatrix curves = {
-      {1, 10, 100},
-      {2, 20, 200},
-      {3, 30, 300}
-    };
 
-    CurveDouble median = curve_quantile(curves, 0.5);
+TEST_CASE("cone_order", "[accumulation]") {
+  // Seed at the origin; sites east (in cone), far east, and north (out of cone)
+  std::vector<double> x = {0.0, 1.0, 3.0, 0.0};
+  std::vector<double> y = {0.0, 0.0, 0.0, 1.0};
+  std::vector<int> order;
+  cone_order(x, y, 0, 0.0, PI / 4, order);
 
-    REQUIRE(median.size() == 3);
-    REQUIRE(median[0] == Approx(2.0));
-    REQUIRE(median[1] == Approx(20.0));
-    REQUIRE(median[2] == Approx(200.0));
-  }
+  REQUIRE(order == std::vector<int>{0, 1, 2, 3});
+  REQUIRE(is_permutation(order, 4));
+}
 
-  SECTION("extremes") {
-    CurveMatrix curves = {
-      {1, 1},
-      {5, 5},
-      {10, 10}
-    };
 
-    CurveDouble q0 = curve_quantile(curves, 0.0);
-    CurveDouble q1 = curve_quantile(curves, 1.0);
+TEST_CASE("richness_within_radius", "[accumulation]") {
+  SiteSpeciesMatrix species = {{1, 0, 0}, {1, 1, 0}, {0, 1, 1}};
+  DistanceMatrix d = {
+    {0.0, 1.0, 2.0},
+    {1.0, 0.0, 1.0},
+    {2.0, 1.0, 0.0}
+  };
+  Species sp{species};
+  Dist dist{d};
 
-    REQUIRE(q0[0] == Approx(1.0));
-    REQUIRE(q1[0] == Approx(10.0));
-  }
+  auto r0 = richness_within_radius(sp, dist, 3, 3, 0, 0.0);
+  REQUIRE(r0.first == 1);
+  REQUIRE(r0.second == 1);
 
-  SECTION("interpolation at 0.25") {
-    CurveMatrix curves = {
-      {0},
-      {4},
-      {8},
-      {12},
-      {16}
-    };
+  auto r1 = richness_within_radius(sp, dist, 3, 3, 0, 1.0);
+  REQUIRE(r1.first == 2);
+  REQUIRE(r1.second == 2);
 
-    CurveDouble q25 = curve_quantile(curves, 0.25);
-    // Index = 0.25 * 4 = 1
-    REQUIRE(q25[0] == Approx(4.0));
-  }
-
-  SECTION("empty") {
-    CurveMatrix curves = {};
-    CurveDouble result = curve_quantile(curves, 0.5);
-    REQUIRE(result.empty());
-  }
+  auto r2 = richness_within_radius(sp, dist, 3, 3, 0, 2.0);
+  REQUIRE(r2.first == 3);
+  REQUIRE(r2.second == 3);
 }

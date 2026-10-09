@@ -73,15 +73,8 @@ spaccDiversity <- function(x, coords, fun, ...,
   if (!is.null(seed)) set.seed(seed)
 
   x <- as.matrix(x)
-
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    dist_mat <- NULL
-  }
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
 
   stopifnot(
     "x and coords must have same number of rows" = nrow(x) == nrow(coord_data),
@@ -95,29 +88,9 @@ spaccDiversity <- function(x, coords, fun, ...,
   comm_mat <- if (incidence) (x > 0) * 1 else x
   storage.mode(comm_mat) <- "double"
 
-  if (method == "nn_walk" && is.null(dist_mat)) {
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
-  # Build accumulation orders (1-based), one row per ordering
-  focal_points_used <- NULL
-  if (method == "collector") {
-    orders <- matrix(seq_len(n_sites), nrow = 1L)
-  } else {
-    seeds0 <- as.integer(sample(n_sites, n_seeds, replace = TRUE) - 1L)
-    orders <- switch(method,
-      knn    = {
-        ordering <- .knn_orders(coord_data, n_seeds, distance,
-                                focal_points, focal_domain)
-        focal_points_used <- ordering$focal_points
-        n_seeds <- ordering$n_seeds
-        ordering$orders
-      },
-      nn_walk = cpp_nn_walk_order(dist_mat, seeds0) + 1L,
-      kncn   = cpp_kncn_order(coord_data$x, coord_data$y, seeds0) + 1L,
-      random = t(vapply(seq_len(n_seeds), function(i) sample.int(n_sites), integer(n_sites)))
-    )
-  }
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   site$dist_mat, focal_points, focal_domain)
+  orders <- ordering$orders
   n_curves <- nrow(orders)
 
   if (progress) cli_info(sprintf("Running custom diversity accumulation (%s, %d ordering%s)",
@@ -142,13 +115,14 @@ spaccDiversity <- function(x, coords, fun, ...,
   structure(
     list(
       curves = curves,
+      orders = orders,
       coords = coord_data,
       n_seeds = n_curves,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
       distance = distance,
-      focal_points = focal_points_used,
+      focal_points = ordering$focal_points,
       fun = fun,
       call = match.call()
     ),

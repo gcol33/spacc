@@ -71,55 +71,28 @@ spaccMetrics <- function(x,
   method <- match.arg(method)
   distance <- match.arg(distance)
 
-  # Resolve cores
   n_cores <- resolve_cores(n_cores, parallel)
 
-
-  # Input validation
   x <- as.matrix(x)
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    dist_mat <- NULL
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same number of rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
 
-  # Convert to presence/absence
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Compute distance matrix if needed
-  if (is.null(dist_mat) && method %in% c("knn", "nn_walk")) {
-    if (progress) cli_info(sprintf("Computing distances (%d x %d)", n_sites, n_sites))
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
-  # Run accumulation from each site as seed
   if (progress) cli_info(sprintf("Running %s accumulation from each site (%d sites, %d cores)",
                                   method, n_sites, n_cores))
 
-  # Run with n_seeds = n_sites, specifying each site as its own seed
-  curves <- switch(method,
-    knn = cpp_order_parallel(species_pa,
-                             .observed_site_orders(coord_data, distance) - 1L,
-                             n_cores, progress),
-    nn_walk = cpp_nn_walk_metrics_parallel(species_pa, dist_mat, n_cores, progress),
-    kncn = cpp_kncn_metrics_parallel(species_pa, coord_data$x, coord_data$y, n_cores, progress),
-    random = cpp_random_parallel(species_pa, n_sites, n_cores, progress)
-  )
+  ordering <- .accumulation_orders(method, coord_data, n_sites, distance,
+                                   site$dist_mat, all_sites = TRUE, n_cores = n_cores)
+  curves <- cpp_order_parallel(species_pa, ordering$orders - 1L, n_cores)
 
   if (progress) cli_info("Extracting metrics")
 
-  # Extract metrics from curves
   metric_df <- extract_metrics(curves, metrics, n_species)
   metric_df$site_id <- seq_len(n_sites)
   metric_df$x <- coord_data$x
@@ -233,7 +206,7 @@ plot_spatial_map <- function(df, value_col, title, subtitle = NULL,
                              point_size = 3, palette = "viridis") {
   check_suggests("ggplot2")
 
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[["x"]], y = .data[["y"]], color = .data[[value_col]])) +
+  ggplot2::ggplot(df, ggplot2::aes(x = .data[["x"]], y = .data[["y"]], color = .data[[value_col]])) +
     ggplot2::geom_point(size = point_size) +
     ggplot2::scale_color_viridis_c(option = palette) +
     ggplot2::labs(
@@ -246,8 +219,6 @@ plot_spatial_map <- function(df, value_col, title, subtitle = NULL,
     ggplot2::coord_equal() +
     spacc_theme() +
     ggplot2::theme(legend.position = "right")
-
-  p
 }
 
 
@@ -299,7 +270,6 @@ plot.spacc_metrics <- function(x, metric = NULL, type = c("heatmap", "points", "
 
   type <- match.arg(type)
 
-  # Default to first metric if not specified
   if (is.null(metric)) {
     metric <- x$metric_names[1]
   }
@@ -310,26 +280,22 @@ plot.spacc_metrics <- function(x, metric = NULL, type = c("heatmap", "points", "
   }
 
   df <- x$metrics
+  subtitle <- sprintf("%d sites, %s method", x$n_sites, x$method)
 
-  if (type %in% c("heatmap", "points")) {
-    p <- plot_spatial_map(df, metric,
-                          title = sprintf("Spatial pattern: %s", metric),
-                          subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
-                          point_size = point_size, palette = palette)
-
-  } else if (type == "histogram") {
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[metric]])) +
-      ggplot2::geom_histogram(bins = 30, fill = "#4CAF50", color = "white", alpha = 0.8) +
-      ggplot2::labs(
-        x = metric,
-        y = "Count",
-        title = sprintf("Distribution: %s", metric),
-        subtitle = sprintf("%d sites, %s method", x$n_sites, x$method)
-      ) +
-      spacc_theme()
+  if (type == "histogram") {
+    return(
+      ggplot2::ggplot(df, ggplot2::aes(x = .data[[metric]])) +
+        ggplot2::geom_histogram(bins = 30, fill = "#4CAF50", color = "white", alpha = 0.8) +
+        ggplot2::labs(x = metric, y = "Count",
+                      title = sprintf("Distribution: %s", metric), subtitle = subtitle) +
+        spacc_theme()
+    )
   }
 
-  p
+  plot_spatial_map(df, metric,
+                   title = sprintf("Spatial pattern: %s", metric),
+                   subtitle = subtitle,
+                   point_size = point_size, palette = palette)
 }
 
 
@@ -362,14 +328,5 @@ as_sf <- function(x, crs = NULL) {
 
 #' @export
 as_sf.spacc_metrics <- function(x, crs = NULL) {
-  check_suggests("sf")
-
-  df <- x$metrics
-  if (!is.null(crs)) {
-    sf_obj <- sf::st_as_sf(df, coords = c("x", "y"), crs = crs)
-  } else {
-    sf_obj <- sf::st_as_sf(df, coords = c("x", "y"))
-  }
-
-  sf_obj
+  as_sf_from_df(x$metrics, crs = crs)
 }

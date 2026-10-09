@@ -1243,12 +1243,13 @@ test_that("spacc_alpha plot histogram works", {
 })
 
 
-test_that("spacc_alpha as_sf errors without coords", {
+test_that("alphaDiversity without coords returns a plain data frame", {
   species <- matrix(rpois(50 * 30, 2), nrow = 50)
   result <- alphaDiversity(species, q = c(0, 1))
 
-  # result is data.frame, not spacc_alpha - this should work differently
-  # The as_sf method is for spacc_alpha objects with coords
+  expect_s3_class(result, "data.frame")
+  expect_false(inherits(result, "spacc_alpha"))
+  expect_equal(nrow(result), 50)
 })
 
 

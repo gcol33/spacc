@@ -110,13 +110,11 @@ spaccBeta <- function(x,
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Handle coords -> distance matrix (shared across variants)
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
+  # All variants report cumulative distance, so the matrix is always needed
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  dist_mat <- site$dist_mat
+  if (is.null(dist_mat)) {
     if (progress) cli_info("Computing site distances")
     dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
   }
@@ -126,7 +124,8 @@ spaccBeta <- function(x,
   n_sites <- nrow(x)
   n_species <- ncol(x)
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   dist_mat, focal_points, focal_domain)
+                                   dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
   n_seeds <- ordering$n_seeds
 
   # Dispatch on the requested dimension
@@ -140,7 +139,7 @@ spaccBeta <- function(x,
     beta_type <- "functional"
   } else {
     comp <- beta_taxonomic(species_pa, dist_mat, ordering$orders, index, n_cores,
-                           progress, map, coord_data, n_sites)
+                           progress, map, coord_data, method, distance)
     beta_type <- "taxonomic"
   }
 
@@ -173,29 +172,23 @@ print.spacc_beta <- function(x, ...) {
   cat(sprintf("spacc beta diversity: %d sites, %d seeds\n",
               x$n_sites, x$n_seeds))
   cat(sprintf("Index: %s, Method: %s\n", x$index, x$method))
-
-  # Final values
-  final_total <- mean(x$beta_total[, ncol(x$beta_total)])
-  final_turn <- mean(x$beta_turnover[, ncol(x$beta_turnover)])
-  final_nest <- mean(x$beta_nestedness[, ncol(x$beta_nestedness)])
-
- cat(sprintf("Mean final beta: %.3f (turnover: %.3f, nestedness: %.3f)\n",
-              final_total, final_turn, final_nest))
+  cat(sprintf("Mean final beta: %.3f (turnover: %.3f, nestedness: %.3f)\n",
+              mean(.final_per_seed(x$beta_total)),
+              mean(.final_per_seed(x$beta_turnover)),
+              mean(.final_per_seed(x$beta_nestedness))))
   invisible(x)
 }
 
 
 #' @export
 summary.spacc_beta <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-  n_steps <- ncol(object$beta_total)
-
+  total <- .curve_stats(object$beta_total, ci_level)
   data.frame(
-    step = 1:n_steps,
+    step = seq_len(ncol(object$beta_total)),
     mean_distance = colMeans(object$distance),
-    beta_total = colMeans(object$beta_total),
-    beta_total_lower = apply(object$beta_total, 2, stats::quantile, alpha),
-    beta_total_upper = apply(object$beta_total, 2, stats::quantile, 1 - alpha),
+    beta_total = total$mean,
+    beta_total_lower = total$lower,
+    beta_total_upper = total$upper,
     beta_turnover = colMeans(object$beta_turnover),
     beta_nestedness = colMeans(object$beta_nestedness)
   )
@@ -211,12 +204,11 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
   type <- match.arg(type)
 
   if (type == "map") {
-    if (is.null(x$site_values)) stop("No map data. Rerun spaccBeta() with map = TRUE.")
     component <- match.arg(component)
-    return(plot_spatial_map(x$site_values, component,
-                            title = sprintf("Beta diversity map: %s", component),
-                            subtitle = sprintf("%d sites, %s (%s)", x$n_sites, x$index, x$method),
-                            point_size = point_size, palette = palette))
+    return(.plot_site_map(x, component,
+                          title = sprintf("Beta diversity map: %s", component),
+                          subtitle = sprintf("%d sites, %s (%s)", x$n_sites, x$index, x$method),
+                          point_size = point_size, palette = palette))
   }
 
   check_suggests("ggplot2")
@@ -231,51 +223,36 @@ plot.spacc_beta <- function(x, type = c("curve", "map"), partition = TRUE,
     summ$x <- summ$mean_distance
     xlab <- "Cumulative distance"
   }
+  ylab <- paste0("Beta diversity (", x$index, ")")
+  title <- "Spatial Beta Diversity Accumulation"
 
-  if (partition) {
-    # Reshape for stacked/faceted plot
-    df <- data.frame(
-      x = rep(summ$x, 3),
-      value = c(summ$beta_total, summ$beta_turnover, summ$beta_nestedness),
-      component = rep(c("Total", "Turnover", "Nestedness"), each = nrow(summ))
-    )
-    df$component <- factor(df$component, levels = c("Total", "Turnover", "Nestedness"))
-
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = value, color = component)) +
-      ggplot2::geom_line(linewidth = 1) +
-      ggplot2::scale_color_manual(values = c("Total" = "#2E7D32",
-                                              "Turnover" = "#1565C0",
-                                              "Nestedness" = "#C62828"))
-  } else {
-    p <- ggplot2::ggplot(summ, ggplot2::aes(x = x, y = beta_total))
-
-    if (ci) {
-      p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = beta_total_lower, ymax = beta_total_upper),
-        alpha = ci_alpha, fill = "#4CAF50"
-      )
-    }
-
-    p <- p + ggplot2::geom_line(linewidth = 1, color = "#2E7D32")
+  if (!partition) {
+    return(.plot_curve(summ, x = "x", y = "beta_total",
+                       lower = "beta_total_lower", upper = "beta_total_upper",
+                       xlab = xlab, ylab = ylab, title = title,
+                       ci = ci, ci_alpha = ci_alpha))
   }
 
-  p +
-    ggplot2::labs(
-      x = xlab,
-      y = paste0("Beta diversity (", x$index, ")"),
-      color = "Component",
-      title = "Spatial Beta Diversity Accumulation"
-    ) +
+  df <- data.frame(
+    x = rep(summ$x, 3),
+    value = c(summ$beta_total, summ$beta_turnover, summ$beta_nestedness),
+    component = rep(c("Total", "Turnover", "Nestedness"), each = nrow(summ))
+  )
+  df$component <- factor(df$component, levels = c("Total", "Turnover", "Nestedness"))
+
+  ggplot2::ggplot(df, ggplot2::aes(x = x, y = value, color = component)) +
+    ggplot2::geom_line(linewidth = 1) +
+    ggplot2::scale_color_manual(values = c("Total" = "#2E7D32",
+                                            "Turnover" = "#1565C0",
+                                            "Nestedness" = "#C62828")) +
+    ggplot2::labs(x = xlab, y = ylab, color = "Component", title = title) +
     spacc_theme() +
     ggplot2::theme(legend.position = "bottom")
 }
 
 
 #' @export
-as_sf.spacc_beta <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No map data. Rerun spaccBeta() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_beta <- function(x, crs = NULL) .as_sf_site_values(x, crs)
 
 
 # ============================================================================
@@ -284,30 +261,27 @@ as_sf.spacc_beta <- function(x, crs = NULL) {
 
 # Taxonomic beta via the C++ backend; optionally per-site map values.
 beta_taxonomic <- function(species_pa, dist_mat, orders, index, n_cores,
-                           progress, map, coord_data, n_sites) {
+                           progress, map, coord_data, method, distance) {
   use_jaccard <- index == "jaccard"
 
   if (progress) cli_info(sprintf("Computing beta diversity (%s, %d seeds)",
                                   index, nrow(orders)))
 
-  result <- cpp_beta_order_parallel(species_pa, dist_mat, orders - 1L,
-                                    use_jaccard, n_cores, progress)
+  run <- function(orders) {
+    cpp_beta_order_parallel(species_pa, dist_mat, orders - 1L, use_jaccard, n_cores)
+  }
+  result <- run(orders)
 
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site beta map values (all sites as seeds)")
-    map_orders <- .observed_site_orders(coord_data)
-    map_result <- cpp_beta_order_parallel(species_pa, dist_mat, map_orders - 1L,
-                                          use_jaccard, n_cores, progress)
-    n_steps <- ncol(map_result$beta_total)
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y,
-      beta_total = map_result$beta_total[, n_steps],
-      beta_turnover = map_result$beta_turnover[, n_steps],
-      beta_nestedness = map_result$beta_nestedness[, n_steps]
-    )
+    site_values <- .site_map_values(method, coord_data, distance, dist_mat, n_cores,
+      function(orders) {
+        map_result <- run(orders)
+        list(beta_total = .final_per_seed(map_result$beta_total),
+             beta_turnover = .final_per_seed(map_result$beta_turnover),
+             beta_nestedness = .final_per_seed(map_result$beta_nestedness))
+      })
     if (progress) cli_success("Map values computed")
   }
 
@@ -325,18 +299,8 @@ beta_taxonomic <- function(species_pa, dist_mat, orders, index, n_cores,
 # species exchanged between the accumulated pool and each new site.
 beta_functional <- function(x, species_pa, traits, dist_mat, orders, index,
                             progress) {
-  traits <- as.matrix(traits)
   n_sites <- nrow(species_pa)
-  n_species <- ncol(species_pa)
-
-  # Match traits to species
-  if (!is.null(colnames(x)) && !is.null(rownames(traits))) {
-    if (!all(colnames(x) %in% rownames(traits))) {
-      stop("Some species in x are not in traits")
-    }
-    traits <- traits[colnames(x), , drop = FALSE]
-  }
-  stopifnot("Traits must have one row per species" = nrow(traits) == n_species)
+  traits <- .match_traits(traits, colnames(x), ncol(species_pa))
 
   # Compute pairwise trait distances between species
   trait_dist <- as.matrix(stats::dist(traits))
@@ -426,22 +390,7 @@ beta_functional <- function(x, species_pa, traits, dist_mat, orders, index,
 beta_phylogenetic <- function(x, species_pa, tree, dist_mat, orders, index,
                               progress) {
   n_sites <- nrow(species_pa)
-
-  # Get phylogenetic distances
-  if (inherits(tree, "phylo")) {
-    check_suggests("ape")
-    phylo_dist <- as.matrix(ape::cophenetic.phylo(tree))
-    if (!is.null(colnames(x))) {
-      if (!all(colnames(x) %in% tree$tip.label)) {
-        stop("Some species in x are not in the tree")
-      }
-      phylo_dist <- phylo_dist[colnames(x), colnames(x)]
-    }
-  } else if (is.matrix(tree)) {
-    phylo_dist <- tree
-  } else {
-    stop("tree must be a phylo object or distance matrix")
-  }
+  phylo_dist <- .phylo_distances(tree, colnames(x))
 
   if (progress) cli_info(sprintf("Computing phylogenetic beta diversity (%s, %d seeds)",
                                   index, nrow(orders)))

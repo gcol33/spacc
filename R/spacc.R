@@ -49,6 +49,9 @@
 #'   - `"kdtree"`: Always use spatial tree. Uses k-d tree (nanoflann) for
 #'     Euclidean distances and ball tree for haversine distances. Faster for
 #'     large datasets, no distance matrix needed.
+#'   A supplied distance matrix (`spacc_dist` coordinates or the
+#'   spatiotemporal composite built from `time`) is always used as given, so
+#'   those inputs take the exact backend.
 #' @param sigma Numeric. Bandwidth for Gaussian method. Default auto-calculated.
 #' @param cone_width Numeric. Half-width in radians for cone method. Default pi/4.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
@@ -86,6 +89,8 @@
 #'
 #' @return When `groups = NULL`, an object of class `spacc` containing:
 #'   \item{curves}{Matrix of cumulative species counts (n_seeds x n_sites)}
+#'   \item{orders}{Matrix of 1-based site indices (n_seeds x n_sites): the
+#'     order in which each curve visited the sites}
 #'   \item{coords}{Original coordinates}
 #'   \item{n_seeds}{Number of seeds used}
 #'   \item{method}{Method used}
@@ -98,6 +103,10 @@
 #' point. The `nn_walk` method is a greedy traversal whose reference point moves
 #' to the most recently selected site. The two methods represent different
 #' spatial sampling models.
+#'
+#' Every method is a rule for ordering the sites; the species data are then
+#' accumulated along those orders. The `orders` element of the result lets the
+#' same traversals be reused, for example through the `order` argument.
 #'
 #' @examples
 #' \donttest{
@@ -151,37 +160,19 @@ spacc <- function(x,
   method <- match.arg(method)
   distance <- match.arg(distance)
   backend <- match.arg(backend)
+  call <- match.call()
 
-  # Set RNG seed if provided
   if (!is.null(seed)) set.seed(seed)
-
-  # Resolve cores
   n_cores <- resolve_cores(n_cores, parallel)
 
-  # Input validation
   x <- as.matrix(x)
   if (!is.numeric(x)) {
     stop("Species matrix must be numeric (presence/absence or abundance data)")
   }
 
-  # Handle coords: data.frame, sf, or spacc_dist
-  coords_crs <- NULL
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else if (inherits(coords, "sf")) {
-    check_suggests("sf")
-    coords_crs <- sf::st_crs(coords)
-    coord_mat <- sf::st_coordinates(coords)
-    coord_data <- data.frame(x = coord_mat[, 1], y = coord_mat[, 2])
-    dist_mat <- NULL
-  } else {
-    stopifnot(
-      "coords must have x and y columns" = all(c("x", "y") %in% names(coords))
-    )
-    coord_data <- coords
-    dist_mat <- NULL
-  }
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  dist_mat <- site$dist_mat
 
   stopifnot(
     "x and coords must have same number of rows" = nrow(x) == nrow(coord_data),
@@ -200,19 +191,16 @@ spacc <- function(x,
     stop("`focal_points` and `focal_domain` are only available for `method = \"knn\"`.", call. = FALSE)
   }
 
-  # Handle groups: split species by group and recurse
+  # Species groups: one curve set per group along the same spatial orders
   if (!is.null(groups)) {
     groups <- as.character(groups)
-    stopifnot(
-      "groups must have length equal to ncol(x)" = length(groups) == ncol(x)
-    )
+    stopifnot("groups must have length equal to ncol(x)" = length(groups) == ncol(x))
     group_levels <- unique(groups)
     if (progress) cli_info(sprintf("Running grouped accumulation (%d groups: %s)",
                                     length(group_levels), paste(group_levels, collapse = ", ")))
     shared_seed <- if (is.null(seed)) sample.int(.Machine$integer.max, 1L) else seed
     objects <- lapply(group_levels, function(g) {
-      cols <- which(groups == g)
-      spacc(x[, cols, drop = FALSE], coords,
+      spacc(x[, groups == g, drop = FALSE], coords,
             n_seeds = n_seeds, method = method, distance = distance,
             backend = backend, support = support, include_halo = include_halo,
             sigma = sigma, cone_width = cone_width,
@@ -222,73 +210,10 @@ spacc <- function(x,
             seed = shared_seed, focal_points = focal_points,
             focal_domain = focal_domain, order = order)
     })
-    names(objects) <- group_levels
-
-    # Check if recursive calls returned grouped objects (e.g., from support = "auto")
-    # If so, flatten to compound names: "country.group"
-    base <- objects[[1]]
-    if (is_grouped(base)) {
-      # Flatten nested grouped objects into compound names
-      all_curves <- list()
-      all_n_species <- list()
-      for (gname in group_levels) {
-        obj <- objects[[gname]]
-        for (subname in obj$group_names) {
-          compound <- paste(subname, gname, sep = ".")
-          all_curves[[compound]] <- obj$curves[[subname]]
-          all_n_species[[compound]] <- obj$n_species[[subname]]
-        }
-      }
-      return(structure(
-        list(
-          curves = all_curves,
-          group_names = names(all_curves),
-          coords = base$coords,
-          n_seeds = base$n_seeds,
-          n_sites = base$n_sites,
-          n_species = all_n_species,
-          method = base$method,
-          distance = base$distance,
-          backend = base$backend,
-          sigma = base$sigma,
-          cone_width = base$cone_width,
-          time = base$time,
-          w_space = base$w_space,
-          w_time = base$w_time,
-          support = base$support,
-          focal_points = base$focal_points,
-          call = match.call()
-        ),
-        class = "spacc"
-      ))
-    }
-
-    # Build grouped spacc directly (simple case: no nested grouping)
-    return(structure(
-      list(
-        curves = stats::setNames(lapply(objects, `[[`, "curves"), group_levels),
-        group_names = group_levels,
-        coords = base$coords,
-        n_seeds = base$n_seeds,
-        n_sites = base$n_sites,
-        n_species = stats::setNames(lapply(objects, `[[`, "n_species"), group_levels),
-        method = base$method,
-        distance = base$distance,
-        backend = base$backend,
-        sigma = base$sigma,
-        cone_width = base$cone_width,
-        time = base$time,
-        w_space = base$w_space,
-        w_time = base$w_time,
-        support = base$support,
-        focal_points = base$focal_points,
-        call = match.call()
-      ),
-      class = "spacc"
-    ))
+    return(.grouped_spacc(objects, group_levels, inner_first = TRUE, call = call))
   }
 
-  # Handle support = "auto": split by country
+  # support = "auto": one curve set per detected country
   if (is.character(support) && length(support) == 1 && support == "auto") {
     check_suggests("sf")
     check_suggests("areaOfEffect")
@@ -298,156 +223,54 @@ spacc <- function(x,
     coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"), crs = 4326)
     aoe_result <- areaOfEffect::aoe(coords_sf)
 
-    # Map support_id back to country names
     aoe_countries <- areaOfEffect::countries
     sid_to_name <- stats::setNames(aoe_countries$name, rownames(aoe_countries))
-    unique_sids <- unique(aoe_result$support_id)
-    country_names <- sid_to_name[unique_sids]
+    country_names <- unname(sid_to_name[unique(aoe_result$support_id)])
 
     if (progress) cli_info(sprintf("Found %d countries: %s",
       length(country_names), paste(country_names, collapse = ", ")))
 
-    # Run spacc per country
-    objects <- lapply(seq_along(unique_sids), function(i) {
+    objects <- lapply(country_names, function(country) {
       spacc(x, coords,
             n_seeds = n_seeds, method = method, distance = distance,
-            backend = backend, support = country_names[i],
+            backend = backend, support = country,
             include_halo = include_halo,
             sigma = sigma, cone_width = cone_width,
             parallel = parallel, n_cores = n_cores,
-            progress = FALSE, groups = groups,
+            progress = FALSE, groups = NULL,
             time = time, w_space = w_space, w_time = w_time,
             seed = seed, focal_points = focal_points,
             focal_domain = focal_domain)
     })
-    names(objects) <- country_names
-
-    # Handle compound grouping (countries x species groups)
-    has_groups <- !is.null(groups)
-    if (has_groups) {
-      # Flatten nested grouped objects into compound names
-      all_curves <- list()
-      all_n_species <- list()
-      for (cname in country_names) {
-        obj <- objects[[cname]]
-        for (gname in obj$group_names) {
-          compound <- paste(cname, gname, sep = ".")
-          all_curves[[compound]] <- obj$curves[[gname]]
-          all_n_species[[compound]] <- obj$n_species[[gname]]
-        }
-      }
-      group_labels <- names(all_curves)
-    } else {
-      all_curves <- stats::setNames(lapply(objects, `[[`, "curves"), country_names)
-      all_n_species <- stats::setNames(lapply(objects, `[[`, "n_species"), country_names)
-      group_labels <- country_names
-    }
-
-    base <- objects[[1]]
-    return(structure(
-      list(
-        curves = all_curves,
-        group_names = group_labels,
-        coords = coord_data,
-        n_seeds = n_seeds,
-        n_sites = nrow(x),
-        n_species = all_n_species,
-        method = base$method,
-        distance = base$distance,
-        backend = base$backend,
-        sigma = base$sigma,
-        cone_width = base$cone_width,
-        time = time,
-        w_space = if (!is.null(time)) w_space else NULL,
-        w_time = if (!is.null(time)) w_time else NULL,
-        support = list(auto = TRUE, countries = country_names, aoe_result = aoe_result),
-        focal_points = base$focal_points,
-        call = match.call()
-      ),
-      class = "spacc"
-    ))
+    out <- .grouped_spacc(objects, country_names, inner_first = FALSE, call = call,
+                          coords = coord_data, n_sites = nrow(x), n_seeds = n_seeds)
+    out$time <- time
+    out$w_space <- if (!is.null(time)) w_space else NULL
+    out$w_time <- if (!is.null(time)) w_time else NULL
+    out$support <- list(auto = TRUE, countries = country_names, aoe_result = aoe_result)
+    return(out)
   }
 
-  # Handle areaOfEffect support
-  aoe_result <- NULL
-  core_indices <- NULL
-  original_indices <- seq_len(nrow(x))
-
+  # Explicit support: keep core (+ halo) sites, draw seeds from the core
+  seed_pool <- NULL
+  support_info <- NULL
   if (!is.null(support)) {
-    check_suggests("sf")
-    check_suggests("areaOfEffect")
-
-    if (progress) cli_info("Processing spatial support via areaOfEffect")
-
-    # Convert coords to sf, preserving CRS if provided
-    # When using haversine distance, assume WGS84 (CRS 4326) if no CRS is set
-    if (!is.null(coords_crs) && !is.na(coords_crs)) {
-      coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"), crs = coords_crs)
-    } else if (distance == "haversine") {
-      coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"), crs = 4326)
-    } else {
-      coords_sf <- sf::st_as_sf(coord_data, coords = c("x", "y"))
-    }
-
-    # Get aoe classification
-    if (inherits(support, "aoe_result")) {
-      aoe_result <- support
-    } else {
-      aoe_result <- areaOfEffect::aoe(coords_sf, support = support)
-    }
-
-    # Get indices of core and halo sites
-    core_mask <- aoe_result$aoe_class == "core"
-    halo_mask <- aoe_result$aoe_class == "halo"
-
-    # Map back to original indices (aoe may have pruned some points)
-    point_ids <- as.integer(aoe_result$point_id)
-    core_indices <- point_ids[core_mask]
-    halo_indices <- point_ids[halo_mask]
-
-    if (include_halo) {
-      # Keep core + halo sites
-      keep_indices <- c(core_indices, halo_indices)
-    } else {
-      # Keep core sites only (hard boundary)
-      keep_indices <- core_indices
-    }
-
-    # Filter data to kept sites
-    x <- x[keep_indices, , drop = FALSE]
-    coord_data <- coord_data[keep_indices, , drop = FALSE]
-    original_indices <- keep_indices
-
-    # Update core_indices to be relative to filtered data
-    core_indices <- which(keep_indices %in% core_indices)
-
-    if (progress) {
-      cli_info(sprintf("Support: %d core, %d halo sites (using %d total)",
-                        sum(core_mask), sum(halo_mask), length(keep_indices)))
-    }
-
-    # Warn if core/halo are unbalanced
-    n_core <- sum(core_mask)
-    n_halo <- sum(halo_mask)
-    if (n_core > 0 && n_halo > 0) {
-      ratio <- max(n_core, n_halo) / min(n_core, n_halo)
-      if (ratio > 3) {
-        warning(sprintf(
-          "Unbalanced core/halo: %d core vs %d halo (ratio %.1f:1). Consider adjusting support scale.",
-          n_core, n_halo, ratio
-        ), call. = FALSE)
-      }
-    } else if (n_core == 0) {
-      stop("No core sites found. Check that your points intersect the support polygon.", call. = FALSE)
-    } else if (n_halo == 0 && include_halo) {
-      if (progress) cli_info("No halo sites found. All points are inside the support.")
-    }
+    kept <- .apply_support(support, coord_data, site$crs, distance, include_halo, progress)
+    x <- x[kept$keep, , drop = FALSE]
+    coord_data <- coord_data[kept$keep, , drop = FALSE]
+    seed_pool <- kept$core
+    support_info <- list(
+      aoe_result = kept$aoe_result,
+      include_halo = include_halo,
+      n_core = length(kept$core),
+      n_halo = length(kept$keep) - length(kept$core),
+      original_indices = kept$keep
+    )
   }
 
   n_sites <- nrow(x)
-  n_species_total <- ncol(x)
 
-  # Handle spatiotemporal distance
+  # Spatiotemporal composite distance
   if (!is.null(time)) {
     stopifnot(
       "time must have length equal to nrow(x)" = length(time) == n_sites,
@@ -461,144 +284,171 @@ spacc <- function(x,
     }
     if (progress) cli_info("Computing spatiotemporal distance matrix")
     d_space <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-    d_time <- abs(outer(time, time, `-`))
-    dist_mat <- w_space * d_space + w_time * d_time
+    dist_mat <- w_space * d_space + w_time * abs(outer(time, time, `-`))
   }
 
-  # Convert to presence/absence if abundance
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Resolve backend for nearest-neighbour traversal methods
-  use_kdtree <- FALSE
-  if (method %in% c("nn_walk", "kncn")) {
-    if (!is.null(time)) {
-      # Spatiotemporal: force exact backend (kdtree can't handle composite distances)
-      use_kdtree <- FALSE
-    } else if (backend == "auto") {
-      use_kdtree <- n_sites > 500L
-    } else {
-      use_kdtree <- backend == "kdtree"
-    }
-  }
-
-  # Collector method: no simulation needed
-  backend_label <- NA_character_
-  focal_points_used <- NULL
   if (!is.null(order)) {
-    # User-defined accumulation order(s): no distances or seeds needed
-    orders_mat <- .build_orders(order, n_sites)
-    if (progress) cli_info(sprintf("Running user-defined accumulation (%d ordering%s)",
-                                    nrow(orders_mat), if (nrow(orders_mat) == 1L) "" else "s"))
-    curves <- cpp_order_parallel(species_pa, orders_mat, n_cores, progress)
-    n_seeds <- nrow(orders_mat)
+    orders <- .build_orders(order, n_sites)
+    ordering <- list(orders = orders, n_seeds = nrow(orders), focal_points = NULL,
+                     backend = NA_character_, sigma = NULL)
     method <- "user"
-  } else if (method == "collector") {
-    curve <- cpp_collector_single(species_pa)
-    curves <- matrix(curve, nrow = 1)
-    n_seeds <- 1L
+    if (progress) cli_info(sprintf("Running user-defined accumulation (%d ordering%s)",
+                                    nrow(orders), if (nrow(orders) == 1L) "" else "s"))
   } else {
-    # Compute distance matrix if needed
-    needs_dist <- (!use_kdtree && method == "nn_walk") || method == "gaussian"
-    if (is.null(dist_mat) && needs_dist) {
-      if (progress) cli_info(sprintf("Computing distances (%d x %d)", n_sites, n_sites))
-      dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
+    ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                     dist_mat, focal_points, focal_domain,
+                                     seed_pool = seed_pool, backend = backend,
+                                     sigma = sigma, cone_width = cone_width,
+                                     n_cores = n_cores)
+    if (progress) {
+      backend_note <- if (is.na(ordering$backend)) "" else sprintf(", %s backend", ordering$backend)
+      cli_info(sprintf("Running %s accumulation (%d seeds, %d cores%s)",
+                       method, ordering$n_seeds, n_cores, backend_note))
     }
-
-    # Auto-calculate sigma for Gaussian method
-    if (method == "gaussian" && is.null(sigma)) {
-      if (is.null(dist_mat)) {
-        dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-      }
-      sigma <- stats::median(dist_mat[dist_mat > 0])
-    }
-
-    # Run accumulation curves
-    backend_label <- if (method == "knn") {
-      "fixed_focus"
-    } else if (method %in% c("nn_walk", "kncn")) {
-      if (use_kdtree) "kdtree" else "exact"
-    } else {
-      NA_character_
-    }
-    if (method %in% c("nn_walk", "kncn")) {
-      if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores, %s backend)",
-                                      method, n_seeds, n_cores, backend_label))
-    } else {
-      if (progress) cli_info(sprintf("Running %s accumulation (%d seeds, %d cores)", method, n_seeds, n_cores))
-    }
-
-    # Sample seeds (from core sites only if support provided)
-    if (!is.null(core_indices) && length(core_indices) > 0) {
-      seed_pool <- core_indices - 1L
-      explicit_seeds <- sample(seed_pool, n_seeds, replace = TRUE)
-    } else {
-      explicit_seeds <- NULL
-    }
-
-    curves <- switch(method,
-      knn = {
-        ordering <- .knn_orders(
-          coord_data, n_seeds, distance,
-          focal_points = focal_points,
-          focal_domain = focal_domain,
-          domain_indices = core_indices
-        )
-        focal_points_used <- ordering$focal_points
-        n_seeds <- ordering$n_seeds
-        cpp_order_parallel(species_pa, ordering$orders - 1L, n_cores, progress)
-      },
-      nn_walk = if (use_kdtree) {
-        if (is.null(explicit_seeds)) {
-          cpp_nn_walk_kdtree_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress, distance)
-        } else {
-          cpp_nn_walk_kdtree_parallel_seeds(species_pa, coord_data$x, coord_data$y, explicit_seeds, n_cores, progress, distance)
-        }
-      } else {
-        if (is.null(explicit_seeds)) {
-          cpp_nn_walk_parallel(species_pa, dist_mat, n_seeds, n_cores, progress)
-        } else {
-          cpp_nn_walk_parallel_seeds(species_pa, dist_mat, explicit_seeds, n_cores, progress)
-        }
-      },
-      kncn = if (use_kdtree) {
-        cpp_kncn_kdtree_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress, distance)
-      } else {
-        cpp_kncn_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, n_cores, progress)
-      },
-      random = cpp_random_parallel(species_pa, n_seeds, n_cores, progress),
-      gaussian = cpp_gaussian_parallel(species_pa, dist_mat, n_seeds, sigma, n_cores, progress),
-      cone = cpp_cone_parallel(species_pa, coord_data$x, coord_data$y, n_seeds, cone_width, n_cores, progress)
-    )
   }
+
+  curves <- cpp_order_parallel(species_pa, ordering$orders - 1L, n_cores)
 
   if (progress) cli_success("Done")
+
+  .new_spacc(curves, coord_data, species_pa, ordering, method, distance,
+             cone_width = if (method == "cone") cone_width else NULL,
+             time = time, w_space = w_space, w_time = w_time,
+             support = support_info, call = call)
+}
+
+
+# Core/halo site selection through areaOfEffect. Returns the kept site indices,
+# the core indices relative to the kept set, and the aoe classification.
+.apply_support <- function(support, coord_data, crs, distance, include_halo, progress) {
+  check_suggests("sf")
+  check_suggests("areaOfEffect")
+
+  if (progress) cli_info("Processing spatial support via areaOfEffect")
+
+  # Haversine coordinates without a CRS are taken as WGS84
+  coords_sf <- if (!is.null(crs) && !is.na(crs)) {
+    sf::st_as_sf(coord_data, coords = c("x", "y"), crs = crs)
+  } else if (distance == "haversine") {
+    sf::st_as_sf(coord_data, coords = c("x", "y"), crs = 4326)
+  } else {
+    sf::st_as_sf(coord_data, coords = c("x", "y"))
+  }
+
+  aoe_result <- if (inherits(support, "aoe_result")) {
+    support
+  } else {
+    areaOfEffect::aoe(coords_sf, support = support)
+  }
+
+  core_mask <- aoe_result$aoe_class == "core"
+  halo_mask <- aoe_result$aoe_class == "halo"
+  point_ids <- as.integer(aoe_result$point_id)
+  core_ids <- point_ids[core_mask]
+  halo_ids <- point_ids[halo_mask]
+  keep <- if (include_halo) c(core_ids, halo_ids) else core_ids
+
+  n_core <- sum(core_mask)
+  n_halo <- sum(halo_mask)
+  if (progress) {
+    cli_info(sprintf("Support: %d core, %d halo sites (using %d total)",
+                     n_core, n_halo, length(keep)))
+  }
+  if (n_core == 0) {
+    stop("No core sites found. Check that your points intersect the support polygon.", call. = FALSE)
+  }
+  if (n_halo > 0) {
+    ratio <- max(n_core, n_halo) / min(n_core, n_halo)
+    if (ratio > 3) {
+      warning(sprintf(
+        "Unbalanced core/halo: %d core vs %d halo (ratio %.1f:1). Consider adjusting support scale.",
+        n_core, n_halo, ratio
+      ), call. = FALSE)
+    }
+  } else if (include_halo && progress) {
+    cli_info("No halo sites found. All points are inside the support.")
+  }
+
+  list(keep = keep, core = which(keep %in% core_ids), aoe_result = aoe_result)
+}
+
+
+# Assemble an ungrouped spacc object.
+.new_spacc <- function(curves, coords, species_pa, ordering, method, distance,
+                       cone_width = NULL, time = NULL, w_space = NULL, w_time = NULL,
+                       support = NULL, call = NULL) {
+  structure(
+    list(
+      curves = curves,
+      orders = ordering$orders,
+      coords = coords,
+      incidence_freq = colSums(species_pa),
+      n_seeds = ordering$n_seeds,
+      n_sites = nrow(species_pa),
+      n_species = ncol(species_pa),
+      method = method,
+      distance = distance,
+      backend = ordering$backend,
+      sigma = ordering$sigma,
+      cone_width = cone_width,
+      time = time,
+      w_space = if (!is.null(time)) w_space else NULL,
+      w_time = if (!is.null(time)) w_time else NULL,
+      support = support,
+      focal_points = ordering$focal_points,
+      call = call
+    ),
+    class = "spacc"
+  )
+}
+
+
+# Combine named spacc objects into a grouped spacc. Objects that are already
+# grouped are flattened to compound names: `inner.outer` when `inner_first`,
+# else `outer.inner` (so country x group always reads "country.group").
+.grouped_spacc <- function(objects, names, inner_first = TRUE, call = NULL,
+                           coords = NULL, n_sites = NULL, n_seeds = NULL) {
+  names(objects) <- names
+  base <- objects[[1]]
+
+  if (is_grouped(base)) {
+    curves <- list()
+    n_species <- list()
+    for (outer in names) {
+      obj <- objects[[outer]]
+      for (inner in obj$group_names) {
+        compound <- if (inner_first) paste(inner, outer, sep = ".") else paste(outer, inner, sep = ".")
+        curves[[compound]] <- obj$curves[[inner]]
+        n_species[[compound]] <- obj$n_species[[inner]]
+      }
+    }
+  } else {
+    curves <- stats::setNames(lapply(objects, `[[`, "curves"), names)
+    n_species <- stats::setNames(lapply(objects, `[[`, "n_species"), names)
+  }
 
   structure(
     list(
       curves = curves,
-      coords = coord_data,
-      incidence_freq = colSums(species_pa),
-      n_seeds = n_seeds,
-      n_sites = n_sites,
-      n_species = n_species_total,
-      method = method,
-      distance = distance,
-      backend = backend_label,
-      sigma = sigma,
-      cone_width = if (method == "cone") cone_width else NULL,
-      time = time,
-      w_space = if (!is.null(time)) w_space else NULL,
-      w_time = if (!is.null(time)) w_time else NULL,
-      support = if (!is.null(support)) list(
-        aoe_result = aoe_result,
-        include_halo = include_halo,
-        n_core = length(core_indices),
-        n_halo = n_sites - length(core_indices),
-        original_indices = original_indices
-      ) else NULL,
-      focal_points = focal_points_used,
-      call = match.call()
+      group_names = names(curves),
+      coords = if (is.null(coords)) base$coords else coords,
+      n_seeds = if (is.null(n_seeds)) base$n_seeds else n_seeds,
+      n_sites = if (is.null(n_sites)) base$n_sites else n_sites,
+      n_species = n_species,
+      method = base$method,
+      distance = base$distance,
+      backend = base$backend,
+      sigma = base$sigma,
+      cone_width = base$cone_width,
+      time = base$time,
+      w_space = base$w_space,
+      w_time = base$w_time,
+      support = base$support,
+      focal_points = base$focal_points,
+      call = call
     ),
     class = "spacc"
   )
@@ -653,45 +503,36 @@ spaccWavefront <- function(x,
   if (!is.null(seed)) set.seed(seed)
 
   x <- as.matrix(x)
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  dist_mat <- site$dist_mat
+  if (is.null(dist_mat)) {
     dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
   }
 
   n_sites <- nrow(x)
-  n_species_total <- ncol(x)
+  if (is.null(dr)) dr <- max(dist_mat) / n_steps
+  radius <- r0 + (seq_len(n_steps) - 1) * dr
 
-  # Auto-calculate dr if not provided
-  if (is.null(dr)) {
-    max_dist <- max(dist_mat)
-    dr <- max_dist / n_steps
-  }
-
-  # Convert to presence/absence
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
   if (progress) cli_info(sprintf("Running wavefront expansion (%d seeds, %d steps)", n_seeds, n_steps))
 
-  result <- cpp_wavefront_parallel(species_pa, dist_mat, n_seeds, r0, dr, n_steps, 1L, progress)
+  seeds <- sample.int(n_sites, n_seeds, replace = TRUE)
+  result <- cpp_radius_parallel(species_pa, dist_mat, seeds - 1L, radius)
 
   if (progress) cli_success("Done")
 
   structure(
     list(
       curves = result$curves,
-      radius = result$radius,
+      radius = radius,
       sites_included = result$sites_included,
       coords = coord_data,
       n_seeds = n_seeds,
       n_sites = n_sites,
-      n_species = n_species_total,
+      n_species = ncol(x),
       r0 = r0,
       dr = dr,
       n_steps = n_steps,
@@ -705,29 +546,20 @@ spaccWavefront <- function(x,
 
 #' @export
 print.spacc_wavefront <- function(x, ...) {
-  cat(sprintf("spacc wavefront: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
-  cat(sprintf("Radius: %.2f to %.2f (%d steps)\n",
-              x$r0, max(x$radius), x$n_steps))
-  invisible(x)
+  .print_curves(x, "spacc wavefront",
+                sprintf("Radius: %.2f to %.2f (%d steps)", x$r0, max(x$radius), x$n_steps))
 }
 
 
 #' @export
 summary.spacc_wavefront <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
-  mean_curve <- colMeans(object$curves)
-  mean_sites <- colMeans(object$sites_included)
-  lower <- apply(object$curves, 2, stats::quantile, probs = alpha)
-  upper <- apply(object$curves, 2, stats::quantile, probs = 1 - alpha)
-
+  stats <- .curve_stats(object$curves, ci_level)
   data.frame(
     radius = object$radius,
-    mean_species = mean_curve,
-    lower = lower,
-    upper = upper,
-    mean_sites = mean_sites
+    mean_species = stats$mean,
+    lower = stats$lower,
+    upper = stats$upper,
+    mean_sites = colMeans(object$sites_included)
   )
 }
 
@@ -735,47 +567,16 @@ summary.spacc_wavefront <- function(object, ci_level = 0.95, ...) {
 #' @export
 plot.spacc_wavefront <- function(x, ci = TRUE, ci_alpha = 0.3,
                                   xaxis = c("radius", "sites"), ...) {
-  check_suggests("ggplot2")
-
   xaxis <- match.arg(xaxis)
   summ <- summary(x)
-
-  if (xaxis == "radius") {
-    df <- data.frame(
-      x = summ$radius,
-      mean = summ$mean_species,
-      lower = summ$lower,
-      upper = summ$upper
-    )
-    xlab <- "Radius"
-  } else {
-    df <- data.frame(
-      x = summ$mean_sites,
-      mean = summ$mean_species,
-      lower = summ$lower,
-      upper = summ$upper
-    )
-    xlab <- "Sites included"
-  }
-
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = mean))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper),
-      alpha = ci_alpha, fill = "#4CAF50"
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1, color = "#2E7D32") +
-    ggplot2::labs(
-      x = xlab,
-      y = "Cumulative species",
-      title = "Wavefront Species Accumulation",
-      subtitle = sprintf("%d seeds, r0=%.1f, dr=%.2f", x$n_seeds, x$r0, x$dr)
-    ) +
-    spacc_theme()
+  .plot_curve(summ,
+              x = if (xaxis == "radius") "radius" else "mean_sites",
+              y = "mean_species",
+              xlab = if (xaxis == "radius") "Radius" else "Sites included",
+              ylab = "Cumulative species",
+              title = "Wavefront Species Accumulation",
+              subtitle = sprintf("%d seeds, r0=%.1f, dr=%.2f", x$n_seeds, x$r0, x$dr),
+              ci = ci, ci_alpha = ci_alpha)
 }
 
 
@@ -814,17 +615,16 @@ distanceDecay <- function(x,
   if (!is.null(seed)) set.seed(seed)
 
   x <- as.matrix(x)
-  stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  dist_mat <- site$dist_mat
+  if (is.null(dist_mat)) {
+    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
+  }
 
   n_sites <- nrow(x)
-
-  # Compute distance matrix
-  dist_mat <- cpp_distance_matrix(coords$x, coords$y, distance)
-
-  # Auto-calculate breaks if not provided
   if (is.null(breaks)) {
-    max_dist <- max(dist_mat)
-    breaks <- seq(0, max_dist, length.out = 51)[-1]  # exclude 0
+    breaks <- seq(0, max(dist_mat), length.out = 51)[-1]  # exclude 0
   }
 
   species_pa <- (x > 0) * 1L
@@ -832,7 +632,8 @@ distanceDecay <- function(x,
 
   if (progress) cli_info(sprintf("Computing distance-decay (%d seeds, %d distances)", n_seeds, length(breaks)))
 
-  curves <- cpp_distance_decay_parallel(species_pa, dist_mat, n_seeds, breaks, 1L, progress)
+  seeds <- sample.int(n_sites, n_seeds, replace = TRUE)
+  curves <- cpp_radius_parallel(species_pa, dist_mat, seeds - 1L, breaks)$curves
 
   if (progress) cli_success("Done")
 
@@ -862,46 +663,20 @@ print.spacc_decay <- function(x, ...) {
 
 #' @export
 plot.spacc_decay <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
-  check_suggests("ggplot2")
-
-  mean_curve <- colMeans(x$curves)
-  lower <- apply(x$curves, 2, stats::quantile, 0.025)
-  upper <- apply(x$curves, 2, stats::quantile, 0.975)
-
-  df <- data.frame(
-    distance = x$breaks,
-    mean = mean_curve,
-    lower = lower,
-    upper = upper
-  )
-
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = distance, y = mean))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper),
-      alpha = ci_alpha, fill = "#4CAF50"
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1, color = "#2E7D32") +
-    ggplot2::labs(
-      x = "Distance from focal point",
-      y = "Cumulative species",
-      title = "Distance-Decay Relationship",
-      subtitle = sprintf("%d focal points", x$n_seeds)
-    ) +
-    spacc_theme()
+  summ <- cbind(distance = x$breaks, .curve_stats(x$curves))
+  .plot_curve(summ, x = "distance",
+              xlab = "Distance from focal point", ylab = "Cumulative species",
+              title = "Distance-Decay Relationship",
+              subtitle = sprintf("%d focal points", x$n_seeds),
+              ci = ci, ci_alpha = ci_alpha)
 }
 
 
 #' Validate and normalise user-supplied accumulation orders
 #'
 #' Accepts a single ordering vector, a list of vectors, or a matrix (one
-#' ordering per row) and returns a 0-based integer matrix suitable for
-#' `cpp_order_parallel()`. Each ordering must be a permutation of
-#' `seq_len(n_sites)`.
+#' ordering per row) and returns a 1-based integer matrix with one ordering
+#' per row. Each ordering must be a permutation of `seq_len(n_sites)`.
 #' @noRd
 .build_orders <- function(order, n_sites) {
   if (is.matrix(order)) {
@@ -931,7 +706,6 @@ plot.spacc_decay <- function(x, ci = TRUE, ci_alpha = 0.3, ...) {
     }
   }
 
-  orders_mat <- orders_mat - 1L  # convert to 0-based for C++
   storage.mode(orders_mat) <- "integer"
   orders_mat
 }

@@ -101,32 +101,22 @@ spaccHillCoverage <- function(x,
     )
   }
 
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info(sprintf("Computing distances (%d x %d)", nrow(x), nrow(x)))
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
-
   storage.mode(x) <- "integer"
 
   if (progress) cli_info(sprintf("Computing Hill numbers + coverage (q = %s, %d seeds)",
                                   paste(q, collapse = ", "), n_seeds))
 
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   dist_mat, focal_points, focal_domain)
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
   n_seeds <- ordering$n_seeds
-  result <- cpp_order_hill_coverage_parallel(x, ordering$orders - 1L, q,
-                                             n_cores, progress)
+  result <- cpp_order_hill_coverage_parallel(x, ordering$orders - 1L, q, n_cores)
 
   if (progress) cli_success("Done")
 
@@ -141,9 +131,7 @@ spaccHillCoverage <- function(x,
       mat <- matrix(NA, nrow = n_seeds, ncol = length(targets))
       colnames(mat) <- paste0("C", targets)
       for (s in seq_len(n_seeds)) {
-        cov_vec <- coverage_mat[s, ]
-        hill_vec <- hills[[qi]][s, ]
-        mat[s, ] <- interpolate_at_coverage(hill_vec, cov_vec, targets)
+        mat[s, ] <- interpolate_at_coverage(hills[[qi]][s, ], coverage_mat[s, ], targets)
       }
       mat
     })
@@ -175,42 +163,31 @@ spaccHillCoverage <- function(x,
 
 #' @export
 print.spacc_hill_coverage <- function(x, ...) {
-  mean_final_cov <- mean(x$coverage[, x$n_sites])
-  cat(sprintf("spacc Hill + Coverage: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
-  cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
-  cat(sprintf("Mean final coverage: %.3f\n", mean_final_cov))
-  if (!is.null(x$target_coverage)) {
-    cat(sprintf("Target coverage: %s\n", paste(x$target_coverage, collapse = ", ")))
-  }
-  invisible(x)
+  .print_curves(x, "spacc Hill + Coverage",
+                sprintf("Orders (q): %s", paste(x$q, collapse = ", ")),
+                sprintf("Mean final coverage: %.3f", mean(x$coverage[, x$n_sites])),
+                if (!is.null(x$target_coverage)) {
+                  sprintf("Target coverage: %s", paste(x$target_coverage, collapse = ", "))
+                })
 }
 
 
 #' @export
 summary.spacc_hill_coverage <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
-  # Coverage summary
-  cov_mean <- colMeans(object$coverage)
-  cov_lower <- apply(object$coverage, 2, stats::quantile, probs = alpha)
-  cov_upper <- apply(object$coverage, 2, stats::quantile, probs = 1 - alpha)
-
-  results <- lapply(seq_along(object$q), function(qi) {
-    mat <- object$hills[[qi]]
+  cov_stats <- .curve_stats(object$coverage, ci_level)
+  do.call(rbind, lapply(seq_along(object$q), function(qi) {
+    hill_stats <- .curve_stats(object$hills[[qi]], ci_level)
     data.frame(
       q = object$q[qi],
       sites = seq_len(object$n_sites),
-      mean_hill = colMeans(mat),
-      hill_lower = apply(mat, 2, stats::quantile, probs = alpha),
-      hill_upper = apply(mat, 2, stats::quantile, probs = 1 - alpha),
-      mean_coverage = cov_mean,
-      coverage_lower = cov_lower,
-      coverage_upper = cov_upper
+      mean_hill = hill_stats$mean,
+      hill_lower = hill_stats$lower,
+      hill_upper = hill_stats$upper,
+      mean_coverage = cov_stats$mean,
+      coverage_lower = cov_stats$lower,
+      coverage_upper = cov_stats$upper
     )
-  })
-
-  do.call(rbind, results)
+  }))
 }
 
 
@@ -224,50 +201,16 @@ as.data.frame.spacc_hill_coverage <- function(x, row.names = NULL, optional = FA
 plot.spacc_hill_coverage <- function(x, xaxis = c("coverage", "sites"),
                                       ci = TRUE, ci_alpha = 0.2, ...) {
   xaxis <- match.arg(xaxis)
-  check_suggests("ggplot2")
-
   summ <- summary(x)
-  summ$q_label <- factor(paste0("q = ", summ$q),
-                          levels = paste0("q = ", sort(unique(summ$q))))
+  summ$q_label <- .q_label(summ$q)
 
-  if (xaxis == "coverage") {
-    p <- ggplot2::ggplot(summ, ggplot2::aes(x = mean_coverage, y = mean_hill,
-                                             color = q_label))
-    if (ci) {
-      p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = hill_lower, ymax = hill_upper, fill = q_label),
-        alpha = ci_alpha, color = NA
-      )
-    }
-    p <- p +
-      ggplot2::geom_line(linewidth = 1) +
-      ggplot2::labs(x = "Sample coverage", y = "Hill number",
-                    color = "Order", fill = "Order",
-                    title = "Hill Numbers vs. Sample Coverage")
-  } else {
-    p <- ggplot2::ggplot(summ, ggplot2::aes(x = sites, y = mean_hill,
-                                             color = q_label))
-    if (ci) {
-      p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = hill_lower, ymax = hill_upper, fill = q_label),
-        alpha = ci_alpha, color = NA
-      )
-    }
-    p <- p +
-      ggplot2::geom_line(linewidth = 1) +
-      ggplot2::labs(x = "Sites accumulated", y = "Hill number",
-                    color = "Order", fill = "Order",
-                    title = "Hill Numbers with Coverage Tracking")
-  }
-
-  p +
-    spacc_theme() +
-    ggplot2::theme(legend.position = "bottom")
-}
-
-
-#' @rawNamespace S3method(ggplot2::autoplot, spacc_hill_coverage)
-autoplot.spacc_hill_coverage <- function(object, ...) {
-  check_suggests("ggplot2")
-  plot(object, ...)
+  by_coverage <- xaxis == "coverage"
+  .plot_curves_by(summ, "q_label", "Order",
+                  x = if (by_coverage) "mean_coverage" else "sites",
+                  y = "mean_hill", lower = "hill_lower", upper = "hill_upper",
+                  xlab = if (by_coverage) "Sample coverage" else "Sites accumulated",
+                  ylab = "Hill number",
+                  title = if (by_coverage) "Hill Numbers vs. Sample Coverage"
+                          else "Hill Numbers with Coverage Tracking",
+                  ci = ci, ci_alpha = ci_alpha)
 }

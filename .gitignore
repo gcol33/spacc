@@ -27,3 +27,6 @@ figure/
 
 # Paper draft (private)
 paper_draft/
+
+# Reference PDFs fetched by refs/retrieval.py
+refs/*.pdf

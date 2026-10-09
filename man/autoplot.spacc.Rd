@@ -12,8 +12,8 @@
 A ggplot2 object.
 }
 \description{
-\code{ggplot2::autoplot()} methods for spacc objects. These are thin wrappers
-around the corresponding \code{plot()} methods, provided for ggplot2 integration.
+\code{ggplot2::autoplot()} methods for spacc objects. Each one calls the
+corresponding \code{plot()} method, which already returns a ggplot2 object.
 }
 \examples{
 \donttest{
@@ -24,4 +24,5 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   ggplot2::autoplot(sac)
 }
 }
+
 }

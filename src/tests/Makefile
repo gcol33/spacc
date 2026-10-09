@@ -23,6 +23,7 @@ TEST_SOURCES = test_main.cpp \
                test_hill.cpp \
                test_coverage.cpp \
                test_accumulation.cpp \
+               test_phylofunc.cpp \
                test_balltree.cpp
 
 # Default: build and run tests
@@ -62,6 +63,9 @@ test-accumulation: $(TEST_EXE)
 test-balltree: $(TEST_EXE)
 	./$(TEST_EXE) "[balltree]"
 
+test-phylofunc: $(TEST_EXE)
+	./$(TEST_EXE) "[phylo],[func]"
+
 # Verbose output
 verbose: $(TEST_EXE)
 	./$(TEST_EXE) -s
@@ -84,4 +88,4 @@ clean:
 	rm -f coverage.info
 	rm -rf coverage_html
 
-.PHONY: all coverage test-distance test-beta test-hill test-coverage test-accumulation test-balltree verbose list lcov clean
+.PHONY: all coverage test-distance test-beta test-hill test-coverage test-accumulation test-phylofunc test-balltree verbose list lcov clean

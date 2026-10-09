@@ -7,54 +7,35 @@
 #include <cstddef>
 #include <limits>
 #include <numeric>
+#include "core/distance_core.h"
 
 // ============================================================================
-// Ball tree supporting arbitrary distance metrics
-// Designed for haversine nearest-neighbor queries on geographic coordinates.
+// Ball tree for haversine nearest-neighbour queries on (lon, lat) coordinates.
 //
-// A ball tree recursively partitions points into nested bounding spheres.
-// Each node stores a center (pivot) and a radius that encloses all points
-// in the subtree. NN search prunes subtrees whose closest possible point
-// (center distance minus radius) exceeds the current best distance.
+// Points are recursively partitioned into nested bounding spheres. Each node
+// stores a pivot point and a radius enclosing every point in its subtree; the
+// search prunes subtrees whose closest possible point (pivot distance minus
+// radius) is farther than the current best.
 // ============================================================================
-
-static constexpr double BALLTREE_EARTH_R = 6371.0;
-static constexpr double BALLTREE_D2R = 3.14159265358979323846 / 180.0;
-
-// Haversine distance in km between two (lon, lat) points in degrees
-inline double haversine(double lon1, double lat1, double lon2, double lat2) {
-  double dlat = (lat2 - lat1) * BALLTREE_D2R;
-  double dlon = (lon2 - lon1) * BALLTREE_D2R;
-  double la1 = lat1 * BALLTREE_D2R;
-  double la2 = lat2 * BALLTREE_D2R;
-  double a = std::sin(dlat * 0.5) * std::sin(dlat * 0.5) +
-             std::cos(la1) * std::cos(la2) *
-             std::sin(dlon * 0.5) * std::sin(dlon * 0.5);
-  double c = 2.0 * std::atan2(std::sqrt(a), std::sqrt(1.0 - a));
-  return BALLTREE_EARTH_R * c;
-}
-
-
-struct BallTreeNode {
-  int pivot;          // Index of the pivot point
-  double radius;      // Bounding radius (max distance from pivot to any point in subtree)
-  int left;           // Index of left child node (-1 if leaf)
-  int right;          // Index of right child node (-1 if leaf)
-  int start;          // Start index in the index array (for leaves)
-  int end;            // End index in the index array (for leaves)
-};
-
 
 class BallTree {
 public:
-  // Coordinate arrays (x = longitude, y = latitude for haversine)
+  // Coordinate arrays: x = longitude, y = latitude (degrees)
   const std::vector<double>& px;
   const std::vector<double>& py;
   int n_points;
 
-  // Tree structure
-  std::vector<BallTreeNode> nodes;
-  std::vector<int> indices;  // Permuted point indices
+  struct Node {
+    int pivot;          // index of the pivot point
+    double radius;      // max distance from pivot to any point in the subtree
+    int left;           // left child node (-1 if leaf)
+    int right;          // right child node (-1 if leaf)
+    int start;          // start index in `indices` (leaves)
+    int end;            // end index in `indices` (leaves)
+  };
+
+  std::vector<Node> nodes;
+  std::vector<int> indices;  // permuted point indices
 
   static constexpr int LEAF_SIZE = 16;
 
@@ -67,10 +48,9 @@ public:
     build(0, n_points);
   }
 
-  // Find the nearest unvisited point to a query (qx, qy).
-  // Returns the index in the original point array, or -1 if all visited.
-  int find_nearest_unvisited(double qx, double qy,
-                             const std::vector<bool>& visited) const {
+  // Nearest unvisited point to the query (qx, qy); -1 when all are visited.
+  int nearest_unvisited(double qx, double qy,
+                        const std::vector<bool>& visited) const {
     double best_dist = std::numeric_limits<double>::infinity();
     int best_idx = -1;
     search_nn(0, qx, qy, visited, best_dist, best_idx);
@@ -78,25 +58,23 @@ public:
   }
 
 private:
-  // Distance between two points by index
   double dist(int i, int j) const {
-    return haversine(px[i], py[i], px[j], py[j]);
+    return spacc::haversine_distance(py[i], px[i], py[j], px[j]);
   }
 
-  // Distance from query to point by index
   double dist_to(double qx, double qy, int j) const {
-    return haversine(qx, qy, px[j], py[j]);
+    return spacc::haversine_distance(qy, qx, py[j], px[j]);
   }
 
-  // Build subtree over indices[start..end)
+  // Build the subtree over indices[start..end)
   int build(int start, int end) {
     int node_idx = static_cast<int>(nodes.size());
-    nodes.push_back(BallTreeNode());
+    nodes.push_back(Node());
 
     int count = end - start;
 
     if (count <= LEAF_SIZE) {
-      // Leaf: pick medoid (point minimizing max distance to others) as pivot
+      // Leaf: the medoid (point minimising its max distance to the others) is the pivot
       int best_pivot = indices[start];
       double best_max_d = std::numeric_limits<double>::infinity();
       for (int i = start; i < end; i++) {
@@ -119,8 +97,7 @@ private:
       return node_idx;
     }
 
-    // Find two far-apart points to define the split axis.
-    // Precompute distances to avoid redundant haversine calls.
+    // Two far-apart points define the split axis
     int p1 = indices[start];
     std::vector<double> d_from_p1(count);
     int far1_local = 0;
@@ -130,7 +107,6 @@ private:
     }
     int far1 = indices[start + far1_local];
 
-    // Distances from far1 — reused for partitioning
     std::vector<double> d_far1(count);
     int far2_local = 0;
     for (int i = 0; i < count; i++) {
@@ -139,21 +115,15 @@ private:
     }
     int far2 = indices[start + far2_local];
 
-    // Distances from far2 — precompute once
     std::vector<double> d_far2(count);
     for (int i = 0; i < count; i++) {
       d_far2[i] = dist(far2, indices[start + i]);
     }
 
-    // Projection values for partitioning (no haversine calls in comparator)
+    // Projection on the far1-far2 axis drives the partition
     std::vector<double> proj(count);
-    for (int i = 0; i < count; i++) {
-      proj[i] = d_far1[i] - d_far2[i];
-    }
+    for (int i = 0; i < count; i++) proj[i] = d_far1[i] - d_far2[i];
 
-    // Partition using nth_element on precomputed projections.
-    // We need indices and proj to stay synchronized, so sort a local
-    // index array and then reorder indices[start..end).
     std::vector<int> order(count);
     std::iota(order.begin(), order.end(), 0);
     int mid_local = count / 2;
@@ -161,18 +131,13 @@ private:
       [&](int a, int b) { return proj[a] < proj[b]; }
     );
 
-    // Reorder indices according to the partition
     std::vector<int> tmp(count);
     for (int i = 0; i < count; i++) tmp[i] = indices[start + order[i]];
     for (int i = 0; i < count; i++) indices[start + i] = tmp[i];
 
     int mid = start + mid_local;
 
-    // Pick medoid of the full set as pivot (point minimizing sum of distances).
-    // Reorder d_far1 to match new index order and use it as a proxy:
-    // the point closest to the midpoint of the far1-far2 axis (proj ~ 0)
-    // is a good centroid approximation.
-    // Reorder proj to match
+    // Pivot: the point closest to the midpoint of the axis (proj ~ 0)
     std::vector<double> proj_reordered(count);
     for (int i = 0; i < count; i++) proj_reordered[i] = proj[order[i]];
 
@@ -187,7 +152,6 @@ private:
     }
     int pivot_pt = indices[start + best_pivot_local];
 
-    // Compute radius from pivot (single pass of haversine calls)
     double radius = 0.0;
     for (int i = start; i < end; i++) {
       double d = dist(pivot_pt, indices[i]);
@@ -199,7 +163,7 @@ private:
     nodes[node_idx].start = start;
     nodes[node_idx].end = end;
 
-    // Recurse — must index into nodes[] since vector may reallocate
+    // Index into nodes[] after each recursion: the vector may reallocate
     int left_idx = build(start, mid);
     nodes[node_idx].left = left_idx;
     int right_idx = build(mid, end);
@@ -208,28 +172,24 @@ private:
     return node_idx;
   }
 
-  // Recursive NN search with pruning
   void search_nn(int node_idx, double qx, double qy,
                  const std::vector<bool>& visited,
                  double& best_dist, int& best_idx) const {
-    const BallTreeNode& node = nodes[node_idx];
+    const Node& node = nodes[node_idx];
 
-    // Prune: if the closest possible point in this ball is farther than best
     double d_pivot = dist_to(qx, qy, node.pivot);
     double lower_bound = d_pivot - node.radius;
     if (lower_bound >= best_dist) return;
 
-    // Check pivot itself (it's a real point, avoid recomputing its distance)
     if (!visited[node.pivot] && d_pivot < best_dist) {
       best_dist = d_pivot;
       best_idx = node.pivot;
     }
 
-    // Leaf node: check all points
     if (node.left == -1) {
       for (int i = node.start; i < node.end; i++) {
         int idx = indices[i];
-        if (idx == node.pivot) continue;  // Already checked above
+        if (idx == node.pivot) continue;
         if (!visited[idx]) {
           double d = dist_to(qx, qy, idx);
           if (d < best_dist) {
@@ -241,13 +201,12 @@ private:
       return;
     }
 
-    // Internal node: visit closer child first for better pruning.
-    // Reuse d_pivot for the child whose pivot matches this node's pivot
-    // to avoid a redundant haversine call.
+    // Visit the closer child first for better pruning; a child sharing this
+    // node's pivot reuses d_pivot.
     int first = node.left;
     int second = node.right;
-    const BallTreeNode& lnode = nodes[node.left];
-    const BallTreeNode& rnode = nodes[node.right];
+    const Node& lnode = nodes[node.left];
+    const Node& rnode = nodes[node.right];
 
     double d_left = (lnode.pivot == node.pivot) ? d_pivot : dist_to(qx, qy, lnode.pivot);
     double d_right = (rnode.pivot == node.pivot) ? d_pivot : dist_to(qx, qy, rnode.pivot);

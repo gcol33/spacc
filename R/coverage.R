@@ -99,57 +99,38 @@ spaccCoverage <- function(x,
   n_cores <- resolve_cores(n_cores, parallel)
 
   x <- as.matrix(x)
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
-
-  # Need abundance data for coverage calculation
   storage.mode(x) <- "integer"
 
-  # Convert coverage type to integer for C++
   coverage_type <- if (coverage == "chiu") 1L else 0L
-
   cov_label <- if (coverage == "chiu") "Chiu 2023" else "Chao-Jost 2012"
   if (progress) cli_info(sprintf("Computing coverage-based accumulation (%d seeds, %s)", n_seeds, cov_label))
 
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
-                                   dist_mat, focal_points, focal_domain)
-  n_seeds <- ordering$n_seeds
-  result <- cpp_order_coverage_parallel(x, ordering$orders - 1L, n_cores,
-                                        progress, coverage_type)
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
+  run <- function(orders) {
+    cpp_order_coverage_parallel(x, orders - 1L, coverage_type, n_cores)
+  }
+  result <- run(ordering$orders)
 
   if (progress) cli_success("Done")
 
-  # Compute per-site map values if requested
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site coverage map values (all sites as seeds)")
-    map_orders <- .accumulation_orders(method, coord_data, n_sites, distance,
-                                       dist_mat, all_sites = TRUE)
-    map_result <- cpp_order_coverage_parallel(x, map_orders$orders - 1L,
-                                              n_cores, progress, coverage_type)
-
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y,
-      final_richness = map_result$richness[, n_sites],
-      final_coverage = map_result$coverage[, n_sites],
-      final_individuals = map_result$individuals[, n_sites]
-    )
+    site_values <- .site_map_values(method, coord_data, distance, site$dist_mat, n_cores,
+      function(orders) {
+        map_result <- run(orders)
+        list(final_richness = .final_per_seed(map_result$richness),
+             final_coverage = .final_per_seed(map_result$coverage),
+             final_individuals = .final_per_seed(map_result$individuals))
+      })
     if (progress) cli_success("Map values computed")
   }
 
@@ -160,7 +141,7 @@ spaccCoverage <- function(x,
       coverage = result$coverage,
       coords = coord_data,
       site_values = site_values,
-      n_seeds = n_seeds,
+      n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
@@ -194,17 +175,11 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
   stopifnot(inherits(x, "spacc_coverage"))
   stopifnot(all(target >= 0 & target <= 1))
 
-  n_seeds <- x$n_seeds
-  result <- matrix(NA, nrow = n_seeds, ncol = length(target))
+  rows <- lapply(seq_len(x$n_seeds), function(s) {
+    interpolate_at_coverage(x$richness[s, ], x$coverage[s, ], target)
+  })
+  result <- matrix(unlist(rows), nrow = x$n_seeds, byrow = TRUE)
   colnames(result) <- paste0("C", target * 100)
-
-  for (s in 1:n_seeds) {
-    richness <- x$richness[s, ]
-    coverage <- x$coverage[s, ]
-
-    result[s, ] <- interpolate_at_coverage(richness, coverage, target)
-  }
-
   as.data.frame(result)
 }
 
@@ -281,68 +256,47 @@ extrapolateCoverage <- function(x, target_coverage = c(0.90, 0.95, 0.99), q = 0)
       tc <- target_coverage[t]
 
       if (tc <= obs_C) {
-        # Interpolation
         result[s, t] <- interpolate_at_coverage(
           as.numeric(richness_curve), coverage_curve, tc
         )
-      } else {
-        # Extrapolation beyond observed coverage
-        if (q == 0) {
-          # Chao1 asymptotic estimator
-          # Reconstruct frequency counts from the final cumulative abundances
-          # Use the relationship: deficit = S_est - S_obs
-          # Approximate f1, f2 from coverage formula
-          f1 <- max(1, round(obs_n * (1 - obs_C)))
-          f2 <- max(1, round(f1 * (f1 - 1) / (2 * obs_n * (1 - obs_C) + 1e-10) ))
-          if (f2 == 0) f2 <- 1
-
-          S_chao1 <- obs_S + f1^2 / (2 * f2)
-
-          # Extrapolation: S(C_target) = S_obs + f0_hat * (1 - ((1-tc)/(1-obs_C))^f1_ratio)
-          f0_hat <- S_chao1 - obs_S
-          if (f0_hat > 0 && obs_C < 1) {
-            ratio <- log(1 - tc) / log(1 - obs_C)
-            ratio <- min(ratio, 50)  # cap to avoid overflow
-            result[s, t] <- obs_S + f0_hat * (1 - exp(log(1 - f0_hat / (f0_hat + 1e-10)) * ratio))
-            # Simplified: linear approach for coverage near 1
-            if (tc >= 0.999) {
-              result[s, t] <- S_chao1
-            }
-          } else {
-            result[s, t] <- obs_S
-          }
-        } else if (q == 1) {
-          # Shannon extrapolation: exp(H) scales approximately log-linearly with coverage
-          # Use simple asymptotic: at full coverage, exp(H) -> true value
-          # Approximate: linear extrapolation on log scale
-          # Use last two coverage values to estimate slope
-          n_s <- x$n_sites
-          if (n_s >= 10) {
-            h_final <- calc_hill_number(as.numeric(indiv_curve), 1.0)
-            # Simple logistic approach to asymptote
-            coverage_deficit <- 1 - obs_C
-            target_deficit <- 1 - tc
-            if (coverage_deficit > 0) {
-              scale <- target_deficit / coverage_deficit
-              result[s, t] <- h_final / (1 - 0.5 * (1 - scale) * (1 - h_final / (h_final + 1)))
-            } else {
-              result[s, t] <- h_final
-            }
-          } else {
-            result[s, t] <- NA
-          }
+      } else if (q == 0) {
+        # Chao1 asymptote from f1, f2 reconstructed via the coverage deficit
+        f1 <- max(1, round(obs_n * (1 - obs_C)))
+        f2 <- max(1, round(f1 * (f1 - 1) / (2 * obs_n * (1 - obs_C) + 1e-10)))
+        S_chao1 <- obs_S + f1^2 / (2 * f2)
+        f0_hat <- S_chao1 - obs_S
+        if (f0_hat > 0 && obs_C < 1) {
+          ratio <- min(log(1 - tc) / log(1 - obs_C), 50)
+          result[s, t] <- obs_S + f0_hat * (1 - exp(log(1 - f0_hat / (f0_hat + 1e-10)) * ratio))
+          if (tc >= 0.999) result[s, t] <- S_chao1
         } else {
-          # q = 2: Simpson extrapolation
-          # Inverse Simpson is relatively stable; use obs value with minor correction
-          h2_obs <- calc_hill_number(as.numeric(indiv_curve), 2.0)
+          result[s, t] <- obs_S
+        }
+      } else if (q == 1) {
+        # Shannon: logistic approach to the asymptote in the coverage deficit
+        if (x$n_sites >= 10) {
+          h_final <- calc_hill_number(as.numeric(indiv_curve), 1.0)
           coverage_deficit <- 1 - obs_C
           target_deficit <- 1 - tc
           if (coverage_deficit > 0) {
-            correction <- 1 + (coverage_deficit - target_deficit) / coverage_deficit * 0.1
-            result[s, t] <- h2_obs * correction
+            scale <- target_deficit / coverage_deficit
+            result[s, t] <- h_final / (1 - 0.5 * (1 - scale) * (1 - h_final / (h_final + 1)))
           } else {
-            result[s, t] <- h2_obs
+            result[s, t] <- h_final
           }
+        } else {
+          result[s, t] <- NA
+        }
+      } else {
+        # Simpson: inverse Simpson is stable; small correction in the deficit
+        h2_obs <- calc_hill_number(as.numeric(indiv_curve), 2.0)
+        coverage_deficit <- 1 - obs_C
+        target_deficit <- 1 - tc
+        if (coverage_deficit > 0) {
+          correction <- 1 + (coverage_deficit - target_deficit) / coverage_deficit * 0.1
+          result[s, t] <- h2_obs * correction
+        } else {
+          result[s, t] <- h2_obs
         }
       }
     }
@@ -397,112 +351,64 @@ summary.spacc_coverage_ext <- function(object, ...) {
 plot.spacc_coverage_ext <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
   check_suggests("ggplot2")
 
-  cov_obj <- x$spacc_coverage
-  summ_cov <- summary(cov_obj)
-
-  # Observed curve
+  summ_cov <- summary(x$spacc_coverage)
   df_obs <- data.frame(
     coverage = summ_cov$mean_coverage,
     richness = summ_cov$mean_richness,
     lower = summ_cov$richness_lower,
-    upper = summ_cov$richness_upper,
-    type = "Observed"
+    upper = summ_cov$richness_upper
   )
 
-  # Extrapolated points
   ext_summ <- summary(x)
   df_ext <- data.frame(
     coverage = x$target_coverage,
     richness = ext_summ$mean_richness,
     lower = ext_summ$lower,
-    upper = ext_summ$upper,
-    type = "Extrapolated"
+    upper = ext_summ$upper
   )
-
-  # Only keep extrapolated points beyond observed
   df_ext <- df_ext[df_ext$coverage > max(df_obs$coverage, na.rm = TRUE), , drop = FALSE]
 
-  df <- rbind(df_obs, df_ext)
-
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = coverage, y = richness))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      data = df[df$type == "Observed", ],
-      ggplot2::aes(ymin = lower, ymax = upper),
-      alpha = ci_alpha, fill = "#4CAF50"
-    )
-  }
-
-  p <- p +
-    ggplot2::geom_line(
-      data = df[df$type == "Observed", ],
-      linewidth = 1, color = "#2E7D32"
-    )
+  p <- .plot_curve(df_obs, x = "coverage", y = "richness",
+                   xlab = "Sample coverage", ylab = sprintf("Diversity (q = %d)", x$q),
+                   title = "Coverage-Based Extrapolation",
+                   subtitle = sprintf("Observed coverage: %.1f%%", x$observed_coverage * 100),
+                   ci = ci, ci_alpha = ci_alpha)
 
   if (nrow(df_ext) > 0) {
     p <- p +
-      ggplot2::geom_point(
-        data = df_ext,
-        color = "#FF9800", size = 3
-      ) +
-      ggplot2::geom_errorbar(
-        data = df_ext,
-        ggplot2::aes(ymin = lower, ymax = upper),
-        color = "#FF9800", width = 0.01
-      )
+      ggplot2::geom_point(data = df_ext, color = "#FF9800", size = 3) +
+      ggplot2::geom_errorbar(data = df_ext,
+                             ggplot2::aes(ymin = lower, ymax = upper),
+                             color = "#FF9800", width = 0.01)
   }
 
-  # Mark reference point
-  p <- p +
-    ggplot2::geom_vline(
-      xintercept = x$observed_coverage,
-      linetype = "dashed", color = "grey50"
-    ) +
-    ggplot2::labs(
-      x = "Sample coverage",
-      y = sprintf("Diversity (q = %d)", x$q),
-      title = "Coverage-Based Extrapolation",
-      subtitle = sprintf("Observed coverage: %.1f%%", x$observed_coverage * 100)
-    ) +
-    spacc_theme()
-
-  p
+  p + ggplot2::geom_vline(xintercept = x$observed_coverage,
+                          linetype = "dashed", color = "grey50")
 }
 
 
 #' @export
 print.spacc_coverage <- function(x, ...) {
-  cov_label <- if (!is.null(x$coverage_type) && x$coverage_type == "chiu") {
-    "Chiu 2023"
-  } else {
-    "Chao-Jost 2012"
-  }
-  cat(sprintf("spacc coverage (%s): %d sites, %d species, %d seeds\n",
-              cov_label, x$n_sites, x$n_species, x$n_seeds))
-
-  mean_final_cov <- mean(x$coverage[, x$n_sites])
-  mean_final_rich <- mean(x$richness[, x$n_sites])
-
-  cat(sprintf("Mean final coverage: %.1f%%\n", mean_final_cov * 100))
-  cat(sprintf("Mean final richness: %.1f species\n", mean_final_rich))
-  invisible(x)
+  cov_label <- if (identical(x$coverage_type, "chiu")) "Chiu 2023" else "Chao-Jost 2012"
+  .print_curves(x, sprintf("spacc coverage (%s)", cov_label),
+                sprintf("Mean final coverage: %.1f%%", mean(x$coverage[, x$n_sites]) * 100),
+                sprintf("Mean final richness: %.1f species", mean(x$richness[, x$n_sites])))
 }
 
 
 #' @export
 summary.spacc_coverage <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
+  richness <- .curve_stats(object$richness, ci_level)
+  coverage <- .curve_stats(object$coverage, ci_level)
   data.frame(
-    sites = 1:object$n_sites,
-    mean_richness = colMeans(object$richness),
-    richness_lower = apply(object$richness, 2, stats::quantile, alpha),
-    richness_upper = apply(object$richness, 2, stats::quantile, 1 - alpha),
+    sites = seq_len(object$n_sites),
+    mean_richness = richness$mean,
+    richness_lower = richness$lower,
+    richness_upper = richness$upper,
     mean_individuals = colMeans(object$individuals),
-    mean_coverage = colMeans(object$coverage),
-    coverage_lower = apply(object$coverage, 2, stats::quantile, alpha),
-    coverage_upper = apply(object$coverage, 2, stats::quantile, 1 - alpha)
+    mean_coverage = coverage$mean,
+    coverage_lower = coverage$lower,
+    coverage_upper = coverage$upper
   )
 }
 
@@ -516,52 +422,26 @@ plot.spacc_coverage <- function(x, type = c("curve", "map"),
   type <- match.arg(type)
 
   if (type == "map") {
-    if (is.null(x$site_values)) stop("No map data. Rerun spaccCoverage() with map = TRUE.")
     metric <- match.arg(metric)
-    return(plot_spatial_map(x$site_values, metric,
-                            title = sprintf("Coverage map: %s", metric),
-                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
-                            point_size = point_size, palette = palette))
+    return(.plot_site_map(x, metric,
+                          title = sprintf("Coverage map: %s", metric),
+                          subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                          point_size = point_size, palette = palette))
   }
-
-  check_suggests("ggplot2")
 
   xaxis <- match.arg(xaxis)
-  summ <- summary(x)
-
-  if (xaxis == "sites") {
-    summ$x <- summ$sites
-    xlab <- "Sites accumulated"
-  } else if (xaxis == "coverage") {
-    summ$x <- summ$mean_coverage
-    xlab <- "Sample coverage"
-  } else {
-    summ$x <- summ$mean_individuals
-    xlab <- "Individuals sampled"
-  }
-
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = x, y = mean_richness))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = richness_lower, ymax = richness_upper),
-      alpha = ci_alpha, fill = "#4CAF50"
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1, color = "#2E7D32") +
-    ggplot2::labs(
-      x = xlab,
-      y = "Species richness",
-      title = "Coverage-Based Spatial Accumulation"
-    ) +
-    spacc_theme()
+  axis <- switch(xaxis,
+    sites = c("sites", "Sites accumulated"),
+    coverage = c("mean_coverage", "Sample coverage"),
+    individuals = c("mean_individuals", "Individuals sampled")
+  )
+  .plot_curve(summary(x), x = axis[1], y = "mean_richness",
+              lower = "richness_lower", upper = "richness_upper",
+              xlab = axis[2], ylab = "Species richness",
+              title = "Coverage-Based Spatial Accumulation",
+              ci = ci, ci_alpha = ci_alpha)
 }
 
 
 #' @export
-as_sf.spacc_coverage <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No map data. Rerun spaccCoverage() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_coverage <- function(x, crs = NULL) .as_sf_site_values(x, crs)

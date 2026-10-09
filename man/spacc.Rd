@@ -64,6 +64,9 @@ spatial tree for >500 sites.
 \item \code{"kdtree"}: Always use spatial tree. Uses k-d tree (nanoflann) for
 Euclidean distances and ball tree for haversine distances. Faster for
 large datasets, no distance matrix needed.
+A supplied distance matrix (\code{spacc_dist} coordinates or the
+spatiotemporal composite built from \code{time}) is always used as given, so
+those inputs take the exact backend.
 }}
 
 \item{support}{Optional. Spatial support for core/halo classification via
@@ -143,6 +146,8 @@ combined with \code{support} or \code{time}. Default \code{NULL}.
 \value{
 When \code{groups = NULL}, an object of class \code{spacc} containing:
 \item{curves}{Matrix of cumulative species counts (n_seeds x n_sites)}
+\item{orders}{Matrix of 1-based site indices (n_seeds x n_sites): the
+order in which each curve visited the sites}
 \item{coords}{Original coordinates}
 \item{n_seeds}{Number of seeds used}
 \item{method}{Method used}
@@ -159,6 +164,10 @@ one fixed focal point and accumulates sites by increasing distance from that
 point. The \code{nn_walk} method is a greedy traversal whose reference point moves
 to the most recently selected site. The two methods represent different
 spatial sampling models.
+
+Every method is a rule for ordering the sites; the species data are then
+accumulated along those orders. The \code{orders} element of the result lets the
+same traversals be reused, for example through the \code{order} argument.
 }
 \examples{
 \donttest{
