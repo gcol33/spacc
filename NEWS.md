@@ -27,6 +27,10 @@
   pooled assemblages (habitats, regions) along the same site orders, next to
   the site-level partition (Jones et al. 2025); `summary()` and `plot()` take
   `resolution = "site"`, `"pooled"` or (plot) `"both"` (#11).
+- `ses(null_model = "shift_rotate")` keeps the community and moves a fixed
+  sampling design (user-supplied `focal_points` of a `knn` analysis) by
+  random rotations and shifts (Ridder et al. 2024), testing the design's
+  position rather than the community's spatial structure (#12).
 - `dar()` is an S3 generic: besides a site-by-species matrix it takes a
   `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
   object and returns the diversity-area relationship of each of its curves,
@@ -39,6 +43,11 @@
 
 ## Bug fixes
 
+- `ses()` on `spacc_phylo` and `spacc_func` objects always stopped with "Too
+  few valid permutations": their null analyses were never rerun. The objects
+  now carry their tree, traits and metric settings, and `ses()` reruns them.
+- `ses()` reran `knn` analyses with newly drawn focal points; the nulls now
+  reuse the observed design, and `spacc_beta` nulls keep the distance method.
 - `extrapolate()` and `compareModels()` passed unknown arguments (such as
   `progress = FALSE`) on to `nls()`, which treated them as data, so every
   model "failed to converge". Unknown arguments are now an error. The

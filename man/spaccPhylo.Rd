@@ -72,6 +72,7 @@ and store per-site final values for spatial mapping. Enables
 An object of class \code{spacc_phylo} containing:
 \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
 \item{metric}{Metrics computed}
+\item{tree}{The tree or distance matrix used}
 \item{coords, n_seeds, n_sites, method}{Parameters used}
 }
 \description{

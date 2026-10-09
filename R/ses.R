@@ -30,6 +30,10 @@
 #'   - `"spatial_swap"`: Independent swap restricted to spatially proximate site
 #'     pairs. Preserves both marginals while respecting spatial structure.
 #'     Requires `coords`.
+#'   - `"shift_rotate"`: Keeps the community and moves the sampling design:
+#'     the user-supplied focal points of a `method = "knn"` analysis are
+#'     rotated by a random angle and shifted by a random offset (Ridder et al.
+#'     2024). Requires `coords`.
 #' @param n_perm Integer. Number of permutations. Default 999.
 #' @param parallel Logical. Use parallel processing for the underlying analysis?
 #'   Default `TRUE`.
@@ -66,6 +70,18 @@
 #'   co-occurrence patterns
 #' - `"curveball"`: Efficient alternative to `"both"` with proven uniform
 #'   sampling properties
+#' - `"shift_rotate"`: The permutation nulls destroy the spatial structure of
+#'   the community, so a spatially structured curve differs from almost any
+#'   of them. The shift-and-rotate null keeps that structure intact and asks
+#'   instead whether the curve depends on where the fixed design sits within
+#'   it: each replicate moves the focal points by a rigid motion (rotation
+#'   about their centroid, shift within the extent of the sites), drops those
+#'   that leave the convex hull of the sites, and recomputes the curve. It is
+#'   defined only for a fixed design; randomly drawn focal points are already
+#'   a sample over all positions.
+#'
+#' For `method = "knn"` analyses the permutation nulls reuse the observed
+#' focal points, so observed and null curves share one design.
 #'
 #' @references
 #' Gotelli, N.J. (2000). Null model analysis of species co-occurrence patterns.
@@ -74,6 +90,11 @@
 #' Strona, G., Nappo, D., Boccacci, F., Fattorini, S. & San-Miguel-Ayanz, J.
 #' (2014). A fast and unbiased procedure to randomize ecological binary
 #' matrices with fixed row and column totals. Nature Communications, 5, 4114.
+#'
+#' Ridder, G., Hardy, O.J. & Ovaskainen, O. (2024). Generating spatially
+#' realistic environmental null models with the shift-&-rotate approach helps
+#' evaluate false positives in species distribution modelling. Methods in
+#' Ecology and Evolution, 15, 2331-2342. \doi{10.1111/2041-210X.14443}
 #'
 #' @seealso [spaccHill()], [spaccBeta()], [spaccMetrics()]
 #'
@@ -92,7 +113,7 @@ ses <- function(x, species,
                 coords = NULL,
                 metric = NULL,
                 null_model = c("frequency", "richness", "both", "curveball",
-                               "torus", "spatial_swap"),
+                               "torus", "spatial_swap", "shift_rotate"),
                 n_perm = 999L,
                 parallel = TRUE,
                 n_cores = NULL,
@@ -106,9 +127,17 @@ ses <- function(x, species,
   input_class <- class(x)[1]
 
   # Spatial null models require coords
-  spatial_nulls <- c("torus", "spatial_swap")
+  spatial_nulls <- c("torus", "spatial_swap", "shift_rotate")
   if (null_model %in% spatial_nulls && is.null(coords) && is.null(x$coords)) {
     stop(sprintf("Null model '%s' requires coords.", null_model))
+  }
+  if (null_model == "shift_rotate") {
+    if (!input_class %in% c("spacc", "spacc_hill", "spacc_beta", "spacc_phylo", "spacc_func") ||
+        !identical(x$method, "knn") || is.null(x$call$focal_points)) {
+      stop("null_model = \"shift_rotate\" moves a fixed sampling design: it needs a ",
+           "spacc, spacc_hill, spacc_beta, spacc_phylo or spacc_func object computed ",
+           "with method = \"knn\" and user-supplied focal_points.", call. = FALSE)
+    }
   }
 
   # Supported classes
@@ -131,16 +160,24 @@ ses <- function(x, species,
 
   if (progress) cli_info(sprintf("Running %d null model permutations (%s)", n_perm, null_model))
 
+  # Fixed-focus analyses keep their observed focal points under the
+  # permutation nulls; shift_rotate moves them and keeps the community.
+  design <- if (identical(x$method, "knn")) x$focal_points else NULL
+
   # Run permutations
   null_values <- matrix(NA, nrow = n_perm, ncol = length(observed))
 
   for (p in seq_len(n_perm)) {
-    # Randomize species matrix
-    null_species <- randomize_matrix(species, null_model, coords = coords)
+    if (null_model == "shift_rotate") {
+      null_species <- species
+      null_design <- .shift_rotate_design(design, coords)
+    } else {
+      null_species <- randomize_matrix(species, null_model, coords = coords)
+      null_design <- design
+    }
 
-    # Re-run analysis with null species
     null_result <- tryCatch(
-      rerun_analysis(x, null_species, coords, parallel, n_cores),
+      rerun_analysis(x, null_species, coords, parallel, n_cores, null_design),
       error = function(e) NULL
     )
 
@@ -256,17 +293,21 @@ extract_ses_metric <- function(x, metric = NULL) {
 }
 
 
-# Re-run the same analysis with a new species matrix
-rerun_analysis <- function(original, null_species, coords, parallel, n_cores) {
+# Re-run the same analysis on a null species matrix or a null focal design.
+# `focal_points` fixes the design of fixed-focus (knn) analyses: the observed
+# focal points for the permutation nulls, moved ones for shift_rotate.
+rerun_analysis <- function(original, null_species, coords, parallel, n_cores,
+                           focal_points = NULL) {
   cls <- class(original)[1]
-  n_cores_val <- resolve_cores(n_cores, parallel)
+  distance <- original$distance %||% "euclidean"
 
   switch(cls,
     "spacc" = {
       spacc(null_species, coords,
             n_seeds = original$n_seeds,
             method = original$method,
-            distance = original$distance,
+            distance = distance,
+            focal_points = focal_points,
             parallel = parallel, n_cores = n_cores,
             progress = FALSE)
     },
@@ -275,7 +316,8 @@ rerun_analysis <- function(original, null_species, coords, parallel, n_cores) {
                 q = original$q,
                 n_seeds = original$n_seeds,
                 method = original$method,
-                distance = original$distance,
+                distance = distance,
+                focal_points = focal_points,
                 parallel = parallel, n_cores = n_cores,
                 progress = FALSE)
     },
@@ -284,6 +326,30 @@ rerun_analysis <- function(original, null_species, coords, parallel, n_cores) {
                 n_seeds = original$n_seeds,
                 method = original$method,
                 index = original$index,
+                distance = distance,
+                focal_points = focal_points,
+                parallel = parallel, n_cores = n_cores,
+                progress = FALSE)
+    },
+    "spacc_phylo" = {
+      spaccPhylo(null_species, coords, original$tree,
+                 metric = unique(sub("^evoheritage_rho.*$", "evoheritage", original$metric)),
+                 rho = original$rho %||% 0,
+                 n_seeds = original$n_seeds,
+                 method = original$method,
+                 distance = distance,
+                 focal_points = focal_points,
+                 parallel = parallel, n_cores = n_cores,
+                 progress = FALSE)
+    },
+    "spacc_func" = {
+      spaccFunc(null_species, coords, original$traits,
+                metric = unique(ifelse(original$metric %in% .k_metrics, "K", original$metric)),
+                axis_length_k = original$axis_length_k,
+                n_seeds = original$n_seeds,
+                method = original$method,
+                distance = distance,
+                focal_points = focal_points,
                 parallel = parallel, n_cores = n_cores,
                 progress = FALSE)
     },
@@ -300,10 +366,40 @@ rerun_analysis <- function(original, null_species, coords, parallel, n_cores) {
                    parallel = parallel, n_cores = n_cores,
                    progress = FALSE)
     },
-    # For phylo/func we can't easily re-run without tree/traits
-    # Return NULL to skip
     NULL
   )
+}
+
+
+# Fixed-focus design moved by a random rigid motion for the shift_rotate
+# null: rotation by a uniform angle about the design's centroid, then a
+# uniform shift within the extent of the sites. Focal points that leave the
+# convex hull of the sites are dropped; a motion keeping fewer than half of
+# them is redrawn.
+.shift_rotate_design <- function(focal_points, coords, max_tries = 100L) {
+  fp <- as.matrix(focal_points[, c("x", "y")])
+  hull <- as.matrix(coords[grDevices::chull(coords$x, coords$y), c("x", "y")])
+  centre <- colMeans(fp)
+  extent <- c(diff(range(coords$x)), diff(range(coords$y)))
+  inside_hull <- function(p) {
+    nxt <- rbind(hull[-1, , drop = FALSE], hull[1, ])
+    # inside or on a convex polygon: the edge cross products share one sign
+    cr <- outer(p[, 1], hull[, 1], "-") * matrix(nxt[, 2] - hull[, 2], nrow(p), nrow(hull), byrow = TRUE) -
+          outer(p[, 2], hull[, 2], "-") * matrix(nxt[, 1] - hull[, 1], nrow(p), nrow(hull), byrow = TRUE)
+    apply(cr, 1, function(r) all(r >= 0) || all(r <= 0))
+  }
+  for (try in seq_len(max_tries)) {
+    theta <- stats::runif(1, 0, 2 * pi)
+    rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), 2)
+    shift <- stats::runif(2, -extent / 2, extent / 2)
+    moved <- sweep(sweep(fp, 2, centre) %*% t(rot), 2, centre + shift, "+")
+    keep <- inside_hull(moved)
+    if (sum(keep) >= max(1L, ceiling(nrow(fp) / 2))) {
+      return(data.frame(x = moved[keep, 1], y = moved[keep, 2]))
+    }
+  }
+  stop("Could not place the focal design inside the study area; ",
+       "the design may be as large as the area itself", call. = FALSE)
 }
 
 

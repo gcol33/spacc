@@ -34,6 +34,7 @@
 #' @return An object of class `spacc_phylo` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
 #'   \item{metric}{Metrics computed}
+#'   \item{tree}{The tree or distance matrix used}
 #'   \item{coords, n_seeds, n_sites, method}{Parameters used}
 #'
 #' @details
@@ -190,6 +191,7 @@ spaccPhylo <- function(x,
       curves = result,
       metric = metric,
       rho = if (length(evo_rho) > 0) evo_rho else NULL,
+      tree = tree,
       coords = coord_data,
       site_values = site_values,
       n_seeds = ordering$n_seeds,
@@ -469,6 +471,7 @@ spaccFunc <- function(x,
       n_sites = n_sites,
       n_species = n_species,
       n_traits = ncol(traits),
+      axis_length_k = if (length(axis_length) > 0) axis_length else NULL,
       method = method,
       distance = distance,
       orders = ordering$orders,

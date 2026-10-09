@@ -189,7 +189,7 @@
 #' @param distance `"euclidean"` or `"haversine"`.
 #' @param dist_mat Optional precomputed site distance matrix. Methods that need
 #'   one compute it when `NULL`.
-#' @param focal_points,focal_domain Passed to [.knn_orders()] for `"knn"`.
+#' @param focal_points,focal_domain Passed to `.knn_orders()` for `"knn"`.
 #' @param all_sites Use every site once as seed (or focus) instead of sampling.
 #' @param seed_pool Optional 1-based site indices from which seeds are drawn.
 #' @param backend `"auto"`, `"exact"` or `"kdtree"` for `"nn_walk"` and `"kncn"`.
