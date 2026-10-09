@@ -285,6 +285,51 @@ spaccPhylo <- function(x,
 }
 
 
+# Trait rows for intraspecific variability: a long table with a `species`
+# column, an optional `site` column and numeric trait columns. Returns the
+# trait matrix of the rows and a site x row weight matrix W, W[s, r] being the
+# abundance of the row's species at site s shared equally among the rows that
+# describe the species there. Rows with a site describe that site; rows
+# without one (no `site` column, or NA) describe the species at every site
+# where it has no site-specific rows.
+.itv_rows <- function(x, traits, coords) {
+  traits <- as.data.frame(traits)
+  if (!"species" %in% names(traits)) stop("ITV traits need a `species` column", call. = FALSE)
+  trait_cols <- setdiff(names(traits), c("species", "site"))
+  if (length(trait_cols) == 0 || !all(vapply(traits[trait_cols], is.numeric, logical(1)))) {
+    stop("ITV traits need at least one numeric trait column besides species and site",
+         call. = FALSE)
+  }
+  species <- as.character(traits$species)
+  col <- match(species, colnames(x))
+  if (anyNA(col)) {
+    stop(.missing_species_message("x", unique(species[is.na(col)])), call. = FALSE)
+  }
+  n_sites <- nrow(x)
+  site_row <- if ("site" %in% names(traits)) {
+    out <- rep(NA_integer_, nrow(traits))
+    given <- !is.na(traits$site)
+    out[given] <- .match_sites(traits$site[given], coords, n_sites, "traits")
+    out
+  } else {
+    rep(NA_integer_, nrow(traits))
+  }
+
+  W <- matrix(0, n_sites, nrow(traits))
+  local <- !is.na(site_row)
+  key <- paste(col, site_row)
+  shares <- as.vector(table(key)[key])
+  W[cbind(site_row[local], which(local))] <- x[cbind(site_row[local], col[local])] / shares[local]
+  covered <- matrix(FALSE, n_sites, ncol(x))
+  covered[cbind(site_row[local], col[local])] <- TRUE
+  for (r in which(!local)) {
+    open <- !covered[, col[r]]
+    W[open, r] <- x[open, col[r]] / shares[r]
+  }
+  list(weights = W, traits = as.matrix(traits[trait_cols]))
+}
+
+
 # Rows reported for metric = "K": its four facets and K itself.
 .k_metrics <- c("k_richness", "k_biomass_evenness", "k_trait_evenness",
                 "k_dispersion", "K")
@@ -336,6 +381,10 @@ spaccPhylo <- function(x,
 #' @param axis_length_k Numeric vector, one value per trait. Length of each
 #'   trait axis for the richness facet of `"K"`. Default `NULL` uses the
 #'   range of each trait over all species in `traits`.
+#' @param itv Logical. Use intraspecific trait variability: `traits` is then
+#'   a long data frame with one row per individual or population, a
+#'   `species` column, an optional `site` column (matched like the sites of
+#'   [spaccNetwork()]) and numeric trait columns. Default `FALSE`.
 #'
 #' @return An object of class `spacc_func` containing:
 #'   \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
@@ -366,9 +415,25 @@ spaccPhylo <- function(x,
 #'   and `k_trait_evenness` is `NA`. With fewer than two species K is 0.
 #'   With presence/absence data biomass evenness is 1.
 #'
+#' **Intraspecific trait variability** (`itv = TRUE`; Palacio et al. 2025).
+#' Each trait row is a unit of the community in place of a species: at each
+#' step the metrics are evaluated on the rows describing the accumulated
+#' sites, each weighted by its species' abundance at its site, shared equally
+#' among the rows describing that species there. Rows without a site (no
+#' `site` column, or `NA`) stand for the species at every site where it has
+#' no site-specific rows, so one row per species reproduces the species-mean
+#' curves. A widespread species whose traits change along a gradient then
+#' adds trait range as the accumulation reaches new parts of the gradient,
+#' which its mean trait value hides.
+#'
 #' @references
 #' Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 #' functional diversity from multiple traits. Ecology, 91, 299-305.
+#'
+#' Palacio, F.X., Ottaviani, G., Mammola, S., Graco-Roza, C., de Bello, F. &
+#' Carmona, C.P. (2025). Integrating intraspecific trait variability in
+#' functional diversity: an overview of methods and a guide for ecologists.
+#' Ecological Monographs, 95, e70024. \doi{10.1002/ecm.70024}
 #'
 #' Wojcik, L.A., Gaedke, U., van Velzen, E. & Klauschies, T. (2024). Measuring
 #' overall functional diversity by aggregating its multiple facets: functional
@@ -406,7 +471,8 @@ spaccFunc <- function(x,
                       map = FALSE,
                       focal_points = NULL,
                       focal_domain = NULL,
-                      axis_length_k = NULL) {
+                      axis_length_k = NULL,
+                      itv = FALSE) {
 
   method <- match.arg(method)
   distance <- match.arg(distance)
@@ -417,6 +483,9 @@ spaccFunc <- function(x,
   n_cores <- resolve_cores(n_cores, parallel)
 
   x <- as.matrix(x)
+  # Keep abundance data as doubles (supports non-integer abundances,
+  # e.g. cover or biomass, for FDis and Rao weighting)
+  storage.mode(x) <- "double"
   site <- .resolve_coords(coords)
   coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
@@ -427,25 +496,30 @@ spaccFunc <- function(x,
                                    site$dist_mat, focal_points, focal_domain,
                                    n_cores = n_cores)
 
-  traits <- .match_traits(traits, colnames(x), n_species)
+  # The kernel sees units (columns of `units`) with one trait row each:
+  # species, or with itv = TRUE the individual or population trait rows.
+  if (itv) {
+    rows <- .itv_rows(x, traits, coords)
+    units <- rows$weights
+    unit_traits <- rows$traits
+  } else {
+    units <- x
+    unit_traits <- .match_traits(traits, colnames(x), n_species)
+  }
 
   # K is reported with its four facets, in place of the single "K" entry.
   axis_length <- numeric(0)
   if ("K" %in% metric) {
-    axis_length <- .k_axis_length(traits, axis_length_k)
+    axis_length <- .k_axis_length(unit_traits, axis_length_k)
     at <- match("K", metric)
     metric <- append(metric[-at], .k_metrics, after = at - 1L)
   }
-
-  # Keep abundance data as doubles (supports non-integer abundances,
-  # e.g. cover or biomass, for FDis and Rao weighting)
-  storage.mode(x) <- "double"
 
   if (progress) cli_info(sprintf("Computing functional diversity (%s, %d seeds)",
                                   paste(metric, collapse = ", "), n_seeds))
 
   run <- function(orders) {
-    cpp_func_order_parallel(x, orders - 1L, traits, metric, n_cores, axis_length)
+    cpp_func_order_parallel(units, orders - 1L, unit_traits, metric, n_cores, axis_length)
   }
 
   result <- run(ordering$orders)
@@ -464,13 +538,14 @@ spaccFunc <- function(x,
     list(
       curves = result,
       metric = metric,
-      traits = traits,
+      traits = if (itv) traits else unit_traits,
+      itv = itv,
       coords = coord_data,
       site_values = site_values,
       n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
-      n_traits = ncol(traits),
+      n_traits = ncol(unit_traits),
       axis_length_k = if (length(axis_length) > 0) axis_length else NULL,
       method = method,
       distance = distance,

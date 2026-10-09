@@ -19,7 +19,8 @@ spaccFunc(
   map = FALSE,
   focal_points = NULL,
   focal_domain = NULL,
-  axis_length_k = NULL
+  axis_length_k = NULL,
+  itv = FALSE
 )
 }
 \arguments{
@@ -65,6 +66,11 @@ and store per-site final values for spatial mapping. Enables
 \item{axis_length_k}{Numeric vector, one value per trait. Length of each
 trait axis for the richness facet of \code{"K"}. Default \code{NULL} uses the
 range of each trait over all species in \code{traits}.}
+
+\item{itv}{Logical. Use intraspecific trait variability: \code{traits} is then
+a long data frame with one row per individual or population, a
+\code{species} column, an optional \code{site} column (matched like the sites of
+\code{\link[=spaccNetwork]{spaccNetwork()}}) and numeric trait columns. Default \code{FALSE}.}
 }
 \value{
 An object of class \code{spacc_func} containing:
@@ -97,6 +103,17 @@ three species: with two, K is the cube root of the other three facets
 and \code{k_trait_evenness} is \code{NA}. With fewer than two species K is 0.
 With presence/absence data biomass evenness is 1.
 }
+
+\strong{Intraspecific trait variability} (\code{itv = TRUE}; Palacio et al. 2025).
+Each trait row is a unit of the community in place of a species: at each
+step the metrics are evaluated on the rows describing the accumulated
+sites, each weighted by its species' abundance at its site, shared equally
+among the rows describing that species there. Rows without a site (no
+\code{site} column, or \code{NA}) stand for the species at every site where it has
+no site-specific rows, so one row per species reproduces the species-mean
+curves. A widespread species whose traits change along a gradient then
+adds trait range as the accumulation reaches new parts of the gradient,
+which its mean trait value hides.
 }
 \examples{
 \donttest{
@@ -116,6 +133,11 @@ plot(func)
 \references{
 Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 functional diversity from multiple traits. Ecology, 91, 299-305.
+
+Palacio, F.X., Ottaviani, G., Mammola, S., Graco-Roza, C., de Bello, F. &
+Carmona, C.P. (2025). Integrating intraspecific trait variability in
+functional diversity: an overview of methods and a guide for ecologists.
+Ecological Monographs, 95, e70024. \doi{10.1002/ecm.70024}
 
 Wojcik, L.A., Gaedke, U., van Velzen, E. & Klauschies, T. (2024). Measuring
 overall functional diversity by aggregating its multiple facets: functional

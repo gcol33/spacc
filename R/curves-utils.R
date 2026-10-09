@@ -24,6 +24,28 @@
 }
 
 
+# Row of each value of `site` among the sites of `coords`: matched to
+# coords$site if present, otherwise to non-default row names of coords,
+# otherwise taken as row numbers.
+.match_sites <- function(site, coords, n_sites, what) {
+  site_ids <- if (is.data.frame(coords) && "site" %in% names(coords)) {
+    coords$site
+  } else if (is.data.frame(coords) && !is.null(rownames(coords)) &&
+             !identical(rownames(coords), as.character(seq_len(nrow(coords))))) {
+    rownames(coords)
+  } else {
+    seq_len(n_sites)
+  }
+  row <- match(as.character(site), as.character(site_ids))
+  if (anyNA(row)) {
+    stop(sprintf("Sites in %s not found in coords: %s", what,
+                 paste(utils::head(unique(site[is.na(row)]), 5), collapse = ", ")),
+         call. = FALSE)
+  }
+  row
+}
+
+
 # Per-step mean, quantile band and (optionally) sd of a seeds x steps matrix.
 # The band covers the seeds where the step is defined; the mean is NA when any
 # seed is NA, and a step undefined for every seed is NA throughout.

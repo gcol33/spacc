@@ -146,20 +146,7 @@ spaccNetwork <- function(interactions,
     stop("count must be non-negative integers", call. = FALSE)
   }
 
-  site_ids <- if (is.data.frame(coords) && "site" %in% names(coords)) {
-    coords$site
-  } else if (is.data.frame(coords) && !is.null(rownames(coords)) &&
-             !identical(rownames(coords), as.character(seq_len(nrow(coords))))) {
-    rownames(coords)
-  } else {
-    seq_len(n_sites)
-  }
-  row <- match(as.character(interactions$site), as.character(site_ids))
-  if (anyNA(row)) {
-    stop(sprintf("Sites in interactions not found in coords: %s",
-                 paste(utils::head(unique(interactions$site[is.na(row)]), 5), collapse = ", ")),
-         call. = FALSE)
-  }
+  row <- .match_sites(interactions$site, coords, n_sites, "interactions")
 
   tabulate_by <- function(key) {
     levels <- sort(unique(key))

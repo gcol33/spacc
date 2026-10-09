@@ -39,6 +39,10 @@
   interaction richness and Hill numbers, sample coverage, the species curves
   of both levels and connectance along the same orders (Chiu et al. 2023)
   (#15).
+- `spaccFunc(itv = TRUE)` takes traits per individual or population (a
+  long table with `species`, optional `site` and trait columns) and
+  evaluates FDis, FRic, Rao's Q and K on the trait rows of the accumulated
+  sites; one row per species reproduces the species-mean curves (#17).
 - `dar()` is an S3 generic: besides a site-by-species matrix it takes a
   `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
   object and returns the diversity-area relationship of each of its curves,
