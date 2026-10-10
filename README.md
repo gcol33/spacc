@@ -19,6 +19,17 @@ The classical curve in `vegan::specaccum()` shuffles sites in random order, with
 their spatial arrangement. `spacc` reproduces that random-order curve and adds the spatial
 one, so you can read the gap between them.
 
+## Installation
+
+```r
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
+## Quick start
+
 ```r
 library(spacc)
 
@@ -116,15 +127,6 @@ sac_st <- spacc(species, coords, method = "nn_walk",
 - **`coleman()` / `mao_tau()` / `spatialRarefaction()`**: analytical (non-simulation) curves.
 - **`as_spacc()`**: bring an existing `vegan::specaccum()` object into the same plotting and
   comparison machinery.
-
-## Installation
-
-```r
-install.packages("spacc")            # CRAN
-
-install.packages("pak")              # development version
-pak::pak("gcol33/spacc")
-```
 
 ## Documentation
 

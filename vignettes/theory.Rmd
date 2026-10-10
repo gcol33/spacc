@@ -23,6 +23,15 @@ library(spacc)
 set.seed(1)
 ```
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Overview
 
 This vignette describes what `spacc()` computes and how. A classical species

@@ -30,6 +30,15 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 ```
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 Species richness counted from raw data confounds two things: how diverse a

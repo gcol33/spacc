@@ -21,6 +21,15 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Overview
 
 Most surveys stop before the last species is found. The observed

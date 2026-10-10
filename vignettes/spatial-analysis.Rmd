@@ -32,6 +32,15 @@ transparent <- if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 ```
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 Conservation planning rarely asks how many species live in a region. It asks

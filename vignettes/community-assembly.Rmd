@@ -30,6 +30,15 @@ transparent <- if (requireNamespace("ggplot2", quietly = TRUE)) {
 } else NULL
 ```
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 A species list at a single site says little about how a community came to be.

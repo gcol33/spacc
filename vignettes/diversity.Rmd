@@ -21,6 +21,15 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 A species accumulation curve answers one question: how does the count of
