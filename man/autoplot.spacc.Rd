@@ -3,6 +3,9 @@
 \name{autoplot.spacc}
 \alias{autoplot.spacc}
 \title{Autoplot Methods for spacc Objects}
+\usage{
+\method{autoplot}{spacc}(object, ...)
+}
 \arguments{
 \item{object}{A spacc object.}
 

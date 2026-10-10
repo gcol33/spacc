@@ -2,16 +2,26 @@
 
 0 errors | 0 warnings | 0 notes
 
-This release updates the spatial accumulation semantics and unifies related
-diversity calculations around shared site-order matrices.
+This release adds richness estimators, coverage-standardised beta diversity,
+network, redundancy and trait-variation accumulation, and moves every
+accumulation method onto shared site orders in the C++ backend. The methods
+are cited in the Description field.
 
-Any spelling diagnostics for author names and citation fragments in DESCRIPTION
-refer to the cited literature.
+It also fixes the NOTE on the current CRAN checks ("Rd files without
+\usage: autoplot.spacc.Rd").
+
+The bundled nanoflann header (inst/include/nanoflann.hpp, BSD license) has
+been in the package since 0.8.3; its three copyright holders are now listed
+in Authors@R as contributors and copyright holders, with the license text in
+inst/COPYRIGHTS.
+
+Any spelling diagnostics for author names, citation fragments and DOI
+fragments in DESCRIPTION refer to the cited literature.
 
 ## Test environments
 
 - Windows 11 (local), R 4.6.0
-- win-builder: R-devel
+- win-builder: R-devel, R-release
 - GitHub Actions: Ubuntu (R-release, R-devel), macOS (R-release), Windows (R-release)
 
 ## Downstream dependencies

@@ -4,6 +4,7 @@
 #' corresponding `plot()` method, which already returns a ggplot2 object.
 #'
 #' @name autoplot.spacc
+#' @usage \method{autoplot}{spacc}(object, ...)
 #' @param object A spacc object.
 #' @param ... Additional arguments passed to the corresponding `plot()` method.
 #' @return A ggplot2 object.
