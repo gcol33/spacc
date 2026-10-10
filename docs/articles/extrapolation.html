@@ -104,7 +104,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-10-09</h4>
+            <h4 data-toc-skip class="date">2026-10-10</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/extrapolation.Rmd" class="external-link"><code>vignettes/extrapolation.Rmd</code></a></small>
       <div class="d-none name"><code>extrapolation.Rmd</code></div>
@@ -112,6 +112,15 @@ Colling</h4>
 
     
     
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"spacc"</span><span class="op">)</span>            <span class="co"># CRAN</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span>              <span class="co"># development version</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/spacc"</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
@@ -212,7 +221,7 @@ one.</p>
 <div class="section level2">
 <h2 id="data-setup">Data setup<a class="anchor" aria-label="anchor" href="#data-setup"></a>
 </h2>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
@@ -307,7 +316,7 @@ to have missed.</p>
 </h2>
 <p><code><a href="../reference/extrapolate.html">extrapolate()</a></code> fits an asymptotic model to the mean
 accumulation curve to estimate total species richness:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">30</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>A single call returns one fitted model. The default is
 Michaelis-Menten, but any of the six names can be passed. The returned
@@ -323,7 +332,7 @@ are taken up below.</p>
 </h3>
 <p>spacc supports six asymptotic models. Compare them to select the best
 fit:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">models</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"michaelis-menten"</span>, <span class="st">"lomolino"</span>, <span class="st">"asymptotic"</span>, <span class="st">"weibull"</span>, <span class="st">"logistic"</span><span class="op">)</span></span>
 <span><span class="va">fits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">models</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="va">m</span>, interval <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fits</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">models</span></span>
@@ -346,180 +355,16 @@ the ceiling is an extrapolated quantity, and models that agree closely
 over the observed range can still disagree about where they level off.
 The spread across these five asymptotes, set against the known true
 value of 50, shows directly how much model choice matters here.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">best_name</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fits</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="va">f</span><span class="op">$</span><span class="va">aic</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">best</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="va">best_name</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
+<span><span class="va">best</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="va">best_name</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">best</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
 <span>    panel.background <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
 <span>    plot.background <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
-<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00' class="r-plt inline-svg" style="width:100%;height:auto;">
-<g class='svglite'>
-<defs>
-  <style type='text/css'><![CDATA[
-    /* theme-aware-processed */
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
-      fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite > g > rect {
-      fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite text {
-      white-space: pre;
-      fill: #3E3F3A;
-    }
-    .svglite g.glyphgroup path {
-      fill: inherit;
-      stroke: none;
-    }
-  ]]></style>
-</defs>
-<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
-<defs>
-  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
-    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
-</g>
-<defs>
-  <clipPath id='cpNTcuMjN8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
-    <rect x='57.23' y='67.13' width='401.30' height='238.48' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpNTcuMjN8NDU4LjU0fDY3LjEzfDMwNS42MQ==)'>
-<rect x='57.23' y='67.13' width='401.30' height='238.48' style='stroke-width: 1.84;' />
-<circle cx='75.47' cy='294.77' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='79.16' cy='240.16' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='82.84' cy='214.62' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='86.53' cy='192.34' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='90.21' cy='179.58' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='93.90' cy='169.80' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='97.58' cy='156.48' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='101.27' cy='150.78' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='104.95' cy='139.37' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='108.64' cy='132.58' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='112.32' cy='127.96' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='116.01' cy='122.25' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='119.69' cy='118.45' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='123.38' cy='112.20' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='127.06' cy='107.85' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='130.75' cy='103.78' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='134.43' cy='101.33' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='138.12' cy='97.80' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='141.80' cy='96.99' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='145.49' cy='95.08' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='149.17' cy='92.64' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='152.86' cy='90.47' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='156.54' cy='89.11' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='160.23' cy='87.21' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='163.91' cy='86.12' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='167.60' cy='84.22' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='171.28' cy='82.59' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='174.97' cy='81.77' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='178.66' cy='80.41' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='182.34' cy='79.60' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='186.03' cy='79.06' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='189.71' cy='79.06' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='193.40' cy='79.06' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='197.08' cy='79.06' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='200.77' cy='79.06' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='204.45' cy='78.78' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='208.14' cy='78.51' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='211.82' cy='78.24' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='215.51' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='219.19' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='222.88' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='226.56' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='230.25' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='233.93' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='237.62' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='241.30' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='244.99' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='248.67' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='252.36' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='256.04' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='259.73' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='263.41' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='267.10' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='270.78' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='274.47' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='278.15' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='281.84' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='285.52' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='289.21' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='292.89' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='296.58' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='300.26' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='303.95' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='307.63' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='311.32' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='315.00' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='318.69' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='322.37' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='326.06' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='329.74' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='333.43' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='337.11' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='340.80' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='344.48' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='348.17' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='351.85' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='355.54' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='359.22' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='362.91' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='366.59' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='370.28' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='373.96' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='377.65' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='381.33' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='385.02' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='388.70' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='392.39' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='396.07' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='399.76' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='403.44' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='407.13' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='410.81' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='414.50' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='418.18' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='421.87' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='425.55' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='429.24' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='432.92' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='436.61' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<circle cx='440.29' cy='77.97' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
-<polyline points='75.47,294.77 79.16,240.16 82.84,214.62 86.53,192.34 90.21,179.58 93.90,169.80 97.58,156.48 101.27,150.78 104.95,139.37 108.64,132.58 112.32,127.96 116.01,122.25 119.69,118.45 123.38,112.20 127.06,107.85 130.75,103.78 134.43,101.33 138.12,97.80 141.80,96.99 145.49,95.08 149.17,92.64 152.86,90.47 156.54,89.11 160.23,87.21 163.91,86.12 167.60,84.22 171.28,82.59 174.97,81.77 178.66,80.41 182.34,79.60 186.03,79.06 189.71,79.06 193.40,79.06 197.08,79.06 200.77,79.06 204.45,78.78 208.14,78.51 211.82,78.24 215.51,77.97 219.19,77.97 222.88,77.97 226.56,77.97 230.25,77.97 233.93,77.97 237.62,77.97 241.30,77.97 244.99,77.97 248.67,77.97 252.36,77.97 256.04,77.97 259.73,77.97 263.41,77.97 267.10,77.97 270.78,77.97 274.47,77.97 278.15,77.97 281.84,77.97 285.52,77.97 289.21,77.97 292.89,77.97 296.58,77.97 300.26,77.97 303.95,77.97 307.63,77.97 311.32,77.97 315.00,77.97 318.69,77.97 322.37,77.97 326.06,77.97 329.74,77.97 333.43,77.97 337.11,77.97 340.80,77.97 344.48,77.97 348.17,77.97 351.85,77.97 355.54,77.97 359.22,77.97 362.91,77.97 366.59,77.97 370.28,77.97 373.96,77.97 377.65,77.97 381.33,77.97 385.02,77.97 388.70,77.97 392.39,77.97 396.07,77.97 399.76,77.97 403.44,77.97 407.13,77.97 410.81,77.97 414.50,77.97 418.18,77.97 421.87,77.97 425.55,77.97 429.24,77.97 432.92,77.97 436.61,77.97 440.29,77.97 ' style='stroke-width: 1.84; stroke: #2E7D32; stroke-linecap: butt;' />
-</g>
-<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='48.71' y='246.41' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
-<text x='48.71' y='164.91' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
-<text x='48.71' y='83.41' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>50</text>
-<text x='71.79' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
-<text x='163.91' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>25</text>
-<text x='256.04' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>50</text>
-<text x='348.17' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>75</text>
-<text x='440.29' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>100</text>
-<text x='257.88' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites sampled</text>
-<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Cumulative species</text>
-<text x='57.23' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Model: weibull, AIC: NA</text>
-<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Species Accumulation with Extrapolation</text>
-</g>
-</g>
-</svg></div><p class="caption">
+<img src="extrapolation_files/figure-html/plot-best-1.svg" class="r-plt" alt="Best-fitting asymptotic model with bootstrap band." width="624"><p class="caption">
 Best-fitting asymptotic model with bootstrap band.
 </p>
 </div>
@@ -533,13 +378,13 @@ interval, and the dotted horizontal line the estimated asymptote.</p>
 <p>The Extreme Value Theory model (Borda-de-Agua et al. 2025) uses a
 two-component Weibull mixture to capture the triphasic pattern observed
 in empirical species-area relationships:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_evt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">sac</span>, model <span class="op">=</span> <span class="st">"evt"</span><span class="op">)</span></span>
 <span><span class="va">fit_evt</span></span>
 <span><span class="co">#&gt; Extrapolation: evt </span></span>
 <span><span class="co">#&gt; -------------------------------------- </span></span>
 <span><span class="co">#&gt; Estimated asymptote: 50.0 species</span></span>
-<span><span class="co">#&gt; 95% CI (bootstrap):       49.9 - 52.7</span></span>
+<span><span class="co">#&gt; 95% CI (bootstrap):       50.0 - 50.4</span></span>
 <span><span class="co">#&gt; Observed:            50.0 species (100% of estimated)</span></span>
 <span><span class="co">#&gt; AIC: -193.2   RMSE: 0.09 (0.2% of mean)</span></span>
 <span><span class="co">#&gt; Reliable to ~250 sites (2.5x sampled effort of 100)</span></span>
@@ -561,38 +406,31 @@ genuinely bends more than once.</p>
 them by AIC, adding BIC, delta-AIC, Akaike weights, parameter counts,
 and a convergence flag. This is the recommended entry point when the
 goal is model selection rather than a single pre-chosen form.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compareModels.html">compareModels</a></span><span class="op">(</span><span class="va">sac</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
-<span><span class="co">#&gt; Warning: Model fitting failed: variable lengths differ (found for '(progress)')</span></span>
-<span><span class="co">#&gt; Warning in min(aic_vals, na.rm = TRUE): no non-missing arguments to min;</span></span>
-<span><span class="co">#&gt; returning Inf</span></span>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compareModels.html">compareModels</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span>
 <span><span class="va">cm</span></span>
 <span><span class="co">#&gt; SAR Model Comparison</span></span>
 <span><span class="co">#&gt; ------------------------------ </span></span>
-<span><span class="co">#&gt;   michaelis-menten     (failed to converge)</span></span>
-<span><span class="co">#&gt;   lomolino             (failed to converge)</span></span>
-<span><span class="co">#&gt;   asymptotic           (failed to converge)</span></span>
-<span><span class="co">#&gt;   weibull              (failed to converge)</span></span>
-<span><span class="co">#&gt;   logistic             (failed to converge)</span></span>
-<span><span class="co">#&gt;   evt                  (failed to converge)</span></span>
-<span><span class="co">#&gt; ------------------------------</span></span></code></pre></div>
+<span><span class="co">#&gt;   evt                  AIC:   -193.2  dAIC:    0.0  w: 1.000  S_max:   50.0 *</span></span>
+<span><span class="co">#&gt;   weibull              AIC:     95.8  dAIC:  289.0  w: 0.000  S_max:   50.3</span></span>
+<span><span class="co">#&gt;   logistic             AIC:    185.2  dAIC:  378.4  w: 0.000  S_max:   49.9</span></span>
+<span><span class="co">#&gt;   lomolino             AIC:    215.1  dAIC:  408.3  w: 0.000  S_max:   51.8</span></span>
+<span><span class="co">#&gt;   michaelis-menten     AIC:    222.9  dAIC:  416.2  w: 0.000  S_max:   51.3</span></span>
+<span><span class="co">#&gt;   asymptotic           AIC:    411.8  dAIC:  605.1  w: 0.000  S_max:   49.4</span></span>
+<span><span class="co">#&gt; ------------------------------ </span></span>
+<span><span class="co">#&gt; Best model: evt</span></span></code></pre></div>
 <p>The printed table is sorted with the best model first and starred.
 The data frame behind it, reachable with <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>,
 holds the same columns for further use:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cm</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"AIC"</span>, <span class="st">"delta_AIC"</span>, <span class="st">"AIC_weight"</span>, <span class="st">"converged"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;              model AIC delta_AIC AIC_weight converged</span></span>
-<span><span class="co">#&gt; 1 michaelis-menten  NA        NA         NA     FALSE</span></span>
-<span><span class="co">#&gt; 2         lomolino  NA        NA         NA     FALSE</span></span>
-<span><span class="co">#&gt; 3       asymptotic  NA        NA         NA     FALSE</span></span>
-<span><span class="co">#&gt; 4          weibull  NA        NA         NA     FALSE</span></span>
-<span><span class="co">#&gt; 5         logistic  NA        NA         NA     FALSE</span></span>
-<span><span class="co">#&gt; 6              evt  NA        NA         NA     FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt;              model        AIC delta_AIC    AIC_weight converged</span></span>
+<span><span class="co">#&gt; 1              evt -193.23852    0.0000  1.000000e+00      TRUE</span></span>
+<span><span class="co">#&gt; 2          weibull   95.79357  289.0321  1.727742e-63      TRUE</span></span>
+<span><span class="co">#&gt; 3         logistic  185.18786  378.4264  6.695096e-83      TRUE</span></span>
+<span><span class="co">#&gt; 4         lomolino  215.09734  408.3359  2.142867e-89      TRUE</span></span>
+<span><span class="co">#&gt; 5 michaelis-menten  222.93504  416.1736  4.256573e-91      TRUE</span></span>
+<span><span class="co">#&gt; 6       asymptotic  411.81789  605.0564 4.108371e-132      TRUE</span></span></code></pre></div>
 <p>Models within about 2 delta-AIC units of the best are usually treated
 as indistinguishable on these data; the Akaike weight turns that into a
 probability that each model is the best in the set. A single model with
@@ -605,13 +443,16 @@ and <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">c
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> returns the bootstrap interval stored on the fit;
 <code>method = "profile"</code> recovers the <code>nls</code>
 profile-likelihood interval for comparison:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">best</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] NA</span></span>
+<span><span class="co">#&gt;          a          b          c </span></span>
+<span><span class="co">#&gt; 50.3055289  2.6353322  0.5387455</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">best</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] NA</span></span>
+<span><span class="co">#&gt;      2.5 %   97.5 %</span></span>
+<span><span class="co">#&gt; a 49.83558 50.94128</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">best</span>, method <span class="op">=</span> <span class="st">"profile"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] NA</span></span></code></pre></div>
+<span><span class="co">#&gt;      2.5 %   97.5 %</span></span>
+<span><span class="co">#&gt; a 50.19333 50.42069</span></span></code></pre></div>
 <p>The profile interval is computed from the residuals of a single fit
 to the mean curve. Because averaging many seeds makes that curve very
 smooth, those residuals are tiny and the profile interval is
@@ -624,13 +465,20 @@ fit carries the residual root-mean-square error over the observed range,
 and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows it together with the asymptote, the
 nonparametric <code><a href="../reference/chao2.html">chao2()</a></code> and <code><a href="../reference/iChao2.html">iChao2()</a></code> estimates,
 and an effort range within which predictions are reasonable:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">best</span><span class="op">$</span><span class="va">gof</span><span class="op">$</span><span class="va">rmse</span></span>
-<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; [1] 0.3753221</span></span>
 <span><span class="va">best</span></span>
 <span><span class="co">#&gt; Extrapolation: weibull </span></span>
 <span><span class="co">#&gt; -------------------------------------- </span></span>
-<span><span class="co">#&gt; Model fitting failed</span></span></code></pre></div>
+<span><span class="co">#&gt; Estimated asymptote: 50.3 species</span></span>
+<span><span class="co">#&gt; 95% CI (bootstrap):       49.8 - 50.9</span></span>
+<span><span class="co">#&gt; Observed:            50.0 species (99% of estimated)</span></span>
+<span><span class="co">#&gt; AIC: 95.8   RMSE: 0.38 (0.8% of mean)</span></span>
+<span><span class="co">#&gt; Reliable to ~250 sites (2.5x sampled effort of 100)</span></span>
+<span><span class="co">#&gt; -------------------------------------- </span></span>
+<span><span class="co">#&gt; Nonparametric:  chao2 = 50.0   iChao2 = 50.0</span></span>
+<span><span class="co">#&gt; (prefer these for calibrated total-richness intervals; see ?extrapolate)</span></span></code></pre></div>
 <p>The fit goes through <code><a href="https://rdrr.io/r/stats/nls.html" class="external-link">nls()</a></code>, which can fail to converge
 when the curve is short, noisy, or far from saturated; the bounded
 <code>"port"</code> algorithm used for EVT is more stable but still not
@@ -672,12 +520,12 @@ order; more seeds smooth the mean and tighten the confidence band, which
 steadies the fit because <code><a href="../reference/extrapolate.html">extrapolate()</a></code> works on the mean.
 The effect is visible in the asymptote estimate as the seed count
 rises:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">20</span>, <span class="fl">50</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="va">k</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/extrapolate.html">extrapolate</a></span><span class="op">(</span><span class="va">s</span>, model <span class="op">=</span> <span class="st">"michaelis-menten"</span><span class="op">)</span><span class="op">$</span><span class="va">asymptote</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 51.6 51.1 50.9</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 50.6 50.8 51.0</span></span></code></pre></div>
 <p>The estimate stabilises as seeds accumulate; the gain from 20 to 50
 is typically smaller than from 5 to 20, so 30 to 50 seeds is a
 reasonable default for a stable mean. The third control is the model
@@ -691,7 +539,7 @@ front.</p>
 <p><code><a href="../reference/extrapolateCoverage.html">extrapolateCoverage()</a></code> estimates richness at coverage
 levels beyond the observed maximum, using asymptotic estimators (Chao et
 al. 2014):</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">ext</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolateCoverage.html">extrapolateCoverage</a></span><span class="op">(</span><span class="va">cov</span>, target_coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="fl">0.99</span>, <span class="fl">1.0</span><span class="op">)</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -703,91 +551,24 @@ al. 2014):</p>
 <span><span class="co">#&gt; Observed richness: 50.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Extrapolated richness:</span></span>
-<span><span class="co">#&gt;   C=95%: 34.9 (+/- 7.1)</span></span>
-<span><span class="co">#&gt;   C=99%: 42.1 (+/- 4.5)</span></span>
-<span><span class="co">#&gt;   C=100%: 49.5 (+/- 0.5)</span></span></code></pre></div>
-<p>Targets below the observed coverage are interpolated; targets above
-it invoke the Chao1-based extrapolation for <code>q = 0</code>, with
-separate estimators for the Shannon (<code>q = 1</code>) and Simpson
-(<code>q = 2</code>) orders. The printed output reports observed
-coverage and richness alongside the extrapolated values so the size of
-the extrapolation step is visible.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt;   C=95%: 33.8 (+/- 8.1)</span></span>
+<span><span class="co">#&gt;   C=99%: 42.8 (+/- 4.2)</span></span>
+<span><span class="co">#&gt;   C=100%: 49.4 (+/- 1.0)</span></span></code></pre></div>
+<p>Targets below the observed coverage are interpolated along each
+seed’s curve; targets above it extrapolate the pooled sample towards the
+Chao1 asymptote for <code>q = 0</code>. The Shannon (<code>q = 1</code>)
+and Simpson (<code>q = 2</code>) orders need the Hill curves of a
+<code><a href="../reference/spaccHillCoverage.html">spaccHillCoverage()</a></code> object. The printed output reports
+observed coverage and richness alongside the extrapolated values so the
+size of the extrapolation step is visible.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ext</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
 <span>    panel.background <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
 <span>    plot.background <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
-<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00' class="r-plt inline-svg" style="width:100%;height:auto;">
-<g class='svglite'>
-<defs>
-  <style type='text/css'><![CDATA[
-    /* theme-aware-processed */
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
-      fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite > g > rect {
-      fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite text {
-      white-space: pre;
-      fill: #3E3F3A;
-    }
-    .svglite g.glyphgroup path {
-      fill: inherit;
-      stroke: none;
-    }
-  ]]></style>
-</defs>
-<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
-<defs>
-  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
-    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
-</g>
-<defs>
-  <clipPath id='cpNTcuMjN8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
-    <rect x='57.23' y='67.13' width='401.30' height='238.48' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpNTcuMjN8NDU4LjU0fDY3LjEzfDMwNS42MQ==)'>
-<rect x='57.23' y='67.13' width='401.30' height='238.48' style='stroke-width: 1.84;' />
-<polygon points='75.47,153.80 296.53,114.41 363.08,103.15 388.84,91.90 397.14,86.27 407.97,86.27 415.70,86.27 417.13,83.60 419.16,77.97 422.76,77.97 424.21,77.97 426.66,77.97 427.43,77.97 428.58,77.97 430.38,77.97 431.79,77.97 433.16,77.97 434.25,77.97 435.30,77.97 435.86,77.97 436.33,77.97 436.73,77.97 437.49,77.97 437.75,77.97 438.25,77.97 438.43,77.97 438.48,77.97 438.57,77.97 438.58,77.97 438.85,77.97 439.23,77.97 439.43,77.97 439.56,77.97 439.69,77.97 439.77,77.97 439.95,77.97 440.02,77.97 440.08,77.97 440.09,77.97 440.09,77.97 440.10,77.97 440.13,77.97 440.15,77.97 440.25,77.97 440.25,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.25,77.97 440.25,77.97 440.15,80.92 440.13,83.60 440.10,77.97 440.09,80.92 440.09,80.92 440.08,80.92 440.02,83.60 439.95,83.60 439.77,83.60 439.69,83.60 439.56,83.60 439.43,83.60 439.23,83.60 438.85,83.60 438.58,86.55 438.57,89.22 438.48,89.22 438.43,89.22 438.25,92.18 437.75,95.13 437.49,100.76 436.73,100.76 436.33,103.43 435.86,106.11 435.30,106.11 434.25,106.11 433.16,106.11 431.79,114.69 430.38,123.27 428.58,132.13 427.43,137.48 426.66,142.83 424.21,151.69 422.76,162.94 419.16,173.92 417.13,193.47 415.70,199.10 407.97,210.35 397.14,216.26 388.84,241.16 363.08,258.33 296.53,272.54 75.47,294.77 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
-<polyline points='75.47,153.80 296.53,114.41 363.08,103.15 388.84,91.90 397.14,86.27 407.97,86.27 415.70,86.27 417.13,83.60 419.16,77.97 422.76,77.97 424.21,77.97 426.66,77.97 427.43,77.97 428.58,77.97 430.38,77.97 431.79,77.97 433.16,77.97 434.25,77.97 435.30,77.97 435.86,77.97 436.33,77.97 436.73,77.97 437.49,77.97 437.75,77.97 438.25,77.97 438.43,77.97 438.48,77.97 438.57,77.97 438.58,77.97 438.85,77.97 439.23,77.97 439.43,77.97 439.56,77.97 439.69,77.97 439.77,77.97 439.95,77.97 440.02,77.97 440.08,77.97 440.09,77.97 440.09,77.97 440.10,77.97 440.13,77.97 440.15,77.97 440.25,77.97 440.25,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polyline points='440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.25,77.97 440.25,77.97 440.15,80.92 440.13,83.60 440.10,77.97 440.09,80.92 440.09,80.92 440.08,80.92 440.02,83.60 439.95,83.60 439.77,83.60 439.69,83.60 439.56,83.60 439.43,83.60 439.23,83.60 438.85,83.60 438.58,86.55 438.57,89.22 438.48,89.22 438.43,89.22 438.25,92.18 437.75,95.13 437.49,100.76 436.73,100.76 436.33,103.43 435.86,106.11 435.30,106.11 434.25,106.11 433.16,106.11 431.79,114.69 430.38,123.27 428.58,132.13 427.43,137.48 426.66,142.83 424.21,151.69 422.76,162.94 419.16,173.92 417.13,193.47 415.70,199.10 407.97,210.35 397.14,216.26 388.84,241.16 363.08,258.33 296.53,272.54 75.47,294.77 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polyline points='75.47,212.75 296.53,175.32 363.08,156.19 388.84,145.78 397.14,135.93 407.97,130.59 415.70,125.52 417.13,120.17 419.16,115.67 422.76,113.14 424.21,107.79 426.66,103.57 427.43,100.76 428.58,98.23 430.38,97.10 431.79,94.85 433.16,93.16 434.25,92.60 435.30,91.19 435.86,90.07 436.33,88.10 436.73,86.41 437.49,85.85 437.75,84.16 438.25,83.32 438.43,81.35 438.48,80.50 438.57,81.06 438.58,79.94 438.85,79.66 439.23,79.66 439.43,79.09 439.56,79.09 439.69,78.81 439.77,78.81 439.95,78.53 440.02,78.53 440.08,78.25 440.09,78.25 440.09,78.25 440.10,77.97 440.13,78.53 440.15,78.25 440.25,77.97 440.25,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 440.29,77.97 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
-<line x1='440.29' y1='305.61' x2='440.29' y2='67.13' style='stroke-width: 1.84; stroke: #7F7F7F; stroke-dasharray: 9.83,9.83; stroke-linecap: butt;' />
-</g>
-<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='48.71' y='308.50' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
-<text x='48.71' y='252.23' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
-<text x='48.71' y='195.95' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
-<text x='48.71' y='139.68' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
-<text x='48.71' y='83.41' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>50</text>
-<text x='106.60' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.85</text>
-<text x='217.83' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.90</text>
-<text x='329.06' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.95</text>
-<text x='440.29' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.00</text>
-<text x='257.88' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sample coverage</text>
-<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Diversity (q = 0)</text>
-<text x='57.23' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Observed coverage: 100.0%</text>
-<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Coverage-Based Extrapolation</text>
-</g>
-</g>
-</svg></div><p class="caption">
+<img src="extrapolation_files/figure-html/plot-cov-extrap-1.svg" class="r-plt" alt="Coverage-based extrapolation of species richness." width="624"><p class="caption">
 Coverage-based extrapolation of species richness.
 </p>
 </div>
@@ -795,107 +576,159 @@ Coverage-based extrapolation of species richness.
 abundances. Standardizing by coverage ensures equal completeness rather
 than equal sample size, so a richer but less thoroughly sampled
 community is not penalised for its lower count.</p>
+<div class="section level3">
+<h3 id="sites-drawn-from-a-finite-set-of-units">Sites drawn from a finite set of units<a class="anchor" aria-label="anchor" href="#sites-drawn-from-a-finite-set-of-units"></a>
+</h3>
+<p>Chao2 and the Chiu (2023) coverage treat the sites as draws with
+replacement from an unlimited set of units. An atlas grid or a plot
+network is finite, and a survey often covers a large fraction <span class="math inline">\(w = t / T\)</span> of its <span class="math inline">\(T\)</span> units. Once <span class="math inline">\(w\)</span> is large, the species not yet seen can
+only sit in the few remaining units, and at <span class="math inline">\(w = 1\)</span> the survey is a census.
+<code>n_units = T</code> switches both estimators to their
+without-replacement forms. The example is a 20 x 20 grid of rare
+species, of which a survey visits 320 cells:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">300</span>, <span class="fl">0.001</span>, <span class="fl">0.03</span><span class="op">)</span>,</span>
+<span>               <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">400</span>, <span class="fl">1</span>, <span class="va">p</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1L</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">400</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span>
+<span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">20</span>, <span class="fl">20</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">20</span>, each <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">surveyed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">400</span>, <span class="fl">320</span><span class="op">)</span></span>
+<span><span class="va">survey</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">[</span><span class="va">surveyed</span>, <span class="op">]</span></span>
+<span><span class="va">detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">survey</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>true <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span>, observed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">detected</span><span class="op">)</span>,</span>
+<span>  chao2 <span class="op">=</span> <span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">survey</span><span class="op">)</span><span class="op">$</span><span class="va">estimate</span>,</span>
+<span>  MoRE <span class="op">=</span> <span class="fu"><a href="../reference/chao2.html">chao2</a></span><span class="op">(</span><span class="va">survey</span>, n_units <span class="op">=</span> <span class="fl">400</span><span class="op">)</span><span class="op">$</span><span class="va">estimate</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     true observed    chao2     MoRE </span></span>
+<span><span class="co">#&gt; 283.0000 275.0000 289.2842 280.5959</span></span>
+<span></span>
+<span><span class="va">cov_wr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">survey</span>, <span class="va">cells</span><span class="op">[</span><span class="va">surveyed</span>, <span class="op">]</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>,</span>
+<span>                        coverage <span class="op">=</span> <span class="st">"chiu"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">cov_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spaccCoverage.html">spaccCoverage</a></span><span class="op">(</span><span class="va">survey</span>, <span class="va">cells</span><span class="op">[</span><span class="va">surveyed</span>, <span class="op">]</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>,</span>
+<span>                          coverage <span class="op">=</span> <span class="st">"chiu"</span>, n_units <span class="op">=</span> <span class="fl">400</span>,</span>
+<span>                          progress <span class="op">=</span> <span class="cn">FALSE</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>true <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">grid</span><span class="op">[</span>, <span class="va">detected</span><span class="op">]</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span>,</span>
+<span>  with_replacement <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">cov_wr</span><span class="op">$</span><span class="va">coverage</span><span class="op">[</span>, <span class="fl">320</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  n_units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">cov_grid</span><span class="op">$</span><span class="va">coverage</span><span class="op">[</span>, <span class="fl">320</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;             true with_replacement          n_units </span></span>
+<span><span class="co">#&gt;        0.9950097        0.9896038        0.9959013</span></span></code></pre></div>
+<p>Chao2 places the total above the true 283 species, MoRE below it and
+closer; the finite-population coverage lands next to the true share
+where the with-replacement one falls short of it.</p>
+<p><code>chao2(n_units = )</code> is the moment-based estimator MoRE
+(Chiu 2023, Methods in Ecology and Evolution). The coverage writes the
+abundance of the undetected species as their estimated number times the
+mean abundance of a unique species; with <code>n_units</code> the number
+is the MoRE term, so richness and coverage of one sample rest on the
+same estimate of what is missing. <code>extrapolate(n_units = )</code>
+prints MoRE next to the fitted asymptote.</p>
+<p>On simulated grids, with the truth taken as the share of the grid’s
+total abundance held by the detected species, the finite-population
+coverage has the lower error once half the grid is sampled. The grids
+are 200 cells with occupancies of 0.003 to 0.15 (common) and 400 cells
+with occupancies of 0.001 to 0.02 (sparse), 400 draws per row:</p>
+<table class="table">
+<colgroup>
+<col width="20%">
+<col width="20%">
+<col width="20%">
+<col width="20%">
+<col width="20%">
+</colgroup>
+<thead><tr class="header">
+<th>Grid</th>
+<th><span class="math inline">\(w\)</span></th>
+<th>True coverage</th>
+<th>RMSE, with replacement</th>
+<th>RMSE, <code>n_units</code>
+</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>common</td>
+<td>0.10</td>
+<td>0.856</td>
+<td>0.064</td>
+<td>0.060</td>
+</tr>
+<tr class="even">
+<td>common</td>
+<td>0.50</td>
+<td>0.996</td>
+<td>0.0045</td>
+<td>0.0038</td>
+</tr>
+<tr class="odd">
+<td>common</td>
+<td>0.95</td>
+<td>1.000</td>
+<td>0.0025</td>
+<td>0.0002</td>
+</tr>
+<tr class="even">
+<td>sparse</td>
+<td>0.10</td>
+<td>0.467</td>
+<td>0.073</td>
+<td>0.104</td>
+</tr>
+<tr class="odd">
+<td>sparse</td>
+<td>0.30</td>
+<td>0.838</td>
+<td>0.038</td>
+<td>0.040</td>
+</tr>
+<tr class="even">
+<td>sparse</td>
+<td>0.50</td>
+<td>0.947</td>
+<td>0.020</td>
+<td>0.016</td>
+</tr>
+<tr class="odd">
+<td>sparse</td>
+<td>0.80</td>
+<td>0.991</td>
+<td>0.016</td>
+<td>0.004</td>
+</tr>
+<tr class="even">
+<td>sparse</td>
+<td>0.95</td>
+<td>0.999</td>
+<td>0.015</td>
+<td>0.0015</td>
+</tr>
+</tbody>
+</table>
+<p>Near a census the with-replacement coverage stays below the truth by
+about 0.014 on the sparse grid, because Chao2 still predicts undetected
+species that cannot exist; the finite form removes that bias. At small
+fractions of a sparse grid MoRE predicts more undetected species than
+Chao2 and the coverage comes out low, so <code>n_units</code> pays off
+from about half the grid on.</p>
 <p><code><a href="../reference/dar.html">dar()</a></code> fits the relationship between diversity (Hill
 numbers) and cumulative area (Ma 2018), generalising the classical
 species-area relationship to every Hill number order:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dar_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dar.html">dar</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, n_seeds <span class="op">=</span> <span class="fl">20</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">dar_result</span></span>
-<span><span class="co">#&gt; spacc DAR: 100 sites, 20 seeds</span></span>
+<span><span class="co">#&gt; spacc DAR: 100 sites, 20 seeds (from spacc_hill)</span></span>
 <span><span class="co">#&gt; Orders (q): 0, 1, 2</span></span>
-<span><span class="co">#&gt; Area method: convex_hull</span></span></code></pre></div>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt; Area method: convex_hull</span></span>
+<span><span class="co">#&gt; Power law D = c * A^z:</span></span>
+<span><span class="co">#&gt;   q0.0: z = 0.045</span></span>
+<span><span class="co">#&gt;   q1.0: z = 0.126</span></span>
+<span><span class="co">#&gt;   q2.0: z = 0.168</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">dar_result</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
 <span>    panel.background <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
 <span>    plot.background <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
-<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00' class="r-plt inline-svg" style="width:100%;height:auto;">
-<g class='svglite'>
-<defs>
-  <style type='text/css'><![CDATA[
-    /* theme-aware-processed */
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
-      fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite > g > rect {
-      fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite text {
-      white-space: pre;
-      fill: #3E3F3A;
-    }
-    .svglite g.glyphgroup path {
-      fill: inherit;
-      stroke: none;
-    }
-  ]]></style>
-</defs>
-<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
-<defs>
-  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
-    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
-</g>
-<defs>
-  <clipPath id='cpNTcuMjN8NDU4LjU0fDQwLjA1fDI0Ny41OQ=='>
-    <rect x='57.23' y='40.05' width='401.30' height='207.53' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpNTcuMjN8NDU4LjU0fDQwLjA1fDI0Ny41OQ==)'>
-<rect x='57.23' y='40.05' width='401.30' height='207.53' style='stroke-width: 1.84;' />
-<polygon points='75.47,107.19 76.42,75.82 76.66,85.43 78.07,66.20 79.31,61.39 81.39,59.10 83.36,54.30 85.44,49.49 88.28,49.49 91.54,49.49 94.46,49.49 98.13,49.49 103.04,49.49 106.54,49.49 109.78,49.49 113.97,49.49 116.66,49.49 119.99,49.49 122.64,49.49 126.92,49.49 131.00,49.49 133.54,49.49 136.23,49.49 139.25,49.49 142.89,49.49 146.70,49.49 151.57,49.49 155.22,49.49 159.70,49.49 163.56,49.49 167.87,49.49 170.63,49.49 174.80,49.49 178.87,49.49 183.36,49.49 187.06,49.49 192.46,49.49 197.26,49.49 201.45,49.49 205.91,49.49 210.95,49.49 215.33,49.49 220.32,49.49 225.25,49.49 229.83,49.49 233.85,49.49 236.59,49.49 239.55,49.49 244.48,49.49 248.29,49.49 252.65,49.49 256.18,49.49 261.75,49.49 265.08,49.49 270.61,49.49 274.00,49.49 277.25,49.49 281.40,49.49 285.95,49.49 289.27,49.49 293.56,49.49 297.12,49.49 302.33,49.49 305.62,49.49 309.20,49.49 313.05,49.49 316.52,49.49 320.12,49.49 323.84,49.49 327.01,49.49 330.99,49.49 335.25,49.49 338.01,49.49 341.67,49.49 346.37,49.49 350.09,49.49 353.82,49.49 358.06,49.49 361.08,49.49 365.83,49.49 368.78,49.49 371.43,49.49 374.76,49.49 379.09,49.49 382.09,49.49 387.80,49.49 391.10,49.49 394.30,49.49 398.41,49.49 402.14,49.49 406.39,49.49 409.06,49.49 412.84,49.49 416.26,49.49 419.50,49.49 422.30,49.49 424.58,49.49 428.57,49.49 432.68,49.49 440.29,49.49 440.29,49.49 432.68,49.49 428.57,49.49 424.58,49.49 422.30,49.49 419.50,49.49 416.26,49.49 412.84,49.49 409.06,49.49 406.39,49.49 402.14,49.49 398.41,49.49 394.30,49.49 391.10,49.49 387.80,49.49 382.09,49.49 379.09,49.49 374.76,49.49 371.43,49.49 368.78,49.49 365.83,49.49 361.08,49.49 358.06,49.49 353.82,49.49 350.09,49.49 346.37,49.49 341.67,49.49 338.01,49.49 335.25,49.49 330.99,49.49 327.01,49.49 323.84,49.49 320.12,49.49 316.52,49.49 313.05,49.49 309.20,49.49 305.62,49.49 302.33,49.49 297.12,49.49 293.56,49.49 289.27,49.49 285.95,49.49 281.40,49.49 277.25,49.49 274.00,49.49 270.61,49.49 265.08,49.49 261.75,49.49 256.18,49.49 252.65,49.49 248.29,49.49 244.48,49.49 239.55,49.49 236.59,49.49 233.85,49.49 229.83,49.49 225.25,49.49 220.32,49.49 215.33,49.49 210.95,49.49 205.91,49.49 201.45,49.49 197.26,49.49 192.46,49.49 187.06,49.49 183.36,54.30 178.87,54.30 174.80,54.30 170.63,54.30 167.87,54.30 163.56,54.30 159.70,54.30 155.22,59.35 151.57,61.63 146.70,68.72 142.89,68.72 139.25,71.25 136.23,73.53 133.54,73.53 131.00,73.53 126.92,73.53 122.64,83.15 119.99,83.15 116.66,83.15 113.97,83.15 109.78,83.15 106.54,85.67 103.04,87.96 98.13,92.77 94.46,100.10 91.54,109.72 88.28,114.53 85.44,122.10 83.36,141.57 81.39,156.48 79.31,175.24 78.07,177.76 76.66,194.23 76.42,182.57 75.47,225.37 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
-<polyline points='75.47,107.19 76.42,75.82 76.66,85.43 78.07,66.20 79.31,61.39 81.39,59.10 83.36,54.30 85.44,49.49 88.28,49.49 91.54,49.49 94.46,49.49 98.13,49.49 103.04,49.49 106.54,49.49 109.78,49.49 113.97,49.49 116.66,49.49 119.99,49.49 122.64,49.49 126.92,49.49 131.00,49.49 133.54,49.49 136.23,49.49 139.25,49.49 142.89,49.49 146.70,49.49 151.57,49.49 155.22,49.49 159.70,49.49 163.56,49.49 167.87,49.49 170.63,49.49 174.80,49.49 178.87,49.49 183.36,49.49 187.06,49.49 192.46,49.49 197.26,49.49 201.45,49.49 205.91,49.49 210.95,49.49 215.33,49.49 220.32,49.49 225.25,49.49 229.83,49.49 233.85,49.49 236.59,49.49 239.55,49.49 244.48,49.49 248.29,49.49 252.65,49.49 256.18,49.49 261.75,49.49 265.08,49.49 270.61,49.49 274.00,49.49 277.25,49.49 281.40,49.49 285.95,49.49 289.27,49.49 293.56,49.49 297.12,49.49 302.33,49.49 305.62,49.49 309.20,49.49 313.05,49.49 316.52,49.49 320.12,49.49 323.84,49.49 327.01,49.49 330.99,49.49 335.25,49.49 338.01,49.49 341.67,49.49 346.37,49.49 350.09,49.49 353.82,49.49 358.06,49.49 361.08,49.49 365.83,49.49 368.78,49.49 371.43,49.49 374.76,49.49 379.09,49.49 382.09,49.49 387.80,49.49 391.10,49.49 394.30,49.49 398.41,49.49 402.14,49.49 406.39,49.49 409.06,49.49 412.84,49.49 416.26,49.49 419.50,49.49 422.30,49.49 424.58,49.49 428.57,49.49 432.68,49.49 440.29,49.49 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polyline points='440.29,49.49 432.68,49.49 428.57,49.49 424.58,49.49 422.30,49.49 419.50,49.49 416.26,49.49 412.84,49.49 409.06,49.49 406.39,49.49 402.14,49.49 398.41,49.49 394.30,49.49 391.10,49.49 387.80,49.49 382.09,49.49 379.09,49.49 374.76,49.49 371.43,49.49 368.78,49.49 365.83,49.49 361.08,49.49 358.06,49.49 353.82,49.49 350.09,49.49 346.37,49.49 341.67,49.49 338.01,49.49 335.25,49.49 330.99,49.49 327.01,49.49 323.84,49.49 320.12,49.49 316.52,49.49 313.05,49.49 309.20,49.49 305.62,49.49 302.33,49.49 297.12,49.49 293.56,49.49 289.27,49.49 285.95,49.49 281.40,49.49 277.25,49.49 274.00,49.49 270.61,49.49 265.08,49.49 261.75,49.49 256.18,49.49 252.65,49.49 248.29,49.49 244.48,49.49 239.55,49.49 236.59,49.49 233.85,49.49 229.83,49.49 225.25,49.49 220.32,49.49 215.33,49.49 210.95,49.49 205.91,49.49 201.45,49.49 197.26,49.49 192.46,49.49 187.06,49.49 183.36,54.30 178.87,54.30 174.80,54.30 170.63,54.30 167.87,54.30 163.56,54.30 159.70,54.30 155.22,59.35 151.57,61.63 146.70,68.72 142.89,68.72 139.25,71.25 136.23,73.53 133.54,73.53 131.00,73.53 126.92,73.53 122.64,83.15 119.99,83.15 116.66,83.15 113.97,83.15 109.78,83.15 106.54,85.67 103.04,87.96 98.13,92.77 94.46,100.10 91.54,109.72 88.28,114.53 85.44,122.10 83.36,141.57 81.39,156.48 79.31,175.24 78.07,177.76 76.66,194.23 76.42,182.57 75.47,225.37 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polygon points='75.47,131.51 76.42,106.17 76.66,119.47 78.07,105.68 79.31,102.45 81.39,98.26 83.36,94.29 85.44,89.96 88.28,90.21 91.54,90.53 94.46,87.23 98.13,85.79 103.04,83.18 106.54,83.04 109.78,83.28 113.97,83.62 116.66,83.90 119.99,83.71 122.64,84.11 126.92,83.94 131.00,83.64 133.54,84.43 136.23,84.84 139.25,84.87 142.89,83.77 146.70,83.69 151.57,83.76 155.22,85.12 159.70,85.79 163.56,85.30 167.87,81.86 170.63,82.33 174.80,79.36 178.87,79.51 183.36,77.16 187.06,75.06 192.46,74.25 197.26,74.50 201.45,74.95 205.91,74.32 210.95,73.38 215.33,73.01 220.32,72.67 225.25,71.62 229.83,71.28 233.85,71.15 236.59,70.56 239.55,70.05 244.48,68.90 248.29,68.68 252.65,67.43 256.18,67.28 261.75,66.93 265.08,65.81 270.61,65.41 274.00,64.74 277.25,64.18 281.40,63.74 285.95,63.13 289.27,62.68 293.56,62.07 297.12,61.58 302.33,61.03 305.62,60.80 309.20,60.14 313.05,59.72 316.52,58.81 320.12,58.32 323.84,57.65 327.01,57.16 330.99,56.99 335.25,56.48 338.01,55.99 341.67,55.51 346.37,55.21 350.09,54.96 353.82,54.77 358.06,54.53 361.08,54.27 365.83,54.11 368.78,53.92 371.43,53.82 374.76,53.82 379.09,53.71 382.09,53.63 387.80,53.44 391.10,53.42 394.30,53.42 398.41,53.40 402.14,53.37 406.39,53.40 409.06,53.37 412.84,53.41 416.26,53.32 419.50,53.36 422.30,53.41 424.58,53.49 428.57,53.56 432.68,53.59 440.29,53.64 440.29,53.64 432.68,53.96 428.57,54.18 424.58,54.42 422.30,54.89 419.50,55.24 416.26,55.81 412.84,56.27 409.06,56.65 406.39,57.39 402.14,57.73 398.41,58.52 394.30,58.77 391.10,59.48 387.80,60.42 382.09,61.11 379.09,61.80 374.76,62.12 371.43,62.80 368.78,63.67 365.83,64.49 361.08,65.55 358.06,66.25 353.82,67.23 350.09,68.53 346.37,69.91 341.67,70.67 338.01,71.40 335.25,72.74 330.99,74.68 327.01,75.76 323.84,76.89 320.12,77.30 316.52,78.07 313.05,78.40 309.20,79.18 305.62,80.84 302.33,82.59 297.12,84.35 293.56,85.93 289.27,87.85 285.95,88.75 281.40,89.47 277.25,89.52 274.00,90.97 270.61,91.28 265.08,91.85 261.75,92.87 256.18,92.88 252.65,94.26 248.29,95.85 244.48,97.63 239.55,99.31 236.59,100.50 233.85,102.22 229.83,105.92 225.25,107.25 220.32,108.82 215.33,112.01 210.95,113.78 205.91,114.53 201.45,117.60 197.26,121.06 192.46,122.87 187.06,123.91 183.36,127.66 178.87,130.39 174.80,133.90 170.63,137.77 167.87,138.09 163.56,140.15 159.70,142.81 155.22,146.88 151.57,147.15 146.70,149.49 142.89,151.62 139.25,152.70 136.23,155.35 133.54,156.52 131.00,159.27 126.92,160.83 122.64,162.68 119.99,165.11 116.66,166.79 113.97,166.88 109.78,167.22 106.54,166.94 103.04,166.43 98.13,171.33 94.46,174.01 91.54,176.06 88.28,179.78 85.44,182.84 83.36,186.75 81.39,195.18 79.31,202.55 78.07,203.35 76.66,216.65 76.42,208.32 75.47,231.02 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
-<polyline points='75.47,131.51 76.42,106.17 76.66,119.47 78.07,105.68 79.31,102.45 81.39,98.26 83.36,94.29 85.44,89.96 88.28,90.21 91.54,90.53 94.46,87.23 98.13,85.79 103.04,83.18 106.54,83.04 109.78,83.28 113.97,83.62 116.66,83.90 119.99,83.71 122.64,84.11 126.92,83.94 131.00,83.64 133.54,84.43 136.23,84.84 139.25,84.87 142.89,83.77 146.70,83.69 151.57,83.76 155.22,85.12 159.70,85.79 163.56,85.30 167.87,81.86 170.63,82.33 174.80,79.36 178.87,79.51 183.36,77.16 187.06,75.06 192.46,74.25 197.26,74.50 201.45,74.95 205.91,74.32 210.95,73.38 215.33,73.01 220.32,72.67 225.25,71.62 229.83,71.28 233.85,71.15 236.59,70.56 239.55,70.05 244.48,68.90 248.29,68.68 252.65,67.43 256.18,67.28 261.75,66.93 265.08,65.81 270.61,65.41 274.00,64.74 277.25,64.18 281.40,63.74 285.95,63.13 289.27,62.68 293.56,62.07 297.12,61.58 302.33,61.03 305.62,60.80 309.20,60.14 313.05,59.72 316.52,58.81 320.12,58.32 323.84,57.65 327.01,57.16 330.99,56.99 335.25,56.48 338.01,55.99 341.67,55.51 346.37,55.21 350.09,54.96 353.82,54.77 358.06,54.53 361.08,54.27 365.83,54.11 368.78,53.92 371.43,53.82 374.76,53.82 379.09,53.71 382.09,53.63 387.80,53.44 391.10,53.42 394.30,53.42 398.41,53.40 402.14,53.37 406.39,53.40 409.06,53.37 412.84,53.41 416.26,53.32 419.50,53.36 422.30,53.41 424.58,53.49 428.57,53.56 432.68,53.59 440.29,53.64 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polyline points='440.29,53.64 432.68,53.96 428.57,54.18 424.58,54.42 422.30,54.89 419.50,55.24 416.26,55.81 412.84,56.27 409.06,56.65 406.39,57.39 402.14,57.73 398.41,58.52 394.30,58.77 391.10,59.48 387.80,60.42 382.09,61.11 379.09,61.80 374.76,62.12 371.43,62.80 368.78,63.67 365.83,64.49 361.08,65.55 358.06,66.25 353.82,67.23 350.09,68.53 346.37,69.91 341.67,70.67 338.01,71.40 335.25,72.74 330.99,74.68 327.01,75.76 323.84,76.89 320.12,77.30 316.52,78.07 313.05,78.40 309.20,79.18 305.62,80.84 302.33,82.59 297.12,84.35 293.56,85.93 289.27,87.85 285.95,88.75 281.40,89.47 277.25,89.52 274.00,90.97 270.61,91.28 265.08,91.85 261.75,92.87 256.18,92.88 252.65,94.26 248.29,95.85 244.48,97.63 239.55,99.31 236.59,100.50 233.85,102.22 229.83,105.92 225.25,107.25 220.32,108.82 215.33,112.01 210.95,113.78 205.91,114.53 201.45,117.60 197.26,121.06 192.46,122.87 187.06,123.91 183.36,127.66 178.87,130.39 174.80,133.90 170.63,137.77 167.87,138.09 163.56,140.15 159.70,142.81 155.22,146.88 151.57,147.15 146.70,149.49 142.89,151.62 139.25,152.70 136.23,155.35 133.54,156.52 131.00,159.27 126.92,160.83 122.64,162.68 119.99,165.11 116.66,166.79 113.97,166.88 109.78,167.22 106.54,166.94 103.04,166.43 98.13,171.33 94.46,174.01 91.54,176.06 88.28,179.78 85.44,182.84 83.36,186.75 81.39,195.18 79.31,202.55 78.07,203.35 76.66,216.65 76.42,208.32 75.47,231.02 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polygon points='75.47,151.00 76.42,123.89 76.66,140.64 78.07,124.48 79.31,123.23 81.39,121.12 83.36,118.47 85.44,114.14 88.28,114.00 91.54,113.99 94.46,109.50 98.13,108.26 103.04,105.51 106.54,104.93 109.78,104.80 113.97,104.74 116.66,104.80 119.99,104.47 122.64,104.62 126.92,104.70 131.00,104.27 133.54,105.08 136.23,105.62 139.25,105.59 142.89,104.52 146.70,104.43 151.57,104.51 155.22,104.49 159.70,104.71 163.56,103.69 167.87,100.91 170.63,100.38 174.80,98.76 178.87,97.09 183.36,95.87 187.06,92.82 192.46,91.58 197.26,91.84 201.45,91.54 205.91,91.03 210.95,88.74 215.33,88.15 220.32,87.05 225.25,85.29 229.83,84.32 233.85,83.17 236.59,82.11 239.55,81.35 244.48,79.76 248.29,79.26 252.65,77.76 256.18,77.48 261.75,76.92 265.08,75.41 270.61,75.15 274.00,74.56 277.25,73.65 281.40,72.97 285.95,72.10 289.27,71.18 293.56,70.44 297.12,69.77 302.33,68.93 305.62,68.50 309.20,67.87 313.05,66.72 316.52,65.49 320.12,64.78 323.84,63.74 327.01,62.98 330.99,62.76 335.25,61.98 338.01,61.30 341.67,60.57 346.37,60.09 350.09,59.68 353.82,59.33 358.06,58.96 361.08,58.50 365.83,58.23 368.78,57.91 371.43,57.75 374.76,57.77 379.09,57.60 382.09,57.49 387.80,57.13 391.10,57.08 394.30,57.10 398.41,57.06 402.14,57.01 406.39,57.06 409.06,57.00 412.84,57.08 416.26,56.92 419.50,56.99 422.30,57.09 424.58,57.25 428.57,57.38 432.68,57.43 440.29,57.53 440.29,57.53 432.68,58.09 428.57,58.49 424.58,58.91 422.30,59.71 419.50,60.33 416.26,61.27 412.84,62.05 409.06,62.85 406.39,63.95 402.14,64.49 398.41,65.67 394.30,66.03 391.10,67.13 387.80,68.36 382.09,69.41 379.09,70.47 374.76,71.09 371.43,72.22 368.78,73.63 365.83,74.95 361.08,76.61 358.06,77.88 353.82,79.46 350.09,81.41 346.37,83.35 341.67,84.45 338.01,85.49 335.25,87.31 330.99,89.88 327.01,91.34 323.84,92.84 320.12,93.43 316.52,94.56 313.05,95.06 309.20,95.94 305.62,98.07 302.33,100.30 297.12,102.65 293.56,104.39 289.27,106.62 285.95,107.57 281.40,108.63 277.25,109.58 274.00,111.86 270.61,112.26 265.08,113.09 261.75,113.07 256.18,115.58 252.65,117.30 248.29,119.10 244.48,121.27 239.55,123.32 236.59,124.62 233.85,126.43 229.83,130.67 225.25,132.22 220.32,134.10 215.33,137.83 210.95,140.20 205.91,141.08 201.45,144.19 197.26,147.41 192.46,149.46 187.06,150.61 183.36,154.33 178.87,156.81 174.80,160.35 170.63,164.14 167.87,164.74 163.56,166.64 159.70,169.80 155.22,173.93 151.57,174.01 146.70,176.51 142.89,178.63 139.25,179.59 136.23,181.87 133.54,183.31 131.00,185.32 126.92,187.10 122.64,188.18 119.99,190.03 116.66,191.16 113.97,190.77 109.78,191.11 106.54,190.52 103.04,190.70 98.13,196.86 94.46,198.46 91.54,199.82 88.28,201.97 85.44,204.26 83.36,206.21 81.39,211.94 79.31,214.97 78.07,216.07 76.66,230.13 76.42,220.98 75.47,238.15 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
-<polyline points='75.47,151.00 76.42,123.89 76.66,140.64 78.07,124.48 79.31,123.23 81.39,121.12 83.36,118.47 85.44,114.14 88.28,114.00 91.54,113.99 94.46,109.50 98.13,108.26 103.04,105.51 106.54,104.93 109.78,104.80 113.97,104.74 116.66,104.80 119.99,104.47 122.64,104.62 126.92,104.70 131.00,104.27 133.54,105.08 136.23,105.62 139.25,105.59 142.89,104.52 146.70,104.43 151.57,104.51 155.22,104.49 159.70,104.71 163.56,103.69 167.87,100.91 170.63,100.38 174.80,98.76 178.87,97.09 183.36,95.87 187.06,92.82 192.46,91.58 197.26,91.84 201.45,91.54 205.91,91.03 210.95,88.74 215.33,88.15 220.32,87.05 225.25,85.29 229.83,84.32 233.85,83.17 236.59,82.11 239.55,81.35 244.48,79.76 248.29,79.26 252.65,77.76 256.18,77.48 261.75,76.92 265.08,75.41 270.61,75.15 274.00,74.56 277.25,73.65 281.40,72.97 285.95,72.10 289.27,71.18 293.56,70.44 297.12,69.77 302.33,68.93 305.62,68.50 309.20,67.87 313.05,66.72 316.52,65.49 320.12,64.78 323.84,63.74 327.01,62.98 330.99,62.76 335.25,61.98 338.01,61.30 341.67,60.57 346.37,60.09 350.09,59.68 353.82,59.33 358.06,58.96 361.08,58.50 365.83,58.23 368.78,57.91 371.43,57.75 374.76,57.77 379.09,57.60 382.09,57.49 387.80,57.13 391.10,57.08 394.30,57.10 398.41,57.06 402.14,57.01 406.39,57.06 409.06,57.00 412.84,57.08 416.26,56.92 419.50,56.99 422.30,57.09 424.58,57.25 428.57,57.38 432.68,57.43 440.29,57.53 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polyline points='440.29,57.53 432.68,58.09 428.57,58.49 424.58,58.91 422.30,59.71 419.50,60.33 416.26,61.27 412.84,62.05 409.06,62.85 406.39,63.95 402.14,64.49 398.41,65.67 394.30,66.03 391.10,67.13 387.80,68.36 382.09,69.41 379.09,70.47 374.76,71.09 371.43,72.22 368.78,73.63 365.83,74.95 361.08,76.61 358.06,77.88 353.82,79.46 350.09,81.41 346.37,83.35 341.67,84.45 338.01,85.49 335.25,87.31 330.99,89.88 327.01,91.34 323.84,92.84 320.12,93.43 316.52,94.56 313.05,95.06 309.20,95.94 305.62,98.07 302.33,100.30 297.12,102.65 293.56,104.39 289.27,106.62 285.95,107.57 281.40,108.63 277.25,109.58 274.00,111.86 270.61,112.26 265.08,113.09 261.75,113.07 256.18,115.58 252.65,117.30 248.29,119.10 244.48,121.27 239.55,123.32 236.59,124.62 233.85,126.43 229.83,130.67 225.25,132.22 220.32,134.10 215.33,137.83 210.95,140.20 205.91,141.08 201.45,144.19 197.26,147.41 192.46,149.46 187.06,150.61 183.36,154.33 178.87,156.81 174.80,160.35 170.63,164.14 167.87,164.74 163.56,166.64 159.70,169.80 155.22,173.93 151.57,174.01 146.70,176.51 142.89,178.63 139.25,179.59 136.23,181.87 133.54,183.31 131.00,185.32 126.92,187.10 122.64,188.18 119.99,190.03 116.66,191.16 113.97,190.77 109.78,191.11 106.54,190.52 103.04,190.70 98.13,196.86 94.46,198.46 91.54,199.82 88.28,201.97 85.44,204.26 83.36,206.21 81.39,211.94 79.31,214.97 78.07,216.07 76.66,230.13 76.42,220.98 75.47,238.15 ' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt;' />
-<polyline points='75.47,160.57 76.42,117.77 76.66,129.31 78.07,106.95 79.31,100.22 81.39,94.69 83.36,88.92 85.44,85.31 88.28,82.19 91.54,79.30 94.46,74.97 98.13,70.16 103.04,67.28 106.54,66.08 109.78,64.39 113.97,63.43 116.66,62.71 119.99,61.51 122.64,60.07 126.92,58.14 131.00,57.90 133.54,56.94 136.23,56.46 139.25,55.02 142.89,54.30 146.70,53.82 151.57,52.37 155.22,51.65 159.70,50.93 163.56,50.93 167.87,50.69 170.63,50.69 174.80,50.45 178.87,50.21 183.36,49.97 187.06,49.49 192.46,49.49 197.26,49.49 201.45,49.49 205.91,49.49 210.95,49.49 215.33,49.49 220.32,49.49 225.25,49.49 229.83,49.49 233.85,49.49 236.59,49.49 239.55,49.49 244.48,49.49 248.29,49.49 252.65,49.49 256.18,49.49 261.75,49.49 265.08,49.49 270.61,49.49 274.00,49.49 277.25,49.49 281.40,49.49 285.95,49.49 289.27,49.49 293.56,49.49 297.12,49.49 302.33,49.49 305.62,49.49 309.20,49.49 313.05,49.49 316.52,49.49 320.12,49.49 323.84,49.49 327.01,49.49 330.99,49.49 335.25,49.49 338.01,49.49 341.67,49.49 346.37,49.49 350.09,49.49 353.82,49.49 358.06,49.49 361.08,49.49 365.83,49.49 368.78,49.49 371.43,49.49 374.76,49.49 379.09,49.49 382.09,49.49 387.80,49.49 391.10,49.49 394.30,49.49 398.41,49.49 402.14,49.49 406.39,49.49 409.06,49.49 412.84,49.49 416.26,49.49 419.50,49.49 422.30,49.49 424.58,49.49 428.57,49.49 432.68,49.49 440.29,49.49 ' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
-<polyline points='75.47,180.75 76.42,155.45 76.66,163.03 78.07,149.33 79.31,146.08 81.39,144.17 83.36,141.70 85.44,139.86 88.28,138.69 91.54,136.36 94.46,133.75 98.13,130.78 103.04,128.43 106.54,127.40 109.78,125.82 113.97,124.71 116.66,123.40 119.99,122.22 122.64,120.68 126.92,118.94 131.00,117.89 133.54,116.67 136.23,115.95 139.25,114.57 142.89,112.84 146.70,111.70 151.57,109.79 155.22,108.10 159.70,106.78 163.56,104.92 167.87,103.26 170.63,102.32 174.80,100.62 178.87,98.84 183.36,97.40 187.06,95.74 192.46,94.53 197.26,93.16 201.45,91.68 205.91,90.23 210.95,88.86 215.33,87.77 220.32,86.43 225.25,85.28 229.83,84.07 233.85,82.95 236.59,81.92 239.55,81.00 244.48,79.95 248.29,78.89 252.65,78.08 256.18,77.19 261.75,76.53 265.08,75.88 270.61,74.92 274.00,73.88 277.25,73.09 281.40,72.44 285.95,71.56 289.27,70.75 293.56,70.09 297.12,69.40 302.33,68.63 305.62,67.78 309.20,66.96 313.05,66.27 316.52,65.64 320.12,64.93 323.84,64.30 327.01,63.61 330.99,63.14 335.25,62.45 338.01,61.80 341.67,61.31 346.37,60.85 350.09,60.34 353.82,59.91 358.06,59.41 361.08,58.97 365.83,58.42 368.78,58.03 371.43,57.61 374.76,57.30 379.09,57.03 382.09,56.70 387.80,56.34 391.10,56.03 394.30,55.80 398.41,55.57 402.14,55.34 406.39,55.09 409.06,54.84 412.84,54.63 416.26,54.40 419.50,54.24 422.30,54.08 424.58,53.91 428.57,53.83 432.68,53.74 440.29,53.64 ' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
-<polyline points='75.47,195.74 76.42,175.07 76.66,182.56 78.07,170.18 79.31,167.48 81.39,166.38 83.36,164.40 85.44,162.65 88.28,161.45 91.54,158.99 94.46,156.41 98.13,153.74 103.04,151.72 106.54,150.50 109.78,149.08 113.97,148.05 116.66,146.65 119.99,145.40 122.64,143.89 126.92,142.29 131.00,141.15 133.54,139.88 136.23,139.07 139.25,137.64 142.89,135.77 146.70,134.57 151.57,132.55 155.22,130.58 159.70,129.21 163.56,126.87 167.87,124.86 170.63,123.72 174.80,121.71 178.87,119.66 183.36,117.98 187.06,115.90 192.46,114.47 197.26,112.80 201.45,111.13 205.91,109.38 210.95,107.63 215.33,106.27 220.32,104.57 225.25,103.08 229.83,101.62 233.85,100.20 236.59,98.91 239.55,97.80 244.48,96.41 248.29,95.04 252.65,94.01 256.18,92.78 261.75,91.83 265.08,90.97 270.61,89.71 274.00,88.28 277.25,87.18 281.40,86.23 285.95,85.05 289.27,83.90 293.56,83.02 297.12,82.05 302.33,80.94 305.62,79.73 309.20,78.54 313.05,77.58 316.52,76.63 320.12,75.56 323.84,74.59 327.01,73.55 330.99,72.85 335.25,71.84 338.01,70.88 341.67,70.13 346.37,69.41 350.09,68.64 353.82,67.94 358.06,67.13 361.08,66.42 365.83,65.54 368.78,64.89 371.43,64.18 374.76,63.67 379.09,63.22 382.09,62.66 387.80,62.07 391.10,61.57 394.30,61.23 398.41,60.84 402.14,60.45 406.39,60.02 409.06,59.62 412.84,59.27 416.26,58.87 419.50,58.60 422.30,58.32 424.58,58.03 428.57,57.87 432.68,57.71 440.29,57.53 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
-</g>
-<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='48.71' y='247.27' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
-<text x='48.71' y='199.19' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
-<text x='48.71' y='151.10' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
-<text x='48.71' y='103.01' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
-<text x='48.71' y='54.92' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>50</text>
-<text x='75.47' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
-<text x='181.56' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2500</text>
-<text x='287.65' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>5000</text>
-<text x='393.74' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>7500</text>
-<text x='257.88' y='288.51' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Cumulative area</text>
-<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Diversity (Hill number)</text>
-<text x='123.64' y='337.79' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Order</text>
-<rect x='182.89' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
-<line x1='183.68' y1='330.99' x2='199.81' y2='330.99' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
-<rect x='256.20' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
-<line x1='256.99' y1='330.99' x2='273.12' y2='330.99' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
-<rect x='329.51' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
-<line x1='330.30' y1='330.99' x2='346.43' y2='330.99' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
-<text x='211.29' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 0</text>
-<text x='284.60' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 1</text>
-<text x='357.91' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 2</text>
-<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Diversity-Area Relationship (DAR)</text>
-</g>
-</g>
-</svg></div><p class="caption">
+<img src="extrapolation_files/figure-html/plot-dar-1.svg" class="r-plt" alt="Diversity-area relationship for q = 0, 1, 2." width="624"><p class="caption">
 Diversity-area relationship for q = 0, 1, 2.
 </p>
 </div>
@@ -909,10 +742,15 @@ evenness is roughly constant across scales and richness alone carries
 the spatial signal; if the higher-order curves flatten earlier than the
 richness curve, common and dominant species saturate first while rare
 species keep accumulating, which is the usual pattern for aggregated
-communities. The area axis is built from the cumulative convex hull of
-the accumulated sites by default, so it requires <code>sf</code>;
-passing <code>area_method = "count"</code> substitutes the site count as
-an area proxy when <code>sf</code> is not available.</p>
+communities. The area axis is the convex hull of the accumulated sites
+by default; <code>area_method = "voronoi"</code> sums the Voronoi cells
+of the accumulated sites instead, and <code>"count"</code> uses the
+number of sites.</p>
+<p><code><a href="../reference/dar.html">dar()</a></code> also takes a curve object computed earlier, so the
+area scaling of phylogenetic or functional facets comes from the same
+site orders as the curve itself: <code>dar(spaccFunc(...))</code> gives
+one diversity-area curve per functional metric,
+<code>dar(spaccPhylo(...))</code> one per phylogenetic metric.</p>
 <p>Reading the DAR as a power law, <span class="math inline">\(D =
 c\,A^{z}\)</span> with diversity <span class="math inline">\(D\)</span>,
 area <span class="math inline">\(A\)</span>, intercept <span class="math inline">\(c\)</span>, and scaling exponent <span class="math inline">\(z\)</span>, gives a compact way to compare orders:
@@ -920,7 +758,15 @@ the slope <span class="math inline">\(z\)</span> on log-log axes
 measures how fast each facet of diversity grows with area. A steep <span class="math inline">\(z\)</span> at order zero with a shallow <span class="math inline">\(z\)</span> at order two is the signature of a
 community where rare species drive the area effect, which is exactly the
 case where a richness estimate from a small plot will most badly
-understate the regional total.</p>
+understate the regional total. <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns the fitted
+<span class="math inline">\(c\)</span> and <span class="math inline">\(z\)</span> of each curve:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">dar_result</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   metric        c          z</span></span>
+<span><span class="co">#&gt; 1   q0.0 34.03135 0.04536841</span></span>
+<span><span class="co">#&gt; 2   q1.0 15.55845 0.12571479</span></span>
+<span><span class="co">#&gt; 3   q2.0 10.26722 0.16755359</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="predicting-richness-at-new-effort-levels">Predicting richness at new effort levels<a class="anchor" aria-label="anchor" href="#predicting-richness-at-new-effort-levels"></a>
@@ -928,14 +774,17 @@ understate the regional total.</p>
 <p>Use <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on a fitted extrapolation model to read
 the curve at any effort, inside or beyond the sampled range. Point
 predictions come back as a plain vector:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">best</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span>, <span class="fl">200</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] NA</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 49.92408 50.26369 50.30384</span></span></code></pre></div>
 <p>With <code>interval = "bootstrap"</code> the same call returns a
 prediction band built from the bootstrap refits:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">best</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span>, <span class="fl">200</span><span class="op">)</span>, interval <span class="op">=</span> <span class="st">"bootstrap"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] NA</span></span></code></pre></div>
+<span><span class="co">#&gt;     n      fit    lower    upper</span></span>
+<span><span class="co">#&gt; 1  50 49.92408 49.63109 50.05541</span></span>
+<span><span class="co">#&gt; 2 100 50.26369 49.83558 50.58726</span></span>
+<span><span class="co">#&gt; 3 200 50.30384 49.83558 50.88136</span></span></code></pre></div>
 <p>The first value falls within the observed 100 sites and so is an
 interpolation, which is well supported. The prediction at 200 doubles
 the effort and is a genuine extrapolation that should be read as
@@ -958,7 +807,7 @@ into spatial subareas; for each number of subareas the expected total
 richness of random combinations is plotted against their combined
 convex-hull area; an asymptotic model is fitted to that species-area
 curve and extended to a target area.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">area_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extrapolateArea.html">extrapolateArea</a></span><span class="op">(</span><span class="va">pa</span>, <span class="va">coords</span>, n_subareas <span class="op">=</span> <span class="fl">8</span>,</span>
 <span>                            model <span class="op">=</span> <span class="st">"michaelis-menten"</span>, R <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>                            seed <span class="op">=</span> <span class="fl">1</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -976,7 +825,7 @@ recentred on the point estimate to remove the downward bias that
 resampling sites with replacement would otherwise introduce.
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> returns the T-S curve, and
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> reads the fitted curve at any area:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">area_fit</span>, area <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">area_fit</span><span class="op">$</span><span class="va">observed_area</span>, <span class="fl">2</span> <span class="op">*</span> <span class="va">area_fit</span><span class="op">$</span><span class="va">observed_area</span><span class="op">)</span>,</span>
 <span>        interval <span class="op">=</span> <span class="st">"bootstrap"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        area      fit    lower    upper</span></span>
@@ -1126,6 +975,9 @@ extrapolation with Hill numbers: a framework for sampling and estimation
 in species diversity studies. Ecological Monographs, 84, 45-67.</li>
 <li>Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
 Ecology, 104, e4099.</li>
+<li>Chiu, C.-H. (2023). A species richness estimator for sample-based
+incidence data sampled without replacement. Methods in Ecology and
+Evolution, 14, 2482-2493.</li>
 <li>Lomolino, M.V. (2000). Ecology’s most general, yet protean pattern:
 the species-area relationship. Journal of Biogeography, 27, 17-26.</li>
 <li>Ma, Z. (2018). Generalizing the species-area relationship with
@@ -1154,83 +1006,5 @@ diversity-area relationships. Ecology and Evolution, 8, 8645-8655.
 
 
 
-  <script>
-/* SVG Copy Button Functionality */
-(function() {
-  "use strict";
-
-  // Initialize SVG copy buttons after DOM is ready
-  document.addEventListener("DOMContentLoaded", function() {
-    if (typeof ClipboardJS === "undefined") {
-      console.warn("ClipboardJS not loaded - SVG copy buttons disabled");
-      return;
-    }
-
-    // Initialize clipboard for SVG copy buttons
-    var svgClipboard = new ClipboardJS(".btn-copy-svg", {
-      text: function(trigger) {
-        var container = trigger.closest(".svg-container");
-        if (!container) return "";
-
-        var svg = container.querySelector("svg");
-        if (!svg) return "";
-
-        // Clone SVG to avoid modifying the original
-        var clone = svg.cloneNode(true);
-
-        // Remove inline-svg class (not needed in copied version)
-        clone.classList.remove("inline-svg");
-
-        // Add XML declaration and serialize
-        var serializer = new XMLSerializer();
-        var svgString = serializer.serializeToString(clone);
-
-        // Add XML declaration if not present
-        if (!svgString.startsWith("<?xml")) {
-          svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgString;
-        }
-
-        return svgString;
-      }
-    });
-
-    // Handle success
-    svgClipboard.on("success", function(e) {
-      var btn = e.trigger;
-      var originalTitle = btn.getAttribute("data-bs-original-title") || btn.getAttribute("title");
-
-      // Update tooltip to show "Copied!"
-      btn.setAttribute("data-bs-original-title", "Copied!");
-      var tooltip = bootstrap.Tooltip.getInstance(btn);
-      if (tooltip) {
-        tooltip.show();
-      }
-
-      // Reset after delay
-      setTimeout(function() {
-        btn.setAttribute("data-bs-original-title", originalTitle);
-      }, 1500);
-
-      e.clearSelection();
-    });
-
-    // Handle error
-    svgClipboard.on("error", function(e) {
-      var btn = e.trigger;
-      btn.setAttribute("data-bs-original-title", "Press Ctrl+C to copy");
-      var tooltip = bootstrap.Tooltip.getInstance(btn);
-      if (tooltip) {
-        tooltip.show();
-      }
-    });
-
-    // Initialize tooltips for SVG copy buttons
-    var svgCopyButtons = document.querySelectorAll(".btn-copy-svg");
-    svgCopyButtons.forEach(function(btn) {
-      new bootstrap.Tooltip(btn, { container: "body" });
-    });
-  });
-})();
-</script>
-</body>
+  </body>
 </html>

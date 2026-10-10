@@ -3,24 +3,15 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    /* theme-aware-processed */
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
       fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite > g > rect {
-      fill: none;
-      stroke: #3E3F3A;
+      stroke: #000000;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
-      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -28,14 +19,14 @@
     }
   ]]></style>
 </defs>
-<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect rx='4' x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none; fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none; fill: #FFFFFF;' />
 </g>
 <defs>
   <clipPath id='cpNjkuOTB8NDU4LjU0fDQwLjA1fDI0Ny41OQ=='>
@@ -48,25 +39,25 @@
 <polyline points='87.57,208.01 92.10,197.00 96.63,196.65 101.16,163.50 105.69,144.44 110.22,164.02 114.75,161.92 119.28,163.02 123.81,152.86 128.33,138.29 132.86,152.29 137.39,115.05 141.92,142.89 146.45,143.65 150.98,142.73 155.51,124.26 160.04,127.48 164.57,142.03 169.10,137.12 173.63,130.75 178.16,132.06 182.69,136.01 187.22,130.33 191.75,147.24 196.28,128.96 200.81,127.36 205.34,124.71 209.87,112.59 214.40,132.85 218.92,140.18 223.45,122.43 227.98,124.37 232.51,121.73 237.04,128.82 241.57,110.80 246.10,119.78 250.63,138.18 255.16,113.98 259.69,116.66 264.22,112.67 268.75,97.70 273.28,100.82 277.81,111.80 282.34,105.84 286.87,120.91 291.40,107.89 295.93,114.24 300.46,100.94 304.99,105.18 309.51,106.37 314.04,109.57 318.57,110.35 323.10,100.86 327.63,96.24 332.16,98.54 336.69,88.00 341.22,103.37 345.75,111.07 350.28,101.51 354.81,96.83 359.34,91.48 363.87,91.53 368.40,105.53 372.93,93.90 377.46,92.00 381.99,99.14 386.52,85.30 391.05,86.87 395.58,78.73 400.10,85.35 404.63,91.99 409.16,78.35 413.69,88.03 418.22,85.98 422.75,82.46 427.28,74.93 431.81,84.89 436.34,56.33 440.87,49.49 ' style='stroke-width: 2.13; stroke: #C62828; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='61.39' y='243.59' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.00</text>
-<text x='61.39' y='190.91' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.25</text>
-<text x='61.39' y='138.23' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.50</text>
-<text x='61.39' y='85.55' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.75</text>
-<text x='78.51' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
-<text x='169.10' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
-<text x='259.69' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
-<text x='350.28' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
-<text x='440.87' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>80</text>
-<text x='264.22' y='288.51' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites accumulated</text>
-<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Beta diversity (sorensen)</text>
-<text x='70.20' y='337.79' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Component</text>
+<text x='61.39' y='243.59' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.00</text>
+<text x='61.39' y='190.91' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.25</text>
+<text x='61.39' y='138.23' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.50</text>
+<text x='61.39' y='85.55' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.75</text>
+<text x='78.51' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='169.10' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='259.69' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='350.28' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='440.87' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='264.22' y='288.51' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='155.22px' lengthAdjust='spacingAndGlyphs'>Sites accumulated</text>
+<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='210.11px' lengthAdjust='spacingAndGlyphs'>Beta diversity (sorensen)</text>
+<text x='70.20' y='337.79' style='font-size: 19.00px; font-family: "Arial";' textLength='98.20px' lengthAdjust='spacingAndGlyphs'>Component</text>
 <line x1='179.88' y1='330.99' x2='196.01' y2='330.99' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
 <line x1='251.06' y1='330.99' x2='267.19' y2='330.99' style='stroke-width: 2.13; stroke: #1565C0; stroke-linecap: butt;' />
 <line x1='350.40' y1='330.99' x2='366.53' y2='330.99' style='stroke-width: 2.13; stroke: #C62828; stroke-linecap: butt;' />
-<text x='207.49' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Total</text>
-<text x='278.67' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Turnover</text>
-<text x='378.01' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Nestedness</text>
-<text x='69.90' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial Beta Diversity Accumulation</text>
+<text x='207.49' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='32.09px' lengthAdjust='spacingAndGlyphs'>Total</text>
+<text x='278.67' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='60.25px' lengthAdjust='spacingAndGlyphs'>Turnover</text>
+<text x='378.01' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='80.23px' lengthAdjust='spacingAndGlyphs'>Nestedness</text>
+<text x='69.90' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='358.48px' lengthAdjust='spacingAndGlyphs'>Spatial Beta Diversity Accumulation</text>
 </g>
 </g>
 </svg>

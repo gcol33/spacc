@@ -3,24 +3,15 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    /* theme-aware-processed */
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
       fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite > g > rect {
-      fill: none;
-      stroke: #3E3F3A;
+      stroke: #000000;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
-      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -28,14 +19,14 @@
     }
   ]]></style>
 </defs>
-<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' />
 </g>
 <defs>
   <clipPath id='cpNjkuOTB8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
@@ -43,7 +34,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpNjkuOTB8NDU4LjU0fDY3LjEzfDMwNS42MQ==)'>
-<rect x='69.90' y='67.13' width='388.63' height='238.48' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+<rect x='69.90' y='67.13' width='388.63' height='238.48' style='stroke-width: 1.84; stroke: none;' />
 <circle cx='303.75' cy='182.42' r='1.15' style='stroke-width: 1.22; stroke: #7F7F7F; stroke-opacity: 0.10; fill: #7F7F7F; fill-opacity: 0.10;' />
 <circle cx='171.07' cy='239.11' r='1.15' style='stroke-width: 1.22; stroke: #7F7F7F; stroke-opacity: 0.10; fill: #7F7F7F; fill-opacity: 0.10;' />
 <circle cx='290.06' cy='158.18' r='1.15' style='stroke-width: 1.22; stroke: #7F7F7F; stroke-opacity: 0.10; fill: #7F7F7F; fill-opacity: 0.10;' />
@@ -1867,20 +1858,20 @@
 <polyline points='87.57,235.02 89.34,234.46 91.12,233.90 92.90,233.34 94.67,232.78 96.45,232.23 98.22,231.67 100.00,231.11 101.77,230.55 103.55,229.99 105.32,229.44 107.10,228.88 108.87,228.32 110.65,227.76 112.42,227.20 114.20,226.65 115.98,226.09 117.75,225.53 119.53,224.97 121.30,224.42 123.08,223.86 124.85,223.30 126.63,222.74 128.40,222.18 130.18,221.63 131.95,221.07 133.73,220.51 135.50,219.95 137.28,219.39 139.06,218.84 140.83,218.28 142.61,217.72 144.38,217.16 146.16,216.60 147.93,216.05 149.71,215.49 151.48,214.93 153.26,214.37 155.03,213.81 156.81,213.26 158.58,212.70 160.36,212.14 162.14,211.58 163.91,211.02 165.69,210.47 167.46,209.91 169.24,209.35 171.01,208.79 172.79,208.23 174.56,207.68 176.34,207.12 178.11,206.56 179.89,206.00 181.66,205.44 183.44,204.89 185.22,204.33 186.99,203.77 188.77,203.21 190.54,202.65 192.32,202.10 194.09,201.54 195.87,200.98 197.64,200.42 199.42,199.86 201.19,199.31 202.97,198.75 204.74,198.19 206.52,197.63 208.30,197.07 210.07,196.52 211.85,195.96 213.62,195.40 215.40,194.84 217.17,194.28 218.95,193.73 220.72,193.17 222.50,192.61 224.27,192.05 226.05,191.49 227.82,190.94 229.60,190.38 231.38,189.82 233.15,189.26 234.93,188.70 236.70,188.15 238.48,187.59 240.25,187.03 242.03,186.47 243.80,185.91 245.58,185.36 247.35,184.80 249.13,184.24 250.90,183.68 252.68,183.12 254.46,182.57 256.23,182.01 258.01,181.45 259.78,180.89 261.56,180.33 263.33,179.78 265.11,179.22 266.88,178.66 268.66,178.10 270.43,177.54 272.21,176.99 273.98,176.43 275.76,175.87 277.54,175.31 279.31,174.75 281.09,174.20 282.86,173.64 284.64,173.08 286.41,172.52 288.19,171.96 289.96,171.41 291.74,170.85 293.51,170.29 295.29,169.73 297.06,169.17 298.84,168.62 300.62,168.06 302.39,167.50 304.17,166.94 305.94,166.38 307.72,165.83 309.49,165.27 311.27,164.71 313.04,164.15 314.82,163.60 316.59,163.04 318.37,162.48 320.14,161.92 321.92,161.36 323.70,160.81 325.47,160.25 327.25,159.69 329.02,159.13 330.80,158.57 332.57,158.02 334.35,157.46 336.12,156.90 337.90,156.34 339.67,155.78 341.45,155.23 343.22,154.67 345.00,154.11 346.78,153.55 348.55,152.99 350.33,152.44 352.10,151.88 353.88,151.32 355.65,150.76 357.43,150.20 359.20,149.65 360.98,149.09 362.75,148.53 364.53,147.97 366.30,147.41 368.08,146.86 369.86,146.30 371.63,145.74 373.41,145.18 375.18,144.62 376.96,144.07 378.73,143.51 380.51,142.95 382.28,142.39 384.06,141.83 385.83,141.28 387.61,140.72 389.38,140.16 391.16,139.60 392.94,139.04 394.71,138.49 396.49,137.93 398.26,137.37 400.04,136.81 401.81,136.25 403.59,135.70 405.36,135.14 407.14,134.58 408.91,134.02 410.69,133.46 412.46,132.91 414.24,132.35 416.02,131.79 417.79,131.23 419.57,130.67 421.34,130.12 423.12,129.56 424.89,129.00 426.67,128.44 428.44,127.88 430.22,127.33 431.99,126.77 433.77,126.21 435.54,125.65 437.32,125.09 439.10,124.54 440.87,123.98 ' style='stroke-width: 2.13; stroke: #C62828; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='61.39' y='271.41' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.25</text>
-<text x='61.39' y='208.74' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.50</text>
-<text x='61.39' y='146.07' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.75</text>
-<text x='61.39' y='83.41' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.00</text>
-<text x='81.32' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
-<text x='154.59' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>25</text>
-<text x='227.86' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>50</text>
-<text x='301.14' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>75</text>
-<text x='374.41' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>100</text>
-<text x='447.68' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>125</text>
-<text x='264.22' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Geographic distance</text>
-<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Dissimilarity (sorensen)</text>
-<text x='69.90' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Model: linear</text>
-<text x='69.90' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Beta Distance-Decay</text>
+<text x='61.39' y='271.41' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.25</text>
+<text x='61.39' y='208.74' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.50</text>
+<text x='61.39' y='146.07' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.75</text>
+<text x='61.39' y='83.41' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>1.00</text>
+<text x='81.32' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='154.59' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>25</text>
+<text x='227.86' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>50</text>
+<text x='301.14' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>75</text>
+<text x='374.41' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='25.36px' lengthAdjust='spacingAndGlyphs'>100</text>
+<text x='447.68' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='25.36px' lengthAdjust='spacingAndGlyphs'>125</text>
+<text x='264.22' y='346.53' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='174.23px' lengthAdjust='spacingAndGlyphs'>Geographic distance</text>
+<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='197.39px' lengthAdjust='spacingAndGlyphs'>Dissimilarity (sorensen)</text>
+<text x='69.90' y='53.66' style='font-size: 19.00px; font-family: "Arial";' textLength='108.75px' lengthAdjust='spacingAndGlyphs'>Model: linear</text>
+<text x='69.90' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='214.11px' lengthAdjust='spacingAndGlyphs'>Beta Distance-Decay</text>
 </g>
 </g>
 </svg>

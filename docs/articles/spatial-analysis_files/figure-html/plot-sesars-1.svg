@@ -3,24 +3,15 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    /* theme-aware-processed */
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
       fill: none;
-      stroke: #3E3F3A;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite > g > rect {
-      fill: none;
-      stroke: #3E3F3A;
+      stroke: #000000;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
-      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -28,14 +19,14 @@
     }
   ]]></style>
 </defs>
-<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' />
 </g>
 <defs>
   <clipPath id='cpNTcuMjN8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
@@ -43,7 +34,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpNTcuMjN8NDU4LjU0fDY3LjEzfDMwNS42MQ==)'>
-<rect x='57.23' y='67.13' width='401.30' height='238.48' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+<rect x='57.23' y='67.13' width='401.30' height='238.48' style='stroke-width: 1.84; stroke: none;' />
 <circle cx='75.47' cy='294.77' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
 <circle cx='80.09' cy='268.94' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
 <circle cx='84.71' cy='250.25' r='3.38' style='stroke-width: 1.22; stroke: #2E7D32; stroke-opacity: 0.50; fill: #2E7D32; fill-opacity: 0.50;' />
@@ -127,19 +118,19 @@
 <polyline points='75.47,292.54 80.09,261.92 84.71,246.98 89.33,239.79 93.95,231.23 98.56,222.39 103.18,213.59 107.80,204.96 112.42,196.53 117.04,188.31 121.65,180.30 126.27,175.80 130.89,171.13 135.51,166.37 140.13,161.55 144.74,159.29 149.36,156.76 153.98,154.04 158.60,151.17 163.22,148.18 167.83,145.11 172.45,141.98 177.07,138.81 181.69,135.60 186.31,132.36 190.92,129.11 195.54,125.85 200.16,122.58 204.78,120.85 209.39,119.03 214.01,117.14 218.63,115.19 223.25,113.19 227.87,111.15 232.48,109.07 237.10,108.20 241.72,107.24 246.34,106.19 250.96,105.08 255.57,103.90 260.19,102.66 264.81,101.38 269.43,100.05 274.05,98.68 278.66,97.27 283.28,95.84 287.90,94.37 292.52,92.88 297.14,91.37 301.75,89.84 306.37,89.16 310.99,88.43 315.61,87.66 320.23,86.84 324.84,85.99 329.46,85.10 334.08,84.18 338.70,83.23 343.32,82.26 347.93,81.26 352.55,80.95 357.17,80.60 361.79,80.20 366.41,79.76 371.02,79.29 375.64,78.78 380.26,78.88 384.88,78.93 389.50,78.92 394.11,78.87 398.73,79.36 403.35,79.79 407.97,80.16 412.59,80.48 417.20,81.28 421.82,82.01 426.44,83.19 431.06,84.29 435.68,85.30 440.29,86.72 ' style='stroke-width: 2.13; stroke: #FF9800; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='48.71' y='287.29' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
-<text x='48.71' y='219.33' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
-<text x='48.71' y='151.37' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
-<text x='48.71' y='83.41' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
-<text x='70.86' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
-<text x='163.22' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
-<text x='255.57' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
-<text x='347.93' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
-<text x='440.29' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>80</text>
-<text x='257.88' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Cumulative sites (area proxy)</text>
-<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Species richness</text>
-<text x='57.23' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Model: power, R2 = 0.995</text>
-<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>SESARS: Effort-Corrected Species-Area Relationship</text>
+<text x='48.71' y='287.29' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>10</text>
+<text x='48.71' y='219.33' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='48.71' y='151.37' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='48.71' y='83.41' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='70.86' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
+<text x='163.22' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='255.57' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='347.93' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='440.29' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>80</text>
+<text x='257.88' y='346.53' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='247.05px' lengthAdjust='spacingAndGlyphs'>Cumulative sites (area proxy)</text>
+<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='143.59px' lengthAdjust='spacingAndGlyphs'>Species richness</text>
+<text x='57.23' y='53.66' style='font-size: 19.00px; font-family: "Arial";' textLength='217.02px' lengthAdjust='spacingAndGlyphs'>Model: power, R2 = 0.995</text>
+<text x='57.23' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='541.77px' lengthAdjust='spacingAndGlyphs'>SESARS: Effort-Corrected Species-Area Relationship</text>
 </g>
 </g>
 </svg>
