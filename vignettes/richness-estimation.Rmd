@@ -343,6 +343,65 @@ The improved estimates exceed their standard counterparts by a small margin here
 which is consistent with a sample that is close to but not at saturation. A large
 iChao-minus-Chao gap would flag a heavy rare tail and a sample far from complete.
 
+### Accumulation rate curve (ARC)
+
+The ARC estimator (Shestopaloff 2025) uses more of the frequency counts than the
+Chao family. Drawing the $N$ observations of the species seen at most $K$ times
+(default 20) in random order, the expected number of these species seen after $n$
+draws is
+
+$$
+S(n) = \sum_{k=1}^{K} f_k \left[ 1 - \left(1 - \frac{n}{N}\right)^{k} \right] ,
+$$
+
+and its increments $s_n = S(n) - S(n-1)$ are the rate at which new species
+appear. Three decay curves, log-normal, log-logistic and Weibull, are fitted to
+the tail of $s_n$; the integral of each beyond $N$ is its count of undetected
+species. The estimate combines them with weights that minimise the misfit to
+$s_n$ plus a penalty on using the log-logistic and Weibull together, each weight
+bounded by caps built from the three estimates and $S_{obs}$, and averages over
+fits to the last 100 down to 70 percent of the curve.
+
+```{r arc}
+r_arc <- arc(species, n_boot = 0)
+r_arc
+r_arc$details$undetected
+r_arc$details$weights
+```
+
+The Weibull decays fastest and gives the fewest undetected species, the
+log-logistic slowest and the most. The estimate is close to the true 120. The
+interval comes from a parametric bootstrap of the frequency counts, which refits
+the curves `n_boot` times (default 2000):
+
+```{r arc-interval, eval = FALSE}
+set.seed(2)
+arc(species, n_boot = 200)
+```
+
+With this seed the interval is [116.1, 142.3] around 122.1. `data = "incidence"`
+runs the same estimator on the number of sites each species occupies.
+
+On 40 samples of 1000 species with Poisson counts and Gamma-mixture rates (the
+scenarios of Shestopaloff 2025, from sparse to dense), the relative bias and
+RMSE are:
+
+| Gamma mixture | $S_{obs}$ | ARC bias | ARC RMSE | iChao1 bias | iChao1 RMSE |
+|---|---|---|---|---|---|
+| 1.0 / 0 / 0 / 0 | 333 | +0.9% | 0.178 | -24.6% | 0.258 |
+| 0.6 / 0.4 / 0 / 0 | 401 | -9.4% | 0.130 | -24.8% | 0.253 |
+| 0.2 / 0.8 / 0 / 0 | 466 | -12.7% | 0.166 | -20.7% | 0.219 |
+| 0 / 1 / 0 / 0 | 501 | -17.0% | 0.169 | -21.2% | 0.203 |
+| 0 / 0.4 / 0.6 / 0 | 649 | +2.9% | 0.061 | -10.9% | 0.115 |
+| 0 / 0 / 0.6 / 0.4 | 802 | +1.1% | 0.044 | -3.4% | 0.045 |
+
+The mixture weights are those of Gamma(1, 2), Gamma(1, 1), Gamma(2, 1) and
+Gamma(3, 1). ARC has the lower RMSE in every row but the densest, where the two
+are equal, and by a wide margin in sparse samples. The author's reference code
+reaches lower bias in the middle rows (between -1.1% and +3.5%) because its optimiser stops at the caps of the
+log-normal and log-logistic weights rather than at the minimum of the weighted
+loss; `arc()` returns that minimum, which puts more weight on the Weibull there.
+
 ## Behaviour with sample size
 
 The defining property of a useful richness estimator is that it climbs toward the
@@ -576,5 +635,7 @@ structure of the community.
 - Chiu, C.H., Wang, Y.T., Walther, B.A. & Chao, A. (2014). An improved
   nonparametric lower bound of species richness via a modified Good-Turing
   frequency formula. *Biometrics*, 70, 671-682.
+- Shestopaloff, K. (2025). An accumulation rate curve estimator for total
+  species. *Environmental and Ecological Statistics*, 32, 311-345.
 - Smith, E.P. & van Belle, G. (1984). Nonparametric estimation of species
   richness. *Biometrics*, 40, 119-129.

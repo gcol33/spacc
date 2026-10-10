@@ -11,6 +11,13 @@
   reaches the observed richness when every unit is sampled instead of
   overestimating it. `extrapolate(n_units = )` compares the asymptote with
   MoRE and uses it as the reference for the disagreement warning (#14).
+- `arc()` estimates total richness with the accumulation rate curve estimator
+  of Shestopaloff (2025): log-normal, log-logistic and Weibull fits to the rate
+  at which new species appear, combined with capped weights, with a parametric
+  bootstrap interval from a penalised Poisson mixture of the frequency counts.
+  `data = "incidence"` runs it on site occupancy. The weights are the exact
+  minimum of the paper's loss, so estimates differ from the author's reference
+  code where its optimiser stops short of it (#13).
 - `spaccCoverage(coverage = "chiu", n_units = )` gives the matching sample
   coverage: the undetected abundance uses the MoRE estimate of the undetected
   species, so the coverage reaches 1 when every unit is sampled (#14).

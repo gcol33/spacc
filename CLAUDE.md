@@ -56,6 +56,9 @@ by both the Rcpp layer and the Catch2 tests:
   numbers for one abundance sample (iNEXT.3D estimators)
 - `phylo_core.h` - MPD, MNTD, Rao's Q, Faith's PD (`PhyloTree`)
 - `func_core.h` - FDis, range-volume FRic, trait Rao's Q
+- `arc_core.h` - accumulation rate curve richness estimator (Shestopaloff
+  2025): rate curve, the three decay fits and their tails, the exact
+  capped-weight solve, smoothing, ridge NNLS for the Poisson mixture
 
 Rcpp layer (`src/*.cpp`):
 - `orders.cpp` - one exported order generator per method, all run through
@@ -67,6 +70,8 @@ Rcpp layer (`src/*.cpp`):
   with `scratch()` and `at_step()` each, driven by `OrderMetricWorker`
   (`parallel_utils.h`). Adding a metric = one struct + one export.
 - `distance.cpp` - distance matrix export
+- `arc.cpp` - `arc()` point estimate, bootstrap refits and Poisson-mixture
+  penalty fits (parallel over draws / penalties)
 
 Adding an accumulation method: write the order generator in
 `accumulation_core.h`, export it from `orders.cpp`, add its branch to

@@ -52,6 +52,52 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_arc_point
+List cpp_arc_point(NumericVector y_full, double s_obs, bool adjust, double p, int max_points);
+RcppExport SEXP _spacc_cpp_arc_point(SEXP y_fullSEXP, SEXP s_obsSEXP, SEXP adjustSEXP, SEXP pSEXP, SEXP max_pointsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type y_full(y_fullSEXP);
+    Rcpp::traits::input_parameter< double >::type s_obs(s_obsSEXP);
+    Rcpp::traits::input_parameter< bool >::type adjust(adjustSEXP);
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type max_points(max_pointsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_arc_point(y_full, s_obs, adjust, p, max_points));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_arc_draws
+NumericVector cpp_arc_draws(NumericMatrix draws, bool adjust, double p, int max_points, int n_cores);
+RcppExport SEXP _spacc_cpp_arc_draws(SEXP drawsSEXP, SEXP adjustSEXP, SEXP pSEXP, SEXP max_pointsSEXP, SEXP n_coresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type draws(drawsSEXP);
+    Rcpp::traits::input_parameter< bool >::type adjust(adjustSEXP);
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type max_points(max_pointsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_arc_draws(draws, adjust, p, max_points, n_cores));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_arc_penalty
+List cpp_arc_penalty(NumericMatrix A, NumericMatrix in_sample, NumericMatrix out_sample, NumericVector penalties, NumericVector y_obs, int n_cores);
+RcppExport SEXP _spacc_cpp_arc_penalty(SEXP ASEXP, SEXP in_sampleSEXP, SEXP out_sampleSEXP, SEXP penaltiesSEXP, SEXP y_obsSEXP, SEXP n_coresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type in_sample(in_sampleSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type out_sample(out_sampleSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type penalties(penaltiesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y_obs(y_obsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_arc_penalty(A, in_sample, out_sample, penalties, y_obs, n_cores));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_beta_order_parallel
 List cpp_beta_order_parallel(IntegerMatrix species_pa, NumericMatrix dist_mat, IntegerMatrix orders, bool use_jaccard, int n_cores);
 RcppExport SEXP _spacc_cpp_beta_order_parallel(SEXP species_paSEXP, SEXP dist_matSEXP, SEXP ordersSEXP, SEXP use_jaccardSEXP, SEXP n_coresSEXP) {
@@ -538,6 +584,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_order_parallel", (DL_FUNC) &_spacc_cpp_order_parallel, 3},
     {"_spacc_cpp_radius_parallel", (DL_FUNC) &_spacc_cpp_radius_parallel, 5},
     {"_spacc_cpp_area_along_orders", (DL_FUNC) &_spacc_cpp_area_along_orders, 4},
+    {"_spacc_cpp_arc_point", (DL_FUNC) &_spacc_cpp_arc_point, 5},
+    {"_spacc_cpp_arc_draws", (DL_FUNC) &_spacc_cpp_arc_draws, 5},
+    {"_spacc_cpp_arc_penalty", (DL_FUNC) &_spacc_cpp_arc_penalty, 6},
     {"_spacc_cpp_beta_order_parallel", (DL_FUNC) &_spacc_cpp_beta_order_parallel, 5},
     {"_spacc_calc_coverage", (DL_FUNC) &_spacc_calc_coverage, 1},
     {"_spacc_cpp_more_undetected", (DL_FUNC) &_spacc_cpp_more_undetected, 4},

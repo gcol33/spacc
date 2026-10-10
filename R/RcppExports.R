@@ -13,6 +13,18 @@ cpp_area_along_orders <- function(x, y, orders, method) {
     .Call(`_spacc_cpp_area_along_orders`, x, y, orders, method)
 }
 
+cpp_arc_point <- function(y_full, s_obs, adjust, p, max_points) {
+    .Call(`_spacc_cpp_arc_point`, y_full, s_obs, adjust, p, max_points)
+}
+
+cpp_arc_draws <- function(draws, adjust, p, max_points, n_cores = 1L) {
+    .Call(`_spacc_cpp_arc_draws`, draws, adjust, p, max_points, n_cores)
+}
+
+cpp_arc_penalty <- function(A, in_sample, out_sample, penalties, y_obs, n_cores = 1L) {
+    .Call(`_spacc_cpp_arc_penalty`, A, in_sample, out_sample, penalties, y_obs, n_cores)
+}
+
 cpp_beta_order_parallel <- function(species_pa, dist_mat, orders, use_jaccard = FALSE, n_cores = 1L) {
     .Call(`_spacc_cpp_beta_order_parallel`, species_pa, dist_mat, orders, use_jaccard, n_cores)
 }

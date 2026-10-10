@@ -21,6 +21,7 @@ utils::globalVariables(c(
   "calc_hill_at_coverage", "calc_hill_at_size", "calc_hill_phylo",
   "calc_hill_similarity", "calc_k_facets", "cpp_redundancy_order_parallel",
   "cpp_area_along_orders", "calc_fdis", "calc_fric_approx",
+  "cpp_arc_draws", "cpp_arc_penalty", "cpp_arc_point",
   "calc_hill_number", "calc_mntd", "calc_mpd", "calc_rao", "calc_rao_traits",
   "cpp_beta_order_parallel",
   "cpp_cone_order", "cpp_distance_matrix",

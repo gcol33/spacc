@@ -122,6 +122,7 @@ reference:
   - ace
   - jackknife
   - bootstrap_richness
+  - arc
   - completenessProfile
 - title: Spatial Structure
   desc: Spatial eigenvectors and variance partitioning

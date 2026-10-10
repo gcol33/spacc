@@ -13,7 +13,8 @@ g++ -std=c++17 -Wall -Wextra -I../core -I.. -I. -O2 -o run_tests.exe ^
     test_coverage.cpp ^
     test_accumulation.cpp ^
     test_phylofunc.cpp ^
-    test_balltree.cpp
+    test_balltree.cpp ^
+    test_arc.cpp
 
 if %ERRORLEVEL% neq 0 (
     echo Compilation failed!
