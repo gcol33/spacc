@@ -391,6 +391,14 @@ arc(species, n_boot = 200)
 With this seed the interval is [116.2, 142.3] around 122.3. `data = "incidence"`
 runs the same estimator on the number of sites each species occupies.
 
+On 200 samples per scenario of the simulation below, with the default
+`n_boot = 2000`, the 95% interval contained the true richness in 96.0%, 94.5%,
+93.0%, 93.5%, 89.0% and 89.5% of samples, from the sparsest scenario to the
+densest (standard errors 1.4 to 2.2 points). In the two densest scenarios the
+misses are mostly intervals lying entirely above the truth, from the upward
+bias of the point estimate there; Shestopaloff (2025) reports the same drop in
+coverage for non-sparse data.
+
 On 40 samples of 1000 species with Poisson counts and Gamma-mixture rates (the
 scenarios of Shestopaloff 2025, from sparse to dense), the relative bias and
 RMSE are:

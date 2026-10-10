@@ -95,7 +95,10 @@ deciles, and the first decile whose out-of-sample error is smallest at a
 non-zero penalty sets it. \code{n_boot} count vectors are drawn from a normal
 distribution with that covariance, rounded to non-negative integers and
 re-estimated; the interval is their 2.5 and 97.5 percent quantiles and the
-standard error their standard deviation.
+standard error their standard deviation. In Poisson-Gamma simulations the
+95 percent interval covered the truth in 93 to 96 percent of samples for
+sparse data and about 89 percent for dense data, where the point estimate
+is biased upwards (\code{vignette("richness-estimation")}).
 
 With \code{data = "incidence"} the observations are species-site occurrences
 and \eqn{y_k} becomes \eqn{Q_k}, the number of species found at \eqn{k}
