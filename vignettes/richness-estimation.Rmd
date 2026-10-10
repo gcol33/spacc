@@ -366,8 +366,8 @@ $$
 and its increments $s_n = S(n) - S(n-1)$ are the rate at which new species
 appear. Three decay curves, log-normal, log-logistic and Weibull, are fitted to
 the tail of $s_n$; the integral of each beyond $N$ is its count of undetected
-species. The estimate combines them with weights that minimise the misfit to
-$s_n$ plus a penalty on using the log-logistic and Weibull together, each weight
+species. The estimate combines them with weights fitted by the misfit to $s_n$
+plus a penalty on using the log-logistic and Weibull together, each weight
 bounded by caps built from the three estimates and $S_{obs}$, and averages over
 fits to the last 100 down to 70 percent of the curve.
 
@@ -388,7 +388,7 @@ set.seed(2)
 arc(species, n_boot = 200)
 ```
 
-With this seed the interval is [116.1, 142.3] around 122.1. `data = "incidence"`
+With this seed the interval is [116.2, 142.3] around 122.3. `data = "incidence"`
 runs the same estimator on the number of sites each species occupies.
 
 On 40 samples of 1000 species with Poisson counts and Gamma-mixture rates (the
@@ -397,19 +397,22 @@ RMSE are:
 
 | Gamma mixture | $S_{obs}$ | ARC bias | ARC RMSE | iChao1 bias | iChao1 RMSE |
 |---|---|---|---|---|---|
-| 1.0 / 0 / 0 / 0 | 333 | +0.9% | 0.178 | -24.6% | 0.258 |
-| 0.6 / 0.4 / 0 / 0 | 401 | -9.4% | 0.130 | -24.8% | 0.253 |
-| 0.2 / 0.8 / 0 / 0 | 466 | -12.7% | 0.166 | -20.7% | 0.219 |
-| 0 / 1 / 0 / 0 | 501 | -17.0% | 0.169 | -21.2% | 0.203 |
-| 0 / 0.4 / 0.6 / 0 | 649 | +2.9% | 0.061 | -10.9% | 0.115 |
-| 0 / 0 / 0.6 / 0.4 | 802 | +1.1% | 0.044 | -3.4% | 0.045 |
+| 1.0 / 0 / 0 / 0 | 333 | +0.9% | 0.164 | -24.6% | 0.258 |
+| 0.6 / 0.4 / 0 / 0 | 401 | +3.9% | 0.078 | -24.8% | 0.253 |
+| 0.2 / 0.8 / 0 / 0 | 466 | +3.6% | 0.101 | -20.7% | 0.219 |
+| 0 / 1 / 0 / 0 | 501 | -1.1% | 0.099 | -21.2% | 0.203 |
+| 0 / 0.4 / 0.6 / 0 | 649 | +3.6% | 0.059 | -10.9% | 0.115 |
+| 0 / 0 / 0.6 / 0.4 | 802 | +2.9% | 0.042 | -3.4% | 0.045 |
 
 The mixture weights are those of Gamma(1, 2), Gamma(1, 1), Gamma(2, 1) and
-Gamma(3, 1). ARC has the lower RMSE in every row but the densest, where the two
-are equal, and by a wide margin in sparse samples. The author's reference code
-reaches lower bias in the middle rows (between -1.1% and +3.5%) because its optimiser stops at the caps of the
-log-normal and log-logistic weights rather than at the minimum of the weighted
-loss; `arc()` returns that minimum, which puts more weight on the Weibull there.
+Gamma(3, 1). ARC has the lower RMSE in every row, by a wide margin in sparse
+samples. The weights matter in the middle rows: the penalty in the weight loss
+gives it one local minimum that uses the log-logistic and one that uses the
+Weibull. `arc()` takes the one reached by gradient flow from zero weights, as
+the author's reference code does, which is the log-logistic one there. The
+global minimum is the Weibull one, and with it the bias in the four middle rows
+would be -9.4%, -12.7%, -17.0% and +2.9%, at RMSE 0.130, 0.166, 0.169 and
+0.061.
 
 ## Behaviour with sample size
 

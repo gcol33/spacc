@@ -40,21 +40,22 @@
 #' is its number of undetected species; the log-logistic integral is finite
 #' only for \eqn{\gamma > 1}.
 #'
-#' The estimate combines the three with weights that minimise the squared
-#' misfit to \eqn{s_n} plus a penalty on the product of the log-logistic and
-#' Weibull weights (Eq. 8), each bounded by caps built from the three
-#' estimates and the observed richness (Eq. 7). The minimisation is solved
-#' exactly over the box of admissible weights. The undetected species are
-#' averaged over fits to the last 100, 95, ..., 70 percent of the curve.
+#' The estimate combines the three with weights fitted by the squared misfit
+#' to \eqn{s_n} plus a penalty on the product of the log-logistic and Weibull
+#' weights (Eq. 8), each bounded by caps built from the three estimates and the
+#' observed richness (Eq. 7). The undetected species are averaged over fits to
+#' the last 100, 95, ..., 70 percent of the curve.
 #'
-#' The penalty makes the loss non-convex in the weights, so a local optimiser
-#' can stop at a corner of the box that is not its minimum. The author's
-#' reference code (L-BFGS within an augmented Lagrangian, started at zero
-#' weights) often stops at the caps of the log-normal and log-logistic
-#' weights, where the loss is far above its minimum; `arc()` reproduces its
-#' estimates where it reaches the minimum and differs elsewhere. On
-#' Poisson-Gamma samples of intermediate sparsity the exact minimum puts more
-#' weight on the Weibull and estimates lower (`vignette("richness-estimation")`).
+#' The penalty is there to make the fit prefer either the log-logistic or the
+#' Weibull, and gives the loss one local minimum for each. The weights are the
+#' end point of the projected gradient flow of the loss started at zero
+#' weights, which `arc()` solves in closed form face by face of the box of
+#' admissible weights. This is the minimum the author's reference code reaches
+#' (L-BFGS within an augmented Lagrangian, started at zero). In Poisson-Gamma
+#' samples of intermediate sparsity it is the log-logistic one, with median
+#' bias between -1 and +4 percent; the global minimum of the loss is the
+#' Weibull one there, with median bias between -9 and -17 percent
+#' (`vignette("richness-estimation")`).
 #'
 #' With `adjust = TRUE` the counts \eqn{y_1, \dots, y_{k_1}} (the first run of
 #' positive counts) are mixed half and half with a log-linear fit

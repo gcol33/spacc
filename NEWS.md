@@ -15,9 +15,9 @@
   of Shestopaloff (2025): log-normal, log-logistic and Weibull fits to the rate
   at which new species appear, combined with capped weights, with a parametric
   bootstrap interval from a penalised Poisson mixture of the frequency counts.
-  `data = "incidence"` runs it on site occupancy. The weights are the exact
-  minimum of the paper's loss, so estimates differ from the author's reference
-  code where its optimiser stops short of it (#13).
+  `data = "incidence"` runs it on site occupancy. The weights are the minimum
+  of the paper's loss reached by gradient flow from zero weights, the one the
+  author's reference code reaches (#13).
 - `spaccCoverage(coverage = "chiu", n_units = )` gives the matching sample
   coverage: the undetected abundance uses the MoRE estimate of the undetected
   species, so the coverage reaches 1 when every unit is sampled (#14).

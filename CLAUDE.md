@@ -57,8 +57,9 @@ by both the Rcpp layer and the Catch2 tests:
 - `phylo_core.h` - MPD, MNTD, Rao's Q, Faith's PD (`PhyloTree`)
 - `func_core.h` - FDis, range-volume FRic, trait Rao's Q
 - `arc_core.h` - accumulation rate curve richness estimator (Shestopaloff
-  2025): rate curve, the three decay fits and their tails, the exact
-  capped-weight solve, smoothing, ridge NNLS for the Poisson mixture
+  2025): rate curve, the three decay fits and their tails, the capped
+  weights by closed-form projected gradient flow from zero, smoothing, ridge
+  NNLS for the Poisson mixture
 
 Rcpp layer (`src/*.cpp`):
 - `orders.cpp` - one exported order generator per method, all run through

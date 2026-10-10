@@ -377,82 +377,182 @@ inline void weight_bounds(const double* S, double s_obs, double* cap) {
   for (int i = 0; i < 3; i++) cap[i] = std::min(std::max(cap[i], 0.0), 1.0);
 }
 
-// Weights minimising sum_n w_n [(s_n - sum_c w_c f_c(n))^2 + w_ll w_wb / s_n]
-// within [0, cap]. The loss is the quadratic 1/2 w'Hw - 2 b'w + const with
-// H = 2G + P (e_ll e_wb' + e_wb e_ll'), which the product penalty can make
-// indefinite, so the minimum is found exactly by visiting every face of the
-// box: each weight at 0, at its cap, or free, with the free ones solving the
-// stationarity equations on that face.
-inline void optimise_weights(const std::vector<std::vector<double>>& f, const double* s,
-                             const double* omega, int m, const double* cap, double* w) {
-  double H[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}, b[3] = {0, 0, 0}, P = 0.0;
+// The weight loss sum_n w_n [(s_n - sum_c w_c f_c(n))^2 + w_ll w_wb / s_n] as
+// the quadratic 1/2 v'Hv - 2 b'v + const, H = 2G + P (e_ll e_wb' + e_wb e_ll').
+struct WeightLoss {
+  double H[3][3];
+  double b[3];
+};
+
+inline WeightLoss weight_loss(const std::vector<std::vector<double>>& f, const double* s,
+                              const double* omega, int m) {
+  WeightLoss q = {{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}, {0, 0, 0}};
+  double P = 0.0;
   for (int i = 0; i < m; i++) {
     for (int a = 0; a < 3; a++) {
-      b[a] += omega[i] * f[a][i] * s[i];
-      for (int c = 0; c < 3; c++) H[a][c] += 2.0 * omega[i] * f[a][i] * f[c][i];
+      q.b[a] += omega[i] * f[a][i] * s[i];
+      for (int c = 0; c < 3; c++) q.H[a][c] += 2.0 * omega[i] * f[a][i] * f[c][i];
     }
     P += omega[i] / s[i];
   }
-  H[LOGLOGISTIC][WEIBULL] += P;
-  H[WEIBULL][LOGLOGISTIC] += P;
+  q.H[LOGLOGISTIC][WEIBULL] += P;
+  q.H[WEIBULL][LOGLOGISTIC] += P;
+  return q;
+}
 
-  auto loss = [&](const double* v) {
-    double total = 0.0;
-    for (int a = 0; a < 3; a++) {
-      total -= 2.0 * b[a] * v[a];
-      for (int c = 0; c < 3; c++) total += 0.5 * H[a][c] * v[a] * v[c];
-    }
-    return total;
-  };
+inline void weight_gradient(const WeightLoss& q, const double* v, double* g) {
+  for (int a = 0; a < 3; a++) {
+    g[a] = -2.0 * q.b[a];
+    for (int c = 0; c < 3; c++) g[a] += q.H[a][c] * v[c];
+  }
+}
 
-  double best = kInf;
-  w[0] = w[1] = w[2] = 0.0;
-  for (int code = 0; code < 27; code++) {
-    int state[3];  // 0 = at zero, 1 = at cap, 2 = free
-    for (int a = 0, r = code; a < 3; a++, r /= 3) state[a] = r % 3;
-    double v[3];
-    int free_idx[3], n_free = 0;
-    bool skip = false;
-    for (int a = 0; a < 3; a++) {
-      if (state[a] == 2) { free_idx[n_free++] = a; v[a] = 0.0; }
-      else if (state[a] == 1) { if (!(cap[a] > 0.0)) skip = true; v[a] = cap[a]; }
-      else v[a] = 0.0;
-    }
-    if (skip) continue;
-
-    // H_FF v_F = 2 b_F - H_FB v_B by Gaussian elimination with pivoting
-    double M[3][4];
-    for (int i = 0; i < n_free; i++) {
-      const int a = free_idx[i];
-      double rhs = 2.0 * b[a];
-      for (int c = 0; c < 3; c++) if (state[c] != 2) rhs -= H[a][c] * v[c];
-      for (int j = 0; j < n_free; j++) M[i][j] = H[a][free_idx[j]];
-      M[i][n_free] = rhs;
-    }
-    bool singular = false;
-    for (int col = 0; col < n_free && !singular; col++) {
-      int piv = col;
-      for (int r = col + 1; r < n_free; r++)
-        if (std::fabs(M[r][col]) > std::fabs(M[piv][col])) piv = r;
-      if (std::fabs(M[piv][col]) < 1e-300) { singular = true; break; }
-      for (int j = 0; j <= n_free; j++) std::swap(M[col][j], M[piv][j]);
-      for (int r = 0; r < n_free; r++) {
-        if (r == col) continue;
-        const double factor = M[r][col] / M[col][col];
-        for (int j = col; j <= n_free; j++) M[r][j] -= factor * M[col][j];
+// Eigendecomposition A = U diag(lam) U' of the leading n x n block (n <= 3)
+// of a symmetric matrix by cyclic Jacobi rotations. A is overwritten.
+inline void symmetric_eigen(double A[3][3], int n, double* lam, double U[3][3]) {
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) U[i][j] = i == j ? 1.0 : 0.0;
+  for (int sweep = 0; sweep < 50; sweep++) {
+    double off = 0.0, total = 0.0;
+    for (int i = 0; i < n; i++)
+      for (int j = 0; j < n; j++) {
+        total += A[i][j] * A[i][j];
+        if (i != j) off += A[i][j] * A[i][j];
+      }
+    if (off <= 1e-32 * total) break;
+    for (int p = 0; p < n; p++) {
+      for (int r = p + 1; r < n; r++) {
+        if (A[p][r] == 0.0) continue;
+        const double theta = (A[r][r] - A[p][p]) / (2.0 * A[p][r]);
+        const double t = (theta >= 0.0 ? 1.0 : -1.0) / (std::fabs(theta) + std::sqrt(theta * theta + 1.0));
+        const double c = 1.0 / std::sqrt(t * t + 1.0), s = t * c;
+        for (int k = 0; k < n; k++) {
+          const double akp = A[k][p], akr = A[k][r];
+          A[k][p] = c * akp - s * akr;
+          A[k][r] = s * akp + c * akr;
+        }
+        for (int k = 0; k < n; k++) {
+          const double apk = A[p][k], ark = A[r][k];
+          A[p][k] = c * apk - s * ark;
+          A[r][k] = s * apk + c * ark;
+        }
+        for (int k = 0; k < n; k++) {
+          const double ukp = U[k][p], ukr = U[k][r];
+          U[k][p] = c * ukp - s * ukr;
+          U[k][r] = s * ukp + c * ukr;
+        }
       }
     }
-    if (singular) continue;
-    bool feasible = true;
-    for (int i = 0; i < n_free; i++) {
-      const int a = free_idx[i];
-      v[a] = M[i][n_free] / M[i][i];
-      if (!(v[a] >= 0.0 && v[a] <= cap[a])) feasible = false;
-    }
-    if (!feasible) continue;
-    const double value = loss(v);
-    if (value < best) { best = value; w[0] = v[0]; w[1] = v[1]; w[2] = v[2]; }
   }
+  for (int i = 0; i < n; i++) lam[i] = A[i][i];
+}
+
+enum Bound { AT_ZERO, AT_CAP, FREE };
+
+// Weights within [0, cap] (Eq. 7-8). The product penalty makes the loss
+// indefinite, with one local minimum favouring the log-logistic and one the
+// Weibull; the weights are the end point of the projected gradient flow
+// dv/dt = -grad L(v) started at v = 0. On a face of the box (each weight at
+// 0, at its cap, or free) the flow is linear, v_F' = -(H_FF v_F - r), and is
+// solved in closed form in the eigenbasis of H_FF. A free weight reaching a
+// bound is fixed there; a fixed weight whose gradient turns into the box is
+// freed. The flow ends where no event follows.
+inline void optimise_weights(const std::vector<std::vector<double>>& f, const double* s,
+                             const double* omega, int m, const double* cap, double* w) {
+  const WeightLoss q = weight_loss(f, s, omega, m);
+  double b_scale = 0.0;
+  for (int a = 0; a < 3; a++) b_scale = std::max(b_scale, std::fabs(q.b[a]));
+  w[0] = w[1] = w[2] = 0.0;
+  if (!(b_scale > 0.0)) return;
+
+  double v[3] = {0.0, 0.0, 0.0};
+  int state[3];
+  for (int a = 0; a < 3; a++) state[a] = (cap[a] > 0.0 && q.b[a] > 0.0) ? FREE : AT_ZERO;
+  const double tol = 1e-12;
+
+  for (int face = 0; face < 100; face++) {
+    int F[3], n = 0;
+    for (int a = 0; a < 3; a++) if (state[a] == FREE) F[n++] = a;
+    if (n == 0) break;
+
+    double A[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}, U[3][3], lam[3], rho[3], z0[3];
+    double r[3];
+    for (int i = 0; i < n; i++) {
+      r[i] = 2.0 * q.b[F[i]];
+      for (int c = 0; c < 3; c++) if (state[c] != FREE) r[i] -= q.H[F[i]][c] * v[c];
+      for (int j = 0; j < n; j++) A[i][j] = q.H[F[i]][F[j]];
+    }
+    symmetric_eigen(A, n, lam, U);
+    double lam_max = 0.0;
+    for (int k = 0; k < n; k++) {
+      rho[k] = 0.0; z0[k] = 0.0;
+      for (int i = 0; i < n; i++) { rho[k] += U[i][k] * r[i]; z0[k] += U[i][k] * v[F[i]]; }
+      lam_max = std::max(lam_max, std::fabs(lam[k]));
+    }
+    if (!(lam_max > 0.0)) break;
+
+    // position at time t on this face
+    auto flow = [&](double t, double* out) {
+      for (int a = 0; a < 3; a++) out[a] = v[a];
+      double z[3];
+      for (int k = 0; k < n; k++) {
+        const double x = -lam[k] * t;
+        const double decay = std::exp(x);
+        const double gain = lam[k] == 0.0 ? t : -std::expm1(x) / lam[k];
+        z[k] = z0[k] * decay + rho[k] * gain;
+      }
+      for (int i = 0; i < n; i++) {
+        out[F[i]] = 0.0;
+        for (int k = 0; k < n; k++) out[F[i]] += U[i][k] * z[k];
+      }
+    };
+    // smallest constraint margin at time t: free weights stay in [0, cap],
+    // fixed ones keep their gradient pointing out of the box
+    auto margin = [&](double t, int& which) {
+      double x[3], g[3];
+      flow(t, x);
+      weight_gradient(q, x, g);
+      double worst = kInf;
+      which = -1;
+      for (int a = 0; a < 3; a++) {
+        double mg;
+        if (state[a] == FREE) mg = std::min(x[a], cap[a] - x[a]) / (cap[a] > 0.0 ? cap[a] : 1.0);
+        else if (!(cap[a] > 0.0)) continue;
+        else mg = (state[a] == AT_ZERO ? g[a] : -g[a]) / b_scale;
+        if (!(mg >= worst)) { worst = mg; which = a; }
+      }
+      return worst;
+    };
+
+    const double t0 = 1e-6 / lam_max;
+    const int per_decade = 20, n_grid = per_decade * 46;
+    double lo = 0.0, hi = -1.0;
+    int which = -1;
+    for (int i = 0; i <= n_grid; i++) {
+      const double t = t0 * std::pow(10.0, static_cast<double>(i) / per_decade);
+      if (!(margin(t, which) >= -tol)) { hi = t; break; }
+      lo = t;
+    }
+    if (hi < 0.0) {
+      flow(lo, v);
+      break;
+    }
+    for (int it = 0; it < 200 && hi - lo > 1e-15 * hi; it++) {
+      const double mid = 0.5 * (lo + hi);
+      if (!(margin(mid, which) >= -tol)) hi = mid; else lo = mid;
+    }
+    margin(hi, which);
+    flow(hi, v);
+    for (int a = 0; a < 3; a++) v[a] = std::min(std::max(v[a], 0.0), cap[a]);
+    if (which < 0) break;
+    if (state[which] == FREE) {
+      state[which] = v[which] < 0.5 * cap[which] ? AT_ZERO : AT_CAP;
+      v[which] = state[which] == AT_CAP ? cap[which] : 0.0;
+    } else {
+      state[which] = FREE;
+    }
+  }
+  for (int a = 0; a < 3; a++) w[a] = std::min(std::max(v[a], 0.0), cap[a]);
 }
 
 // Fit the three curves to the part of the rate curve at or beyond quantile

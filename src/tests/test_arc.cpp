@@ -92,39 +92,102 @@ TEST_CASE("rate curve differences the expected accumulation", "[arc]") {
   REQUIRE(thin.n.back() == 4000.0);
 }
 
-TEST_CASE("weights are the minimum over the capped box", "[arc]") {
+TEST_CASE("weights are the local minimum reached by descent from zero", "[arc]") {
   std::mt19937 rng(7);
   std::uniform_real_distribution<double> unif(0.0, 1.0);
   const int m = 40;
-  std::vector<double> s(m), omega(m, 1.0);
-  std::vector<std::vector<double>> f(3, std::vector<double>(m));
-  for (int i = 0; i < m; i++) {
-    const double n = 10.0 + 5.0 * i;
-    f[0][i] = std::exp(-0.02 * n);
-    f[1][i] = 1.0 / (1.0 + 0.01 * n);
-    f[2][i] = std::exp(-0.05 * n);
-    s[i] = 0.6 * f[0][i] + 0.2 * f[1][i] + 0.1 * f[2][i] + 0.01 * (unif(rng) - 0.5);
-  }
-  const double cap[3] = {0.8, 0.3, 0.4};
-  double w[3];
-  optimise_weights(f, s.data(), omega.data(), m, cap, w);
-
-  auto loss = [&](const double* v) {
-    double total = 0.0;
+  int differ_from_global = 0, descent_compared = 0;
+  for (int rep = 0; rep < 200; rep++) {
+    std::vector<double> s(m), omega(m);
+    std::vector<std::vector<double>> f(3, std::vector<double>(m));
+    const double k_ln = 0.005 + 0.03 * unif(rng), k_ll = 0.005 + 0.03 * unif(rng),
+                 k_wb = 0.01 + 0.06 * unif(rng);
+    const double a_ln = unif(rng), a_ll = unif(rng), a_wb = unif(rng);
     for (int i = 0; i < m; i++) {
-      const double r = s[i] - (v[0] * f[0][i] + v[1] * f[1][i] + v[2] * f[2][i]);
-      total += omega[i] * (r * r + v[1] * v[2] / s[i]);
+      const double n = 10.0 + 5.0 * i;
+      f[0][i] = std::exp(-k_ln * n);
+      f[1][i] = 1.0 / (1.0 + k_ll * n);
+      f[2][i] = std::exp(-k_wb * n);
+      s[i] = a_ln * f[0][i] + a_ll * f[1][i] + a_wb * f[2][i] + 0.02 * unif(rng) + 1e-3;
+      omega[i] = (i + 1.0) * (i + 1.0);
     }
-    return total;
-  };
-  for (int a = 0; a < 3; a++) {
-    REQUIRE(w[a] >= 0.0);
-    REQUIRE(w[a] <= cap[a]);
+    const double cap[3] = {0.3 + unif(rng), unif(rng), unif(rng)};
+    double w[3];
+    optimise_weights(f, s.data(), omega.data(), m, cap, w);
+
+    const WeightLoss q = weight_loss(f, s.data(), omega.data(), m);
+    double g[3];
+    weight_gradient(q, w, g);
+    double scale = 0.0, norm = 0.0;
+    for (int a = 0; a < 3; a++) {
+      scale = std::max(scale, std::fabs(q.b[a]));
+      for (int c = 0; c < 3; c++) norm += q.H[a][c] * q.H[a][c];
+    }
+    for (int a = 0; a < 3; a++) {
+      REQUIRE(w[a] >= 0.0);
+      REQUIRE(w[a] <= cap[a]);
+      if (w[a] > 0.0 && w[a] < cap[a]) REQUIRE(std::fabs(g[a]) < 1e-7 * scale);
+      if (w[a] == 0.0) REQUIRE(g[a] > -1e-7 * scale);
+      if (w[a] == cap[a]) REQUIRE(g[a] < 1e-7 * scale);
+    }
+
+    // projected gradient descent from 0 with a small step, the explicit
+    // Euler scheme for the same flow, run until it is a stationary point
+    double v[3] = {0.0, 0.0, 0.0};
+    const double step = 0.5 / std::sqrt(norm);
+    bool stationary = false;
+    for (int it = 0; it < 5000000 && !stationary; it++) {
+      weight_gradient(q, v, g);
+      stationary = true;
+      for (int a = 0; a < 3; a++) {
+        const double z = std::min(std::max(v[a] - step * g[a], 0.0), cap[a]);
+        if (std::fabs(z - v[a]) > 1e-12 * step * scale) stationary = false;
+        v[a] = z;
+      }
+    }
+    if (stationary) {
+      descent_compared++;
+      for (int a = 0; a < 3; a++) REQUIRE(w[a] == Approx(v[a]).margin(1e-6));
+    }
+
+    auto loss = [&](const double* x) {
+      double total = 0.0;
+      for (int a = 0; a < 3; a++) {
+        total -= 2.0 * q.b[a] * x[a];
+        for (int c = 0; c < 3; c++) total += 0.5 * q.H[a][c] * x[a] * x[c];
+      }
+      return total;
+    };
+    for (int trial = 0; trial < 2000; trial++) {
+      const double x[3] = {cap[0] * unif(rng), cap[1] * unif(rng), cap[2] * unif(rng)};
+      if (loss(x) < loss(w) - 1e-9 * (std::fabs(loss(w)) + 1.0)) { differ_from_global++; break; }
+    }
   }
-  const double best = loss(w);
-  for (int trial = 0; trial < 20000; trial++) {
-    const double v[3] = {cap[0] * unif(rng), cap[1] * unif(rng), cap[2] * unif(rng)};
-    REQUIRE(loss(v) >= best - 1e-12);
+  // the product penalty gives a second basin in part of these problems
+  REQUIRE(differ_from_global > 0);
+  REQUIRE(descent_compared > 150);
+}
+
+TEST_CASE("symmetric eigendecomposition reconstructs the matrix", "[arc]") {
+  std::mt19937 rng(3);
+  std::uniform_real_distribution<double> unif(-1.0, 1.0);
+  for (int n = 1; n <= 3; n++) {
+    for (int rep = 0; rep < 50; rep++) {
+      double M[3][3], A[3][3], U[3][3], lam[3];
+      for (int i = 0; i < n; i++)
+        for (int j = 0; j <= i; j++) M[i][j] = M[j][i] = unif(rng);
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) A[i][j] = (i < n && j < n) ? M[i][j] : 0.0;
+      symmetric_eigen(A, n, lam, U);
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+          double rec = 0.0, orth = 0.0;
+          for (int k = 0; k < n; k++) { rec += U[i][k] * lam[k] * U[j][k]; orth += U[k][i] * U[k][j]; }
+          REQUIRE(rec == Approx(M[i][j]).margin(1e-12));
+          REQUIRE(orth == Approx(i == j ? 1.0 : 0.0).margin(1e-12));
+        }
+      }
+    }
   }
 }
 

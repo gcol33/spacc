@@ -6,13 +6,15 @@ arc_fixture <- function(y) matrix(rep(seq_along(y), y), nrow = 1)
 test_that("arc reproduces the author's reference code", {
   # reference values from github.com/kshestop/ARC (point_est.r, K = 20,
   # portions 0-0.30, 1000 points) on a sparse Poisson-Gamma sample and a
-  # Steam catalogue snapshot; at both the reference optimiser reaches the
-  # minimum of Eq. 8
+  # Steam catalogue snapshot, and on a Gamma(1, 1) sample where the weights
+  # end at the log-logistic minimum of Eq. 8 rather than the global one
   sparse <- c(229, 69, 28, 7, 3, 1, rep(0, 15))
   steam <- c(1064, 621, 396, 290, 193, 161, 151, 106, 99, 81, 90, 69, 59, 54,
              55, 44, 53, 43, 38, 41, 1536)
+  intermediate <- c(249, 129, 66, 30, 19, 9, 7, 3, 1, 0, 1, rep(0, 10))
   expect_equal(arc(arc_fixture(sparse), n_boot = 0)$estimate, 1076.444973, tolerance = 1e-7)
   expect_equal(arc(arc_fixture(steam), n_boot = 0)$estimate, 7765.742462, tolerance = 1e-7)
+  expect_equal(arc(arc_fixture(intermediate), n_boot = 0)$estimate, 1013.949861, tolerance = 1e-7)
 })
 
 test_that("arc returns a spacc_estimate", {
