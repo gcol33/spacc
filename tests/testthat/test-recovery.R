@@ -117,6 +117,25 @@ test_that("MoRE standard error matches the sampling spread of the estimate", {
   expect_equal(mean(r[, 2]), sd(r[, 1]), tolerance = 0.2)
 })
 
+test_that("Chiu coverage with n_units recovers the coverage of a finite grid", {
+  skip_on_cran()
+  set.seed(9)
+  # truth: share of the grid's total abundance held by the detected species
+  r <- t(replicate(100, {
+    p <- runif(400, 0.001, 0.02); lambda <- stats::rlnorm(400, 0, 1)
+    pop <- sapply(seq_along(p), function(i) rbinom(400, 1, p[i]) * (1L + rpois(400, lambda[i])))
+    pop <- pop[, colSums(pop) > 0, drop = FALSE]
+    s <- pop[sample(400, 320), , drop = FALSE]
+    abund <- colSums(s); incid <- as.integer(colSums(s > 0))
+    truth <- sum(colSums(pop)[abund > 0]) / sum(pop)
+    c(wr = spacc:::calc_chiu_coverage(abund, incid, 320L, Inf) - truth,
+      wor = spacc:::calc_chiu_coverage(abund, incid, 320L, 400) - truth)
+  }))
+  rmse <- sqrt(colMeans(r^2))
+  expect_lt(rmse[["wor"]], rmse[["wr"]] / 2)
+  expect_lt(abs(median(r[, "wor"])), 0.005)
+})
+
 
 # ---- abundance estimators recover truth ----------------------------------
 test_that("abundance richness estimators recover the true pool size", {

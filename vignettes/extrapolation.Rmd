@@ -426,6 +426,74 @@ abundances. Standardizing by coverage ensures equal completeness rather
 than equal sample size, so a richer but less thoroughly sampled
 community is not penalised for its lower count.
 
+### Sites drawn from a finite set of units
+
+Chao2 and the Chiu (2023) coverage treat the sites as draws with
+replacement from an unlimited set of units. An atlas grid or a plot network
+is finite, and a survey often covers a large fraction $w = t / T$ of its
+$T$ units. Once $w$ is large, the species not yet seen can only sit in the
+few remaining units, and at $w = 1$ the survey is a census. `n_units = T`
+switches both estimators to their without-replacement forms. The example
+is a 20 x 20 grid of rare species, of which a survey visits 320 cells:
+
+```{r finite-units}
+set.seed(1)
+grid <- sapply(runif(300, 0.001, 0.03),
+               function(p) rbinom(400, 1, p) * (1L + rpois(400, 1)))
+grid <- grid[, colSums(grid) > 0]
+cells <- data.frame(x = rep(1:20, 20), y = rep(1:20, each = 20))
+surveyed <- sample(400, 320)
+survey <- grid[surveyed, ]
+detected <- colSums(survey) > 0
+
+c(true = ncol(grid), observed = sum(detected),
+  chao2 = chao2(survey)$estimate,
+  MoRE = chao2(survey, n_units = 400)$estimate)
+
+cov_wr <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                        coverage = "chiu", progress = FALSE, seed = 1)
+cov_grid <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                          coverage = "chiu", n_units = 400,
+                          progress = FALSE, seed = 1)
+c(true = sum(grid[, detected]) / sum(grid),
+  with_replacement = mean(cov_wr$coverage[, 320]),
+  n_units = mean(cov_grid$coverage[, 320]))
+```
+
+Chao2 places the total above the true 283 species, MoRE below it and
+closer; the finite-population coverage lands next to the true share
+where the with-replacement one falls short of it.
+
+`chao2(n_units = )` is the moment-based estimator MoRE (Chiu 2023, Methods
+in Ecology and Evolution). The coverage writes the abundance of the
+undetected species as their estimated number times the mean abundance of a
+unique species; with `n_units` the number is the MoRE term, so richness and
+coverage of one sample rest on the same estimate of what is missing.
+`extrapolate(n_units = )` prints MoRE next to the fitted asymptote.
+
+On simulated grids, with the truth taken as the share of the grid's total
+abundance held by the detected species, the finite-population coverage has
+the lower error once half the grid is sampled. The grids are 200 cells with
+occupancies of 0.003 to 0.15 (common) and 400 cells with occupancies of
+0.001 to 0.02 (sparse), 400 draws per row:
+
+| Grid | $w$ | True coverage | RMSE, with replacement | RMSE, `n_units` |
+|---|---|---|---|---|
+| common | 0.10 | 0.856 | 0.064 | 0.060 |
+| common | 0.50 | 0.996 | 0.0045 | 0.0038 |
+| common | 0.95 | 1.000 | 0.0025 | 0.0002 |
+| sparse | 0.10 | 0.467 | 0.073 | 0.104 |
+| sparse | 0.30 | 0.838 | 0.038 | 0.040 |
+| sparse | 0.50 | 0.947 | 0.020 | 0.016 |
+| sparse | 0.80 | 0.991 | 0.016 | 0.004 |
+| sparse | 0.95 | 0.999 | 0.015 | 0.0015 |
+
+Near a census the with-replacement coverage stays below the truth by about
+0.014 on the sparse grid, because Chao2 still predicts undetected species
+that cannot exist; the finite form removes that bias. At small fractions of
+a sparse grid MoRE predicts more undetected species than Chao2 and the
+coverage comes out low, so `n_units` pays off from about half the grid on.
+
 `dar()` fits the relationship between diversity (Hill numbers) and cumulative
 area (Ma 2018), generalising the classical species-area relationship to every
 Hill number order:
@@ -636,6 +704,9 @@ then dominated by sampling noise.
   45-67.
 - Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
   Ecology, 104, e4099.
+- Chiu, C.-H. (2023). A species richness estimator for sample-based
+  incidence data sampled without replacement. Methods in Ecology and
+  Evolution, 14, 2482-2493.
 - Lomolino, M.V. (2000). Ecology's most general, yet protean pattern:
   the species-area relationship. Journal of Biogeography, 27, 17-26.
 - Ma, Z. (2018). Generalizing the species-area relationship with

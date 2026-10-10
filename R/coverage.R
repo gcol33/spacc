@@ -16,6 +16,10 @@
 #'   estimator using incidence frequency counts (Q1/Q2) and unique-species
 #'   abundance (G1). The Chiu estimator is recommended for spatially aggregated
 #'   data where sampling units are plots/sites rather than independent individuals.
+#' @param n_units Total number of sampling units in the study region, when the
+#'   sites are drawn without replacement from a finite set of units (atlas
+#'   cells, a plot network). Requires `coverage = "chiu"`. `NULL` (default) or
+#'   `Inf` assumes sampling with replacement. See Details.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
@@ -32,6 +36,7 @@
 #'   \item{coverage}{Matrix of coverage estimates}
 #'   \item{pooled}{Species abundances pooled over all sites}
 #'   \item{coverage_type}{Coverage estimator used (`"chao"` or `"chiu"`)}
+#'   \item{n_units}{Number of units in the finite population, or `NULL`}
 #'   \item{coords, n_seeds, n_sites, method}{Parameters used}
 #'
 #' @details
@@ -46,7 +51,22 @@
 #' The **Chiu (2023)** estimator uses incidence frequency counts instead:
 #' Q1 (species in exactly 1 site), Q2 (species in exactly 2 sites), and G1
 #' (total abundance of Q1 species). It gives near-unbiased coverage estimates
-#' when organisms are spatially aggregated across sampling units.
+#' when organisms are spatially aggregated across sampling units. It writes
+#' the abundance of undetected species as the Chao2 estimate of their number,
+#' \eqn{\frac{t-1}{t} \frac{Q_1^2}{2 Q_2}} after \eqn{t} sites, times the mean
+#' abundance of a unique species, \eqn{G_1 / Q_1}.
+#'
+#' With `n_units = T`, the \eqn{t} sites are a fraction \eqn{w = t / T} of a
+#' finite set of units drawn without replacement, and the number of undetected
+#' species is the MoRE term of `chao2(x, n_units = )` (Chiu 2023, Methods in
+#' Ecology and Evolution, Eq. 5),
+#' \deqn{\frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+},}
+#' so richness and coverage of the same sample rest on one estimate of the
+#' undetected species. It vanishes at \eqn{w = 1}: the coverage reaches 1 once
+#' the accumulation has visited every unit. On simulated grids its error is
+#' lower than that of the with-replacement form from \eqn{w = 0.5} on, and
+#' several-fold lower near a census; it is about equal at \eqn{w = 0.3} and
+#' larger at \eqn{w = 0.1} on a sparse grid (`vignette("extrapolation")`).
 #'
 #' Coverage-based rarefaction allows fair comparison of diversity across
 #' communities with different abundances by standardizing to equal completeness
@@ -55,6 +75,10 @@
 #' @references
 #' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
 #' standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+#'
+#' Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+#' data sampled without replacement. Methods in Ecology and Evolution, 14,
+#' 2482-2493. \doi{10.1111/2041-210X.14146}
 #'
 #' Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
 #' Ecology, 104, e4099.
@@ -72,6 +96,9 @@
 #' # Sample-based coverage (recommended for spatial data)
 #' cov_chiu <- spaccCoverage(species, coords, coverage = "chiu")
 #'
+#' # The 50 sites are 80% of a 62-cell grid
+#' cov_grid <- spaccCoverage(species, coords, coverage = "chiu", n_units = 62)
+#'
 #' # Interpolate richness at 90% and 95% coverage
 #' interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 #' }
@@ -83,6 +110,7 @@ spaccCoverage <- function(x,
                           method = c("knn", "nn_walk"),
                           distance = c("euclidean", "haversine"),
                           coverage = c("chao", "chiu"),
+                          n_units = NULL,
                           parallel = TRUE,
                           n_cores = NULL,
                           progress = TRUE,
@@ -108,15 +136,21 @@ spaccCoverage <- function(x,
   n_species <- ncol(x)
   storage.mode(x) <- "integer"
 
+  n_units <- .finite_units(n_units, n_sites)
+  if (!is.null(n_units) && coverage != "chiu") {
+    stop("n_units requires coverage = \"chiu\"", call. = FALSE)
+  }
+
   coverage_type <- if (coverage == "chiu") 1L else 0L
-  cov_label <- if (coverage == "chiu") "Chiu 2023" else "Chao-Jost 2012"
+  cov_label <- .coverage_label(coverage, n_units)
   if (progress) cli_info(sprintf("Computing coverage-based accumulation (%d seeds, %s)", n_seeds, cov_label))
 
   ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
                                    site$dist_mat, focal_points, focal_domain,
                                    n_cores = n_cores)
   run <- function(orders) {
-    cpp_order_coverage_parallel(x, orders - 1L, coverage_type, n_cores)
+    cpp_order_coverage_parallel(x, orders - 1L, coverage_type,
+                                if (is.null(n_units)) Inf else n_units, n_cores)
   }
   result <- run(ordering$orders)
 
@@ -149,11 +183,19 @@ spaccCoverage <- function(x,
       method = method,
       distance = distance,
       coverage_type = coverage,
+      n_units = n_units,
       focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_coverage"
   )
+}
+
+
+# Printed name of the coverage estimator.
+.coverage_label <- function(coverage, n_units = NULL) {
+  if (!identical(coverage, "chiu")) return("Chao-Jost 2012")
+  if (is.null(n_units)) "Chiu 2023" else sprintf("Chiu 2023, %s units", format(n_units))
 }
 
 
@@ -367,7 +409,7 @@ plot.spacc_coverage_ext <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
 
 #' @export
 print.spacc_coverage <- function(x, ...) {
-  cov_label <- if (identical(x$coverage_type, "chiu")) "Chiu 2023" else "Chao-Jost 2012"
+  cov_label <- .coverage_label(x$coverage_type, x$n_units)
   .print_curves(x, sprintf("spacc coverage (%s)", cov_label),
                 sprintf("Mean final coverage: %.1f%%", mean(x$coverage[, x$n_sites]) * 100),
                 sprintf("Mean final richness: %.1f species", mean(x$richness[, x$n_sites])))

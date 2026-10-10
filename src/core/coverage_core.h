@@ -8,6 +8,8 @@
 
 #include "types.h"
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 namespace spacc {
 
@@ -77,21 +79,46 @@ double calc_chao_coverage(const std::vector<T>& abundances) {
   return std::max(0.0, std::min(1.0, C));
 }
 
+// Undetected richness of the MoRE estimator (Chiu 2023, MEE, Eq. 5) for t
+// units drawn without replacement, sampling fraction w = t / T:
+//   Q2 > 0:  (t-1)/t (1-w) Q1^2 / (Q2 + w (Q1 - Q2)^+)
+//   Q2 = 0:  (t-1)/t (1-w)/w (Q1 - 1)
+// with (A)^+ = A for A > 0 and 1 otherwise.
+inline double more_undetected(int Q1, int Q2, int t, double w) {
+  if (Q1 == 0 || w >= 1.0) return 0.0;
+  const double m = static_cast<double>(t - 1) / t;
+  if (Q2 > 0) {
+    const double excess = Q1 > Q2 ? Q1 - Q2 : 1.0;
+    return m * (1.0 - w) * Q1 * Q1 / (Q2 + w * excess);
+  }
+  return m * (1.0 - w) / w * (Q1 - 1);
+}
+
 // Calculate Chiu (2023) sample-based coverage estimator
 // Uses incidence frequency counts (Q1, Q2) and abundance of uniques (G1)
 // instead of individual-based singletons/doubletons.
 // Near-unbiased for plot-based (spatially aggregated) data.
 //
+// The undetected abundance is the number of undetected species times the mean
+// abundance of a unique, a0 = f0 * G1 / Q1. With replacement f0 is the Chao2
+// term (T-1)/T Q1^2 / (2 Q2). When the T units are drawn without replacement
+// from n_units, f0 is the MoRE term (more_undetected()), which vanishes at
+// T = n_units (a census).
+//
 // Parameters:
 //   abundances  - cumulative abundance per species (length = n_species)
 //   incidences  - number of sampling units each species occurs in (length = n_species)
 //   T           - number of accumulated sampling units (sites)
+//   n_units     - total number of units in the finite population (infinity
+//                 for sampling with replacement)
 //
 // Returns value in [0, 1] where 1 = complete coverage
 template<typename T>
 double calc_chiu_coverage(const std::vector<T>& abundances,
                           const std::vector<int>& incidences,
-                          int T_sites) {
+                          int T_sites,
+                          double n_units = std::numeric_limits<double>::infinity()) {
+  if (T_sites >= n_units) return 1.0;
   if (T_sites <= 1) return 0.0;
 
   int n_plus = 0;  // total individuals across all accumulated sites
@@ -113,19 +140,16 @@ double calc_chiu_coverage(const std::vector<T>& abundances,
 
   if (n_plus == 0) return 0.0;
 
-  // Cap Q1 and Q2 at minimum 1 to avoid division by zero
-  int Q1_safe = std::max(1, Q1);
-  int Q2_safe = std::max(1, Q2);
-
-  // Chiu (2023) formula:
-  // a0_hat = ((T-1)/T) * G1 * Q1 / (2 * Q2)
-  // C = n+ / (n+ + a0_hat)
+  // C = n+ / (n+ + a0_hat), a0_hat = f0 * G1 / Q1
   // When Q1 == 0 (no uniques), coverage is 1.0
   if (Q1 == 0) return 1.0;
 
-  double a0_hat = (static_cast<double>(T_sites - 1) / T_sites) *
-                  static_cast<double>(G1) * Q1_safe /
-                  (2.0 * Q2_safe);
+  // Cap Q2 at minimum 1 to avoid division by zero
+  const int Q2_safe = std::max(1, Q2);
+  const double f0 = std::isinf(n_units)
+    ? static_cast<double>(T_sites - 1) / T_sites * Q1 * Q1 / (2.0 * Q2_safe)
+    : more_undetected(Q1, Q2, T_sites, T_sites / n_units);
+  double a0_hat = f0 * G1 / Q1;
 
   double C = static_cast<double>(n_plus) / (n_plus + a0_hat);
 

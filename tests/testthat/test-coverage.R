@@ -344,18 +344,18 @@ test_that("calc_chiu_coverage returns correct values", {
   # C = 100 / 107.2 ~ 0.9328
   abundances <- c(5, 3, 20, 30, 42)
   incidences <- as.integer(c(1, 1, 2, 5, 8))
-  C <- spacc:::calc_chiu_coverage(abundances, incidences, 10L)
+  C <- spacc:::calc_chiu_coverage(abundances, incidences, 10L, Inf)
   expect_equal(C, 100 / 107.2, tolerance = 0.001)
 })
 
 
 test_that("calc_chiu_coverage handles edge cases", {
   # No uniques -> coverage = 1
-  C <- spacc:::calc_chiu_coverage(c(10, 20), as.integer(c(3, 5)), 5L)
+  C <- spacc:::calc_chiu_coverage(c(10, 20), as.integer(c(3, 5)), 5L, Inf)
   expect_equal(C, 1.0)
 
   # Single site -> coverage = 0
-  C <- spacc:::calc_chiu_coverage(c(5, 3), as.integer(c(1, 1)), 1L)
+  C <- spacc:::calc_chiu_coverage(c(5, 3), as.integer(c(1, 1)), 1L, Inf)
   expect_equal(C, 0.0)
 })
 
@@ -470,4 +470,48 @@ test_that("spaccCoverage chiu works with parallel", {
 
   expect_s3_class(result, "spacc_coverage")
   expect_true(all(result$coverage >= 0 & result$coverage <= 1))
+})
+
+
+# Chiu (2023) coverage for sites drawn without replacement
+test_that("calc_chiu_coverage with n_units uses the MoRE undetected richness", {
+  abundances <- c(5, 3, 20, 30, 42)
+  incidences <- as.integer(c(1, 1, 2, 5, 8))
+  # 10 of 20 units: f0 = 0.9 * 0.5 * 2^2 / (1 + 0.5 * 1) = 1.2, a0 = f0 * G1 / Q1
+  f0 <- 0.9 * 0.5 * 4 / 1.5
+  expect_equal(spacc:::calc_chiu_coverage(abundances, incidences, 10L, 20),
+               100 / (100 + f0 * 8 / 2))
+  expect_equal(spacc:::cpp_more_undetected(2L, 1L, 10L, 0.5), f0)
+  expect_equal(spacc:::calc_chiu_coverage(abundances, incidences, 10L, 10), 1)
+})
+
+test_that("spaccCoverage(n_units = ) reaches full coverage at a census", {
+  set.seed(3)
+  coords <- data.frame(x = runif(25), y = runif(25))
+  species <- matrix(rpois(25 * 15, 0.4), nrow = 25)
+  species[, 15] <- c(3L, rep(0L, 24))
+  args <- list(species, coords, n_seeds = 4, coverage = "chiu",
+               parallel = FALSE, progress = FALSE, seed = 1)
+
+  wr <- do.call(spaccCoverage, args)
+  inf <- do.call(spaccCoverage, c(args, n_units = Inf))
+  census <- do.call(spaccCoverage, c(args, n_units = 25))
+  grid <- do.call(spaccCoverage, c(args, n_units = 40))
+
+  expect_equal(inf$coverage, wr$coverage)
+  expect_null(inf$n_units)
+  expect_equal(census$coverage[, 25], rep(1, 4))
+  expect_equal(grid$n_units, 40)
+  expect_lt(max(wr$coverage[, 25]), 1)
+  expect_output(print(grid), "Chiu 2023, 40 units")
+})
+
+test_that("spaccCoverage(n_units = ) validates its input", {
+  coords <- data.frame(x = runif(10), y = runif(10))
+  species <- matrix(rpois(10 * 5, 2), nrow = 10)
+  expect_error(spaccCoverage(species, coords, n_seeds = 2, n_units = 20, progress = FALSE),
+               "coverage = \"chiu\"")
+  expect_error(spaccCoverage(species, coords, n_seeds = 2, coverage = "chiu",
+                             n_units = 5, progress = FALSE),
+               "at least the number of sampled units")
 })

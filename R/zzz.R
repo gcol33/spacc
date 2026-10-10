@@ -25,7 +25,7 @@ utils::globalVariables(c(
   "cpp_beta_order_parallel",
   "cpp_cone_order", "cpp_distance_matrix",
   "cpp_focal_order", "cpp_func_order_parallel", "cpp_gaussian_order",
-  "cpp_kncn_order", "cpp_kncn_tree_order",
+  "cpp_kncn_order", "cpp_kncn_tree_order", "cpp_more_undetected",
   "cpp_nn_walk_order", "cpp_nn_walk_tree_order",
   "cpp_order_coverage_parallel", "cpp_order_hill_beta_parallel",
   "cpp_order_hill_coverage_parallel", "cpp_order_hill_parallel",

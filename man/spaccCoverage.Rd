@@ -11,6 +11,7 @@ spaccCoverage(
   method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   coverage = c("chao", "chiu"),
+  n_units = NULL,
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
@@ -39,6 +40,11 @@ estimator using incidence frequency counts (Q1/Q2) and unique-species
 abundance (G1). The Chiu estimator is recommended for spatially aggregated
 data where sampling units are plots/sites rather than independent individuals.}
 
+\item{n_units}{Total number of sampling units in the study region, when the
+sites are drawn without replacement from a finite set of units (atlas
+cells, a plot network). Requires \code{coverage = "chiu"}. \code{NULL} (default) or
+\code{Inf} assumes sampling with replacement. See Details.}
+
 \item{parallel}{Logical. Use parallel processing? Default \code{TRUE}.}
 
 \item{n_cores}{Integer. Number of cores.}
@@ -62,6 +68,7 @@ An object of class \code{spacc_coverage} containing:
 \item{coverage}{Matrix of coverage estimates}
 \item{pooled}{Species abundances pooled over all sites}
 \item{coverage_type}{Coverage estimator used (\code{"chao"} or \code{"chiu"})}
+\item{n_units}{Number of units in the finite population, or \code{NULL}}
 \item{coords, n_seeds, n_sites, method}{Parameters used}
 }
 \description{
@@ -81,7 +88,22 @@ independently, which may not hold for plot-based spatial data.
 The \strong{Chiu (2023)} estimator uses incidence frequency counts instead:
 Q1 (species in exactly 1 site), Q2 (species in exactly 2 sites), and G1
 (total abundance of Q1 species). It gives near-unbiased coverage estimates
-when organisms are spatially aggregated across sampling units.
+when organisms are spatially aggregated across sampling units. It writes
+the abundance of undetected species as the Chao2 estimate of their number,
+\eqn{\frac{t-1}{t} \frac{Q_1^2}{2 Q_2}} after \eqn{t} sites, times the mean
+abundance of a unique species, \eqn{G_1 / Q_1}.
+
+With \code{n_units = T}, the \eqn{t} sites are a fraction \eqn{w = t / T} of a
+finite set of units drawn without replacement, and the number of undetected
+species is the MoRE term of \code{chao2(x, n_units = )} (Chiu 2023, Methods in
+Ecology and Evolution, Eq. 5),
+\deqn{\frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+},}
+so richness and coverage of the same sample rest on one estimate of the
+undetected species. It vanishes at \eqn{w = 1}: the coverage reaches 1 once
+the accumulation has visited every unit. On simulated grids its error is
+lower than that of the with-replacement form from \eqn{w = 0.5} on, and
+several-fold lower near a census; it is about equal at \eqn{w = 0.3} and
+larger at \eqn{w = 0.1} on a sparse grid (\code{vignette("extrapolation")}).
 
 Coverage-based rarefaction allows fair comparison of diversity across
 communities with different abundances by standardizing to equal completeness
@@ -98,6 +120,9 @@ plot(cov)
 # Sample-based coverage (recommended for spatial data)
 cov_chiu <- spaccCoverage(species, coords, coverage = "chiu")
 
+# The 50 sites are 80\% of a 62-cell grid
+cov_grid <- spaccCoverage(species, coords, coverage = "chiu", n_units = 62)
+
 # Interpolate richness at 90\% and 95\% coverage
 interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 }
@@ -106,6 +131,10 @@ interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 \references{
 Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
 standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+
+Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+data sampled without replacement. Methods in Ecology and Evolution, 14,
+2482-2493. \doi{10.1111/2041-210X.14146}
 
 Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
 Ecology, 104, e4099.

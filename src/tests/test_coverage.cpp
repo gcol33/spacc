@@ -280,4 +280,30 @@ TEST_CASE("calc_chiu_coverage", "[coverage]") {
     // Q1=0 -> coverage = 1.0
     REQUIRE(C == Approx(1.0));
   }
+
+  SECTION("infinite population equals sampling with replacement") {
+    std::vector<int> abundances = {5, 3, 20, 30, 42};
+    std::vector<int> incidences = {1, 1, 2, 5, 8};
+    REQUIRE(calc_chiu_coverage(abundances, incidences, 10,
+                               std::numeric_limits<double>::infinity()) ==
+            Approx(calc_chiu_coverage(abundances, incidences, 10)));
+  }
+
+  SECTION("finite population, known values") {
+    // Same sample as "known values", 10 of 20 units, w = 0.5
+    // MoRE f0 = (9/10) (1 - w) Q1^2 / (Q2 + w (Q1 - Q2)) = 0.9 * 0.5 * 4 / 1.5 = 1.2
+    // a0_hat = f0 * G1 / Q1 = 1.2 * 8 / 2 = 4.8
+    // C = 100 / 104.8 ~ 0.954198
+    std::vector<int> abundances = {5, 3, 20, 30, 42};
+    std::vector<int> incidences = {1, 1, 2, 5, 8};
+    double C = calc_chiu_coverage(abundances, incidences, 10, 20.0);
+    REQUIRE(C == Approx(0.954198).epsilon(0.0001));
+    REQUIRE(C > calc_chiu_coverage(abundances, incidences, 10));
+  }
+
+  SECTION("a census has full coverage") {
+    std::vector<int> abundances = {5, 3, 20, 30, 42};
+    std::vector<int> incidences = {1, 1, 2, 5, 8};
+    REQUIRE(calc_chiu_coverage(abundances, incidences, 10, 10.0) == Approx(1.0));
+  }
 }

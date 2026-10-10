@@ -110,7 +110,8 @@ chao1 <- function(x) {
 # drawn without replacement from n_units, sampling fraction w = t / n_units.
 #   Q2 > 0:  S_obs + (t-1)/t (1-w) Q1^2 / (Q2 + w (Q1 - Q2)^+)
 #   Q2 = 0:  S_obs + (t-1)/t (1-w)/w (Q1 - 1)
-# with (A)^+ = A for A > 0 and 1 otherwise. Variance by the delta method over
+# with (A)^+ = A for A > 0 and 1 otherwise (cpp_more_undetected(), shared
+# with the finite-population coverage). Variance by the delta method over
 # the frequency counts, cov(Qi, Qj) = Qi (1 - Qi / S) on the diagonal and
 # -Qi Qj / S off it; S_obs depends on every Qk with derivative 1, so only the
 # derivatives in Q1 and Q2 differ from 1.
@@ -125,17 +126,15 @@ chao1 <- function(x) {
   if (Q2 > 0) {
     excess <- Q1 - Q2 > 0
     A <- Q2 + w * if (excess) Q1 - Q2 else 1
-    f0 <- m * (1 - w) * Q1^2 / A
     g1 <- m * (1 - w) * (2 * Q1 / A - Q1^2 * w * excess / A^2)
     g2 <- -m * (1 - w) * Q1^2 * (1 - w * excess) / A^2
   } else if (Q1 > 0) {
-    f0 <- m * (1 - w) / w * (Q1 - 1)
     g1 <- m * (1 - w) / w
     g2 <- 0
   } else {
-    f0 <- g1 <- g2 <- 0
+    g1 <- g2 <- 0
   }
-  estimate <- S_obs + f0
+  estimate <- S_obs + cpp_more_undetected(Q1, Q2, t, w)
 
   d <- c(1 + g1, 1 + g2, 1)
   Q <- c(Q1, Q2, S_obs - Q1 - Q2)

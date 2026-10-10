@@ -11,6 +11,9 @@
   reaches the observed richness when every unit is sampled instead of
   overestimating it. `extrapolate(n_units = )` compares the asymptote with
   MoRE and uses it as the reference for the disagreement warning (#14).
+- `spaccCoverage(coverage = "chiu", n_units = )` gives the matching sample
+  coverage: the undetected abundance uses the MoRE estimate of the undetected
+  species, so the coverage reaches 1 when every unit is sampled (#14).
 - `spaccHillBeta(standardize = "coverage", coverage = )` standardises gamma
   and alpha to a common sample coverage at every step (iNEXT.beta3D, Chao et
   al. 2023) and returns the four dissimilarities `1-CqN`, `1-UqN`, `1-VqN`,

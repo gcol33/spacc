@@ -21,12 +21,16 @@ calc_coverage <- function(abundances) {
     .Call(`_spacc_calc_coverage`, abundances)
 }
 
-calc_chiu_coverage <- function(abundances, incidences, T_sites) {
-    .Call(`_spacc_calc_chiu_coverage`, abundances, incidences, T_sites)
+cpp_more_undetected <- function(Q1, Q2, t, w) {
+    .Call(`_spacc_cpp_more_undetected`, Q1, Q2, t, w)
 }
 
-cpp_order_coverage_parallel <- function(species_mat, orders, coverage_type = 0L, n_cores = 1L) {
-    .Call(`_spacc_cpp_order_coverage_parallel`, species_mat, orders, coverage_type, n_cores)
+calc_chiu_coverage <- function(abundances, incidences, T_sites, n_units) {
+    .Call(`_spacc_calc_chiu_coverage`, abundances, incidences, T_sites, n_units)
+}
+
+cpp_order_coverage_parallel <- function(species_mat, orders, coverage_type, n_units, n_cores = 1L) {
+    .Call(`_spacc_cpp_order_coverage_parallel`, species_mat, orders, coverage_type, n_units, n_cores)
 }
 
 interpolate_at_coverage <- function(richness, coverage, targets) {

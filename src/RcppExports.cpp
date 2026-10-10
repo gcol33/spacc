@@ -78,30 +78,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_more_undetected
+double cpp_more_undetected(int Q1, int Q2, int t, double w);
+RcppExport SEXP _spacc_cpp_more_undetected(SEXP Q1SEXP, SEXP Q2SEXP, SEXP tSEXP, SEXP wSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type Q1(Q1SEXP);
+    Rcpp::traits::input_parameter< int >::type Q2(Q2SEXP);
+    Rcpp::traits::input_parameter< int >::type t(tSEXP);
+    Rcpp::traits::input_parameter< double >::type w(wSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_more_undetected(Q1, Q2, t, w));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calc_chiu_coverage
-double calc_chiu_coverage(NumericVector abundances, IntegerVector incidences, int T_sites);
-RcppExport SEXP _spacc_calc_chiu_coverage(SEXP abundancesSEXP, SEXP incidencesSEXP, SEXP T_sitesSEXP) {
+double calc_chiu_coverage(NumericVector abundances, IntegerVector incidences, int T_sites, double n_units);
+RcppExport SEXP _spacc_calc_chiu_coverage(SEXP abundancesSEXP, SEXP incidencesSEXP, SEXP T_sitesSEXP, SEXP n_unitsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type abundances(abundancesSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type incidences(incidencesSEXP);
     Rcpp::traits::input_parameter< int >::type T_sites(T_sitesSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_chiu_coverage(abundances, incidences, T_sites));
+    Rcpp::traits::input_parameter< double >::type n_units(n_unitsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_chiu_coverage(abundances, incidences, T_sites, n_units));
     return rcpp_result_gen;
 END_RCPP
 }
 // cpp_order_coverage_parallel
-List cpp_order_coverage_parallel(IntegerMatrix species_mat, IntegerMatrix orders, int coverage_type, int n_cores);
-RcppExport SEXP _spacc_cpp_order_coverage_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP coverage_typeSEXP, SEXP n_coresSEXP) {
+List cpp_order_coverage_parallel(IntegerMatrix species_mat, IntegerMatrix orders, int coverage_type, double n_units, int n_cores);
+RcppExport SEXP _spacc_cpp_order_coverage_parallel(SEXP species_matSEXP, SEXP ordersSEXP, SEXP coverage_typeSEXP, SEXP n_unitsSEXP, SEXP n_coresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerMatrix >::type species_mat(species_matSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix >::type orders(ordersSEXP);
     Rcpp::traits::input_parameter< int >::type coverage_type(coverage_typeSEXP);
+    Rcpp::traits::input_parameter< double >::type n_units(n_unitsSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_order_coverage_parallel(species_mat, orders, coverage_type, n_cores));
+    rcpp_result_gen = Rcpp::wrap(cpp_order_coverage_parallel(species_mat, orders, coverage_type, n_units, n_cores));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -524,8 +540,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spacc_cpp_area_along_orders", (DL_FUNC) &_spacc_cpp_area_along_orders, 4},
     {"_spacc_cpp_beta_order_parallel", (DL_FUNC) &_spacc_cpp_beta_order_parallel, 5},
     {"_spacc_calc_coverage", (DL_FUNC) &_spacc_calc_coverage, 1},
-    {"_spacc_calc_chiu_coverage", (DL_FUNC) &_spacc_calc_chiu_coverage, 3},
-    {"_spacc_cpp_order_coverage_parallel", (DL_FUNC) &_spacc_cpp_order_coverage_parallel, 4},
+    {"_spacc_cpp_more_undetected", (DL_FUNC) &_spacc_cpp_more_undetected, 4},
+    {"_spacc_calc_chiu_coverage", (DL_FUNC) &_spacc_calc_chiu_coverage, 4},
+    {"_spacc_cpp_order_coverage_parallel", (DL_FUNC) &_spacc_cpp_order_coverage_parallel, 5},
     {"_spacc_interpolate_at_coverage", (DL_FUNC) &_spacc_interpolate_at_coverage, 3},
     {"_spacc_cpp_distance_matrix", (DL_FUNC) &_spacc_cpp_distance_matrix, 3},
     {"_spacc_calc_hill_number", (DL_FUNC) &_spacc_calc_hill_number, 2},
