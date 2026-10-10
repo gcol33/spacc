@@ -15,8 +15,10 @@ been in the package since 0.8.3; its three copyright holders are now listed
 in Authors@R as contributors and copyright holders, with the license text in
 inst/COPYRIGHTS.
 
-Any spelling diagnostics for author names, citation fragments and DOI
-fragments in DESCRIPTION refer to the cited literature.
+win-builder (R-devel and R-release) reports one NOTE listing possibly
+misspelled words in DESCRIPTION: these are author surnames from the method
+references, "EvoHeritage" (the name of the Rosindell et al. 2024 metric) and
+"intraspecific", and are spelled correctly.
 
 ## Test environments
 
