@@ -104,7 +104,8 @@ nestedness (species loss) components following Baselga (2010).</p>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  map <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  focal_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  focal_domain <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  focal_domain <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pool <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -176,6 +177,12 @@ and store per-site final beta values for spatial mapping. Enables
 <dt id="arg-focal-domain">focal_domain<a class="anchor" aria-label="anchor" href="#arg-focal-domain"></a></dt>
 <dd><p>Optional polygonal focal domain. See <code><a href="spacc.html">spacc()</a></code>.</p></dd>
 
+
+<dt id="arg-pool">pool<a class="anchor" aria-label="anchor" href="#arg-pool"></a></dt>
+<dd><p>Optional vector with one value per site (habitat, degradation
+level, region) grouping sites into pools. The partition is then also
+computed between pooled assemblages along the same orders.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -191,6 +198,10 @@ and store per-site final beta values for spatial mapping. Enables
 
 <dt>distance</dt>
 <dd><p>Matrix of cumulative distances</p></dd>
+
+<dt>pooled</dt>
+<dd><p>With <code>pool</code>: the same four matrices for the pooled
+assemblages (n_seeds x n_pools-1), plus <code>pool</code> and <code>n_pools</code>; else <code>NULL</code></p></dd>
 
 <dt>n_seeds, n_sites, method, index</dt>
 <dd><p>Parameters used</p></dd>
@@ -211,11 +222,24 @@ pool and each new site. Supplying <code>tree</code> computes phylogenetic beta d
 phylogenetic variants all return a <code>spacc_beta</code> object whose <code>beta_type</code> field
 records which was computed. <code>map = TRUE</code> is supported for the taxonomic
 variant only.</p>
+<p>With <code>pool</code>, sites are aggregated into pooled assemblages (a species is
+present in a pool if it occurs in any of its sites) and the partition is
+repeated between pools: each site order becomes the order in which its
+pools are first reached, and the distance between two pools is the mean
+distance between their sites. Partitions at the two resolutions can
+disagree, for example when degraded habitats are homogenised at the pool
+level while individual sites still differ (Jones et al. 2025).
+<code>summary(x, resolution = "pooled")</code> and
+<code>plot(x, resolution = "pooled")</code> or <code>"both"</code> show the pooled partition.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Baselga, A. (2010). Partitioning the turnover and nestedness components
 of beta diversity. Global Ecology and Biogeography, 19, 134-143.</p>
+<p>Jones, F.A.M., Hardenbol, A.A., Hekkala, A.-M., et al. (2025). Partitioning
+beta diversity at two spatial resolutions reveals biotic homogenisation
+with habitat degradation. Diversity and Distributions, 31, e70080.
+<a href="https://doi.org/10.1111/ddi.70080" class="external-link">doi:10.1111/ddi.70080</a></p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

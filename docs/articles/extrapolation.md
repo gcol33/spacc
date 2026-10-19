@@ -1,5 +1,15 @@
 # Extrapolation and Species-Area Models
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Overview
 
 Most surveys stop before the last species is found. The observed species
@@ -254,8 +264,7 @@ spread across these five asymptotes, set against the known true value of
 ``` r
 
 best_name <- names(fits)[which.min(sapply(fits, function(f) f$aic))]
-best <- extrapolate(sac, model = best_name, progress = FALSE)
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
+best <- extrapolate(sac, model = best_name)
 plot(best) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -285,7 +294,7 @@ fit_evt
 #> Extrapolation: evt 
 #> -------------------------------------- 
 #> Estimated asymptote: 50.0 species
-#> 95% CI (bootstrap):       49.9 - 52.7
+#> 95% CI (bootstrap):       50.0 - 50.4
 #> Observed:            50.0 species (100% of estimated)
 #> AIC: -193.2   RMSE: 0.09 (0.2% of mean)
 #> Reliable to ~250 sites (2.5x sampled effort of 100)
@@ -311,25 +320,18 @@ rather than a single pre-chosen form.
 
 ``` r
 
-cm <- compareModels(sac, progress = FALSE)
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
-#> Warning: Model fitting failed: variable lengths differ (found for '(progress)')
-#> Warning in min(aic_vals, na.rm = TRUE): no non-missing arguments to min;
-#> returning Inf
+cm <- compareModels(sac)
 cm
 #> SAR Model Comparison
 #> ------------------------------ 
-#>   michaelis-menten     (failed to converge)
-#>   lomolino             (failed to converge)
-#>   asymptotic           (failed to converge)
-#>   weibull              (failed to converge)
-#>   logistic             (failed to converge)
-#>   evt                  (failed to converge)
-#> ------------------------------
+#>   evt                  AIC:   -193.2  dAIC:    0.0  w: 1.000  S_max:   50.0 *
+#>   weibull              AIC:     95.8  dAIC:  289.0  w: 0.000  S_max:   50.3
+#>   logistic             AIC:    185.2  dAIC:  378.4  w: 0.000  S_max:   49.9
+#>   lomolino             AIC:    215.1  dAIC:  408.3  w: 0.000  S_max:   51.8
+#>   michaelis-menten     AIC:    222.9  dAIC:  416.2  w: 0.000  S_max:   51.3
+#>   asymptotic           AIC:    411.8  dAIC:  605.1  w: 0.000  S_max:   49.4
+#> ------------------------------ 
+#> Best model: evt
 ```
 
 The printed table is sorted with the best model first and starred. The
@@ -340,13 +342,13 @@ the same columns for further use:
 ``` r
 
 as.data.frame(cm)[, c("model", "AIC", "delta_AIC", "AIC_weight", "converged")]
-#>              model AIC delta_AIC AIC_weight converged
-#> 1 michaelis-menten  NA        NA         NA     FALSE
-#> 2         lomolino  NA        NA         NA     FALSE
-#> 3       asymptotic  NA        NA         NA     FALSE
-#> 4          weibull  NA        NA         NA     FALSE
-#> 5         logistic  NA        NA         NA     FALSE
-#> 6              evt  NA        NA         NA     FALSE
+#>              model        AIC delta_AIC    AIC_weight converged
+#> 1              evt -193.23852    0.0000  1.000000e+00      TRUE
+#> 2          weibull   95.79357  289.0321  1.727742e-63      TRUE
+#> 3         logistic  185.18786  378.4264  6.695096e-83      TRUE
+#> 4         lomolino  215.09734  408.3359  2.142867e-89      TRUE
+#> 5 michaelis-menten  222.93504  416.1736  4.256573e-91      TRUE
+#> 6       asymptotic  411.81789  605.0564 4.108371e-132      TRUE
 ```
 
 Models within about 2 delta-AIC units of the best are usually treated as
@@ -367,11 +369,14 @@ recovers the `nls` profile-likelihood interval for comparison:
 ``` r
 
 coef(best)
-#> [1] NA
+#>          a          b          c 
+#> 50.3055289  2.6353322  0.5387455
 confint(best)
-#> [1] NA
+#>      2.5 %   97.5 %
+#> a 49.83558 50.94128
 confint(best, method = "profile")
-#> [1] NA
+#>      2.5 %   97.5 %
+#> a 50.19333 50.42069
 ```
 
 The profile interval is computed from the residuals of a single fit to
@@ -394,11 +399,18 @@ estimates, and an effort range within which predictions are reasonable:
 ``` r
 
 best$gof$rmse
-#> NULL
+#> [1] 0.3753221
 best
 #> Extrapolation: weibull 
 #> -------------------------------------- 
-#> Model fitting failed
+#> Estimated asymptote: 50.3 species
+#> 95% CI (bootstrap):       49.8 - 50.9
+#> Observed:            50.0 species (99% of estimated)
+#> AIC: 95.8   RMSE: 0.38 (0.8% of mean)
+#> Reliable to ~250 sites (2.5x sampled effort of 100)
+#> -------------------------------------- 
+#> Nonparametric:  chao2 = 50.0   iChao2 = 50.0
+#> (prefer these for calibrated total-richness intervals; see ?extrapolate)
 ```
 
 The fit goes through [`nls()`](https://rdrr.io/r/stats/nls.html), which
@@ -458,7 +470,7 @@ sapply(c(5, 20, 50), function(k) {
   s <- spacc(pa, coords, n_seeds = k, progress = FALSE)
   round(extrapolate(s, model = "michaelis-menten")$asymptote, 1)
 })
-#> [1] 51.6 51.1 50.9
+#> [1] 50.6 50.8 51.0
 ```
 
 The estimate stabilises as seeds accumulate; the gain from 20 to 50 is
@@ -487,16 +499,19 @@ ext
 #> Observed richness: 50.0
 #> 
 #> Extrapolated richness:
-#>   C=95%: 34.9 (+/- 7.1)
-#>   C=99%: 42.1 (+/- 4.5)
-#>   C=100%: 49.5 (+/- 0.5)
+#>   C=95%: 33.8 (+/- 8.1)
+#>   C=99%: 42.8 (+/- 4.2)
+#>   C=100%: 49.4 (+/- 1.0)
 ```
 
-Targets below the observed coverage are interpolated; targets above it
-invoke the Chao1-based extrapolation for `q = 0`, with separate
-estimators for the Shannon (`q = 1`) and Simpson (`q = 2`) orders. The
-printed output reports observed coverage and richness alongside the
-extrapolated values so the size of the extrapolation step is visible.
+Targets below the observed coverage are interpolated along each seed’s
+curve; targets above it extrapolate the pooled sample towards the Chao1
+asymptote for `q = 0`. The Shannon (`q = 1`) and Simpson (`q = 2`)
+orders need the Hill curves of a
+[`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md)
+object. The printed output reports observed coverage and richness
+alongside the extrapolated values so the size of the extrapolation step
+is visible.
 
 ``` r
 
@@ -517,6 +532,82 @@ abundances. Standardizing by coverage ensures equal completeness rather
 than equal sample size, so a richer but less thoroughly sampled
 community is not penalised for its lower count.
 
+### Sites drawn from a finite set of units
+
+Chao2 and the Chiu (2023) coverage treat the sites as draws with
+replacement from an unlimited set of units. An atlas grid or a plot
+network is finite, and a survey often covers a large fraction \\w = t /
+T\\ of its \\T\\ units. Once \\w\\ is large, the species not yet seen
+can only sit in the few remaining units, and at \\w = 1\\ the survey is
+a census. `n_units = T` switches both estimators to their
+without-replacement forms. The example is a 20 x 20 grid of rare
+species, of which a survey visits 320 cells:
+
+``` r
+
+set.seed(1)
+grid <- sapply(runif(300, 0.001, 0.03),
+               function(p) rbinom(400, 1, p) * (1L + rpois(400, 1)))
+grid <- grid[, colSums(grid) > 0]
+cells <- data.frame(x = rep(1:20, 20), y = rep(1:20, each = 20))
+surveyed <- sample(400, 320)
+survey <- grid[surveyed, ]
+detected <- colSums(survey) > 0
+
+c(true = ncol(grid), observed = sum(detected),
+  chao2 = chao2(survey)$estimate,
+  MoRE = chao2(survey, n_units = 400)$estimate)
+#>     true observed    chao2     MoRE 
+#> 283.0000 275.0000 289.2842 280.5959
+
+cov_wr <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                        coverage = "chiu", progress = FALSE, seed = 1)
+cov_grid <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                          coverage = "chiu", n_units = 400,
+                          progress = FALSE, seed = 1)
+c(true = sum(grid[, detected]) / sum(grid),
+  with_replacement = mean(cov_wr$coverage[, 320]),
+  n_units = mean(cov_grid$coverage[, 320]))
+#>             true with_replacement          n_units 
+#>        0.9950097        0.9896038        0.9959013
+```
+
+Chao2 places the total above the true 283 species, MoRE below it and
+closer; the finite-population coverage lands next to the true share
+where the with-replacement one falls short of it.
+
+`chao2(n_units = )` is the moment-based estimator MoRE (Chiu 2023,
+Methods in Ecology and Evolution). The coverage writes the abundance of
+the undetected species as their estimated number times the mean
+abundance of a unique species; with `n_units` the number is the MoRE
+term, so richness and coverage of one sample rest on the same estimate
+of what is missing. `extrapolate(n_units = )` prints MoRE next to the
+fitted asymptote.
+
+On simulated grids, with the truth taken as the share of the grid’s
+total abundance held by the detected species, the finite-population
+coverage has the lower error once half the grid is sampled. The grids
+are 200 cells with occupancies of 0.003 to 0.15 (common) and 400 cells
+with occupancies of 0.001 to 0.02 (sparse), 400 draws per row:
+
+| Grid   | \\w\\ | True coverage | RMSE, with replacement | RMSE, `n_units` |
+|--------|-------|---------------|------------------------|-----------------|
+| common | 0.10  | 0.856         | 0.064                  | 0.060           |
+| common | 0.50  | 0.996         | 0.0045                 | 0.0038          |
+| common | 0.95  | 1.000         | 0.0025                 | 0.0002          |
+| sparse | 0.10  | 0.467         | 0.073                  | 0.104           |
+| sparse | 0.30  | 0.838         | 0.038                  | 0.040           |
+| sparse | 0.50  | 0.947         | 0.020                  | 0.016           |
+| sparse | 0.80  | 0.991         | 0.016                  | 0.004           |
+| sparse | 0.95  | 0.999         | 0.015                  | 0.0015          |
+
+Near a census the with-replacement coverage stays below the truth by
+about 0.014 on the sparse grid, because Chao2 still predicts undetected
+species that cannot exist; the finite form removes that bias. At small
+fractions of a sparse grid MoRE predicts more undetected species than
+Chao2 and the coverage comes out low, so `n_units` pays off from about
+half the grid on.
+
 [`dar()`](https://gillescolling.com/spacc/reference/dar.md) fits the
 relationship between diversity (Hill numbers) and cumulative area (Ma
 2018), generalising the classical species-area relationship to every
@@ -526,9 +617,13 @@ Hill number order:
 
 dar_result <- dar(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
 dar_result
-#> spacc DAR: 100 sites, 20 seeds
+#> spacc DAR: 100 sites, 20 seeds (from spacc_hill)
 #> Orders (q): 0, 1, 2
 #> Area method: convex_hull
+#> Power law D = c * A^z:
+#>   q0.0: z = 0.045
+#>   q1.0: z = 0.126
+#>   q2.0: z = 0.168
 ```
 
 ``` r
@@ -554,10 +649,15 @@ evenness is roughly constant across scales and richness alone carries
 the spatial signal; if the higher-order curves flatten earlier than the
 richness curve, common and dominant species saturate first while rare
 species keep accumulating, which is the usual pattern for aggregated
-communities. The area axis is built from the cumulative convex hull of
-the accumulated sites by default, so it requires `sf`; passing
-`area_method = "count"` substitutes the site count as an area proxy when
-`sf` is not available.
+communities. The area axis is the convex hull of the accumulated sites
+by default; `area_method = "voronoi"` sums the Voronoi cells of the
+accumulated sites instead, and `"count"` uses the number of sites.
+
+[`dar()`](https://gillescolling.com/spacc/reference/dar.md) also takes a
+curve object computed earlier, so the area scaling of phylogenetic or
+functional facets comes from the same site orders as the curve itself:
+`dar(spaccFunc(...))` gives one diversity-area curve per functional
+metric, `dar(spaccPhylo(...))` one per phylogenetic metric.
 
 Reading the DAR as a power law, \\D = c\\A^{z}\\ with diversity \\D\\,
 area \\A\\, intercept \\c\\, and scaling exponent \\z\\, gives a compact
@@ -566,7 +666,17 @@ each facet of diversity grows with area. A steep \\z\\ at order zero
 with a shallow \\z\\ at order two is the signature of a community where
 rare species drive the area effect, which is exactly the case where a
 richness estimate from a small plot will most badly understate the
-regional total.
+regional total. [`coef()`](https://rdrr.io/r/stats/coef.html) returns
+the fitted \\c\\ and \\z\\ of each curve:
+
+``` r
+
+coef(dar_result)
+#>   metric        c          z
+#> 1   q0.0 34.03135 0.04536841
+#> 2   q1.0 15.55845 0.12571479
+#> 3   q2.0 10.26722 0.16755359
+```
 
 ## Predicting richness at new effort levels
 
@@ -577,7 +687,7 @@ the sampled range. Point predictions come back as a plain vector:
 ``` r
 
 predict(best, n = c(50, 100, 200))
-#> [1] NA
+#> [1] 49.92408 50.26369 50.30384
 ```
 
 With `interval = "bootstrap"` the same call returns a prediction band
@@ -586,7 +696,10 @@ built from the bootstrap refits:
 ``` r
 
 predict(best, n = c(50, 100, 200), interval = "bootstrap")
-#> [1] NA
+#>     n      fit    lower    upper
+#> 1  50 49.92408 49.63109 50.05541
+#> 2 100 50.26369 49.83558 50.58726
+#> 3 200 50.30384 49.83558 50.88136
 ```
 
 The first value falls within the observed 100 sites and so is an
@@ -761,6 +874,9 @@ dominated by sampling noise.
   45-67.
 - Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
   Ecology, 104, e4099.
+- Chiu, C.-H. (2023). A species richness estimator for sample-based
+  incidence data sampled without replacement. Methods in Ecology and
+  Evolution, 14, 2482-2493.
 - Lomolino, M.V. (2000). Ecology’s most general, yet protean pattern:
   the species-area relationship. Journal of Biogeography, 27, 17-26.
 - Ma, Z. (2018). Generalizing the species-area relationship with

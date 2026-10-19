@@ -13,7 +13,8 @@ ses(
   species,
   coords = NULL,
   metric = NULL,
-  null_model = c("frequency", "richness", "both", "curveball", "torus", "spatial_swap"),
+  null_model = c("frequency", "richness", "both", "curveball", "torus", "spatial_swap",
+    "shift_rotate"),
   n_perm = 999L,
   parallel = TRUE,
   n_cores = NULL,
@@ -71,6 +72,11 @@ ses(
   - `"spatial_swap"`: Independent swap restricted to spatially proximate
     site pairs. Preserves both marginals while respecting spatial
     structure. Requires `coords`.
+
+  - `"shift_rotate"`: Keeps the community and moves the sampling design:
+    the user-supplied focal points of a `method = "knn"` analysis are
+    rotated by a random angle and shifted by a random offset (Ridder et
+    al. 2024). Requires `coords`.
 
 - n_perm:
 
@@ -157,6 +163,19 @@ observed value among null values.
 - `"curveball"`: Efficient alternative to `"both"` with proven uniform
   sampling properties
 
+- `"shift_rotate"`: The permutation nulls destroy the spatial structure
+  of the community, so a spatially structured curve differs from almost
+  any of them. The shift-and-rotate null keeps that structure intact and
+  asks instead whether the curve depends on where the fixed design sits
+  within it: each replicate moves the focal points by a rigid motion
+  (rotation about their centroid, shift within the extent of the sites),
+  drops those that leave the convex hull of the sites, and recomputes
+  the curve. It is defined only for a fixed design; randomly drawn focal
+  points are already a sample over all positions.
+
+For `method = "knn"` analyses the permutation nulls reuse the observed
+focal points, so observed and null curves share one design.
+
 ## References
 
 Gotelli, N.J. (2000). Null model analysis of species co-occurrence
@@ -166,6 +185,12 @@ Strona, G., Nappo, D., Boccacci, F., Fattorini, S. & San-Miguel-Ayanz,
 J. (2014). A fast and unbiased procedure to randomize ecological binary
 matrices with fixed row and column totals. Nature Communications, 5,
 4114.
+
+Ridder, G., Hardy, O.J. & Ovaskainen, O. (2024). Generating spatially
+realistic environmental null models with the shift-&-rotate approach
+helps evaluate false positives in species distribution modelling.
+Methods in Ecology and Evolution, 15, 2331-2342.
+[doi:10.1111/2041-210X.14443](https://doi.org/10.1111/2041-210X.14443)
 
 ## See also
 

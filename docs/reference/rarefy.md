@@ -25,8 +25,7 @@ rarefy(x, n_individuals = NULL, q = 0, n_boot = 100L)
 
   Numeric. Order of Hill number; any value `>= 0`. Default 0 (species
   richness). q=1 gives rarefied Shannon diversity, q=2 gives rarefied
-  Simpson diversity. q=0, 1, and 2 use exact estimators; other orders
-  report the Hill number of order `q` of the sampled composition.
+  Simpson diversity.
 
 - n_boot:
 
@@ -58,13 +57,14 @@ An object of class `spacc_rare` containing:
 
 ## Details
 
-For q=0 (species richness): uses the Hurlbert (1971) formula.
-
-For q=1 (Shannon diversity): rarefied Shannon entropy is computed and
-converted to effective number of species via exponentiation.
-
-For q=2 (Simpson diversity): rarefied Simpson concentration is computed
-and converted to effective number of species via inversion.
+The expected Hill number of a random subsample of `n` individuals drawn
+without replacement from the pooled sample (Chao et al. 2014). Each
+species' subsample count is hypergeometric, and \$\${}^qD(n) =
+\left(\sum_i E\left\[(Y_i / n)^q\right\]\right)^{1/(1-q)},\$\$ with the
+exponential of the expected Shannon entropy at q = 1. At q = 0 this is
+the Hurlbert (1971) formula. Sizes above the sample size are
+extrapolated towards the asymptotic estimators (Chao et al. 2014;
+integer `q` only).
 
 ## References
 

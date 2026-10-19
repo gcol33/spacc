@@ -1,5 +1,15 @@
 # Spatial Analysis: Endemism, Fragmentation, and SAR
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 Conservation planning rarely asks how many species live in a region. It

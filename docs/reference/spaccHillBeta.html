@@ -98,7 +98,9 @@ numbers along the spatial accumulation curve (Jost 2007 framework).</p>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"nn_walk"</span><span class="op">)</span>,</span>
 <span>  focal_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  focal_domain <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  focal_domain <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  standardize <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"coverage"</span><span class="op">)</span>,</span>
+<span>  coverage <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -153,6 +155,20 @@ numbers along the spatial accumulation curve (Jost 2007 framework).</p>
 <dt id="arg-focal-domain">focal_domain<a class="anchor" aria-label="anchor" href="#arg-focal-domain"></a></dt>
 <dd><p>Optional polygonal focal domain. See <code><a href="spacc.html">spacc()</a></code>.</p></dd>
 
+
+<dt id="arg-standardize">standardize<a class="anchor" aria-label="anchor" href="#arg-standardize"></a></dt>
+<dd><p>Character. <code>"none"</code> (default) decomposes the observed
+samples; <code>"coverage"</code> standardises gamma and alpha to a common sample
+coverage at every step (iNEXT.beta3D, Chao et al. 2023). Needs integer
+abundances.</p></dd>
+
+
+<dt id="arg-coverage">coverage<a class="anchor" aria-label="anchor" href="#arg-coverage"></a></dt>
+<dd><p>Numeric in (0, 1]. Fixed coverage for
+<code>standardize = "coverage"</code>, the same at every step. <code>NULL</code> (default)
+uses, at each step, the lower of the observed coverages of the pooled and
+joint samples.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -165,6 +181,15 @@ numbers along the spatial accumulation curve (Jost 2007 framework).</p>
 
 <dt>beta</dt>
 <dd><p>Named list of n_seeds x n_sites matrices (one per q)</p></dd>
+
+<dt>dissimilarity</dt>
+<dd><p>With <code>standardize = "coverage"</code>: list of the four
+dissimilarities <code>1-CqN</code>, <code>1-UqN</code>, <code>1-VqN</code>, <code>1-SqN</code>, each a named list
+of n_seeds x n_sites matrices (one per q); <code>NULL</code> otherwise</p></dd>
+
+<dt>coverage</dt>
+<dd><p>With <code>standardize = "coverage"</code>: n_seeds x n_sites
+matrix of the coverage used at each step</p></dd>
 
 <dt>q</dt>
 <dd><p>Vector of q values</p></dd>
@@ -186,9 +211,41 @@ completely different. This provides the Hill-number analogue of the
 Baselga-based <code><a href="spaccBeta.html">spaccBeta()</a></code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="coverage-standardisation">Coverage standardisation<a class="anchor" aria-label="anchor" href="#coverage-standardisation"></a></h2>
+
+
+<p>Observed beta depends on sampling completeness: gamma and alpha approach
+their asymptotes at different rates, so the ratio moves along the curve
+even where composition does not change. With <code>standardize = "coverage"</code>,
+gamma is the Hill number of the pooled sample and alpha the Hill number of
+the joint sample (every species-by-site cell treated as a unit) divided by
+k (Chiu et al. 2014), both rarefied or extrapolated to the same sample
+coverage C with the estimators of Chao et al. (2014); beta is their ratio
+(Chao et al. 2023). By default C is, at each step, the lower of the two
+observed coverages, so both values come from the observed samples or
+their rarefaction. A fixed <code>coverage</code> makes the curve comparable across
+steps and datasets, at the cost of extrapolation where a step's sample is
+less complete; for q = 0, Chao et al. (2023) advise against extrapolating
+beyond the coverage of twice the sample size.</p>
+<p>The standardised beta is transformed to four dissimilarities between 0 and 1
+(Chao et al. 2023): <code>1-CqN</code> (Sorensen-type, the classic Sorensen index at
+q = 0), <code>1-UqN</code> (Jaccard-type), <code>1-VqN</code> and <code>1-SqN</code>. They are <code>NA</code> at the
+first step, where there is one site.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Jost, L. (2007). Partitioning diversity into independent alpha and beta
 components. Ecology, 88, 2427-2439.</p>
+<p>Chiu, C.-H., Jost, L. &amp; Chao, A. (2014). Phylogenetic beta diversity,
+similarity, and differentiation measures based on Hill numbers.
+Ecological Monographs, 84, 21-44.</p>
+<p>Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+extrapolation with Hill numbers: a framework for sampling and estimation in
+species diversity studies. Ecological Monographs, 84, 45-67.</p>
+<p>Chao, A., Thorn, S., Chiu, C.-H., et al. (2023). Rarefaction and
+extrapolation with beta diversity under a framework of Hill numbers: the
+iNEXT.beta3D standardization. Ecological Monographs, 93, e1588.
+<a href="https://doi.org/10.1002/ecm.1588" class="external-link">doi:10.1002/ecm.1588</a></p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

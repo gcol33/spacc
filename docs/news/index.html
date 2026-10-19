@@ -77,7 +77,58 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.11.0" id="spacc-0110">spacc 0.11.0<a class="anchor" aria-label="anchor" href="#spacc-0110"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.11.0" id="spacc-0110">spacc 0.11.0<a class="anchor" aria-label="anchor" href="#spacc-0110"></a></h2><p class="text-muted">CRAN release: 2026-10-11</p>
+<div class="section level3">
+<h3 id="new-features-0-11-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-11-0"></a></h3>
+<ul><li>
+<code>spaccPhylo(metric = "evoheritage", rho = )</code> accumulates EvoHeritage (Rosindell et al. 2024), phylogenetic diversity with attrition of evolutionary heritage at rate <code>rho</code>. <code>rho = 0</code> reproduces Faith’s PD; a vector <code>rho</code> gives one curve per rate (<a href="https://github.com/gcol33/spacc/issues/7" class="external-link">#7</a>).</li>
+<li>
+<code>chao2(x, n_units = )</code> estimates richness for sites drawn without replacement from a finite set of <code>n_units</code> units (MoRE, Chiu 2023), which reaches the observed richness when every unit is sampled instead of overestimating it. <code>extrapolate(n_units = )</code> compares the asymptote with MoRE and uses it as the reference for the disagreement warning (<a href="https://github.com/gcol33/spacc/issues/14" class="external-link">#14</a>).</li>
+<li>
+<code><a href="../reference/arc.html">arc()</a></code> estimates total richness with the accumulation rate curve estimator of Shestopaloff (2025): log-normal, log-logistic and Weibull fits to the rate at which new species appear, combined with capped weights, with a parametric bootstrap interval from a penalised Poisson mixture of the frequency counts. <code>data = "incidence"</code> runs it on site occupancy. The weights are the minimum of the paper’s loss reached by gradient flow from zero weights, the one the author’s reference code reaches (<a href="https://github.com/gcol33/spacc/issues/13" class="external-link">#13</a>).</li>
+<li>
+<code>spaccCoverage(coverage = "chiu", n_units = )</code> gives the matching sample coverage: the undetected abundance uses the MoRE estimate of the undetected species, so the coverage reaches 1 when every unit is sampled (<a href="https://github.com/gcol33/spacc/issues/14" class="external-link">#14</a>).</li>
+<li>
+<code>spaccHillBeta(standardize = "coverage", coverage = )</code> standardises gamma and alpha to a common sample coverage at every step (iNEXT.beta3D, Chao et al. 2023) and returns the four dissimilarities <code>1-CqN</code>, <code>1-UqN</code>, <code>1-VqN</code>, <code>1-SqN</code>. Final-step values match <code><a href="https://rdrr.io/pkg/iNEXT.beta3D/man/iNEXTbeta3D.html" class="external-link">iNEXT.beta3D::iNEXTbeta3D()</a></code> (<a href="https://github.com/gcol33/spacc/issues/6" class="external-link">#6</a>).</li>
+<li>
+<code>spaccFunc(metric = "K")</code> accumulates the aggregated functional diversity K of Wojcik et al. (2024) with its four facets (<code>k_richness</code>, <code>k_biomass_evenness</code>, <code>k_trait_evenness</code>, <code>k_dispersion</code>); K is defined from two species on (<a href="https://github.com/gcol33/spacc/issues/8" class="external-link">#8</a>).</li>
+<li>
+<code><a href="../reference/spaccRedundancy.html">spaccRedundancy()</a></code> tracks phylogenetic or functional redundancy along the accumulation: the ratio of the taxonomic Hill number to the phylogenetic (Chao et al. 2010) or similarity-sensitive functional (Leinster &amp; Cobbold
+<ol start="2012" style="list-style-type: decimal"><li>Hill number of the accumulated community (<a href="https://github.com/gcol33/spacc/issues/9" class="external-link">#9</a>).</li>
+</ol></li>
+<li>
+<code>spaccBeta(pool = )</code> repeats the turnover/nestedness partition between pooled assemblages (habitats, regions) along the same site orders, next to the site-level partition (Jones et al. 2025); <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> take <code>resolution = "site"</code>, <code>"pooled"</code> or (plot) <code>"both"</code> (<a href="https://github.com/gcol33/spacc/issues/11" class="external-link">#11</a>).</li>
+<li>
+<code>ses(null_model = "shift_rotate")</code> keeps the community and moves a fixed sampling design (user-supplied <code>focal_points</code> of a <code>knn</code> analysis) by random rotations and shifts (Ridder et al. 2024), testing the design’s position rather than the community’s spatial structure (<a href="https://github.com/gcol33/spacc/issues/12" class="external-link">#12</a>).</li>
+<li>
+<code><a href="../reference/as_spacc.html">as_spacc()</a></code> converts a numeric curve or a data frame column, including the output of <code><a href="https://rdrr.io/pkg/Rarefy/man/directionalSAC.html" class="external-link">Rarefy::directionalSAC()</a></code> and <code><a href="https://rdrr.io/pkg/Rarefy/man/rare_alpha.html" class="external-link">Rarefy::rare_alpha()</a></code>. <code>spacc(method = "knn", focal_points = coords)</code> is checked to reproduce Rarefy’s directional curve exactly (<a href="https://github.com/gcol33/spacc/issues/16" class="external-link">#16</a>).</li>
+<li>
+<code><a href="../reference/spaccNetwork.html">spaccNetwork()</a></code> accumulates an interaction network over space: interaction richness and Hill numbers, sample coverage, the species curves of both levels and connectance along the same orders (Chiu et al. 2023) (<a href="https://github.com/gcol33/spacc/issues/15" class="external-link">#15</a>).</li>
+<li>
+<code>spaccFunc(itv = TRUE)</code> takes traits per individual or population (a long table with <code>species</code>, optional <code>site</code> and trait columns) and evaluates FDis, FRic, Rao’s Q and K on the trait rows of the accumulated sites; one row per species reproduces the species-mean curves (<a href="https://github.com/gcol33/spacc/issues/17" class="external-link">#17</a>).</li>
+<li>
+<code><a href="../reference/dar.html">dar()</a></code> is an S3 generic: besides a site-by-species matrix it takes a <code>spacc</code>, <code>spacc_hill</code>, <code>spacc_phylo</code>, <code>spacc_func</code> or <code>spacc_redundancy</code> object and returns the diversity-area relationship of each of its curves, along the same site orders, with a power-law fit per curve (<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>). The area kernels are C++ (incremental convex hull, Voronoi cells), so <code><a href="../reference/dar.html">dar()</a></code> no longer needs <code>sf</code>. The result carries <code>curves</code>, <code>metric</code> and the curve <code>object</code> it was built from (formerly <code>hill</code>) (<a href="https://github.com/gcol33/spacc/issues/10" class="external-link">#10</a>).</li>
+<li>New C++ engine for size- and coverage-based rarefaction and extrapolation of Hill numbers (<code>src/core/inext_core.h</code>), matching iNEXT.3D.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-11-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-11-0"></a></h3>
+<ul><li>
+<code><a href="../reference/ses.html">ses()</a></code> on <code>spacc_phylo</code> and <code>spacc_func</code> objects always stopped with “Too few valid permutations”: their null analyses were never rerun. The objects now carry their tree, traits and metric settings, and <code><a href="../reference/ses.html">ses()</a></code> reruns them.</li>
+<li>
+<code><a href="../reference/ses.html">ses()</a></code> reran <code>knn</code> analyses with newly drawn focal points; the nulls now reuse the observed design, and <code>spacc_beta</code> nulls keep the distance method.</li>
+<li>
+<code><a href="../reference/extrapolate.html">extrapolate()</a></code> and <code><a href="../reference/compareModels.html">compareModels()</a></code> passed unknown arguments (such as <code>progress = FALSE</code>) on to <code><a href="https://rdrr.io/r/stats/nls.html" class="external-link">nls()</a></code>, which treated them as data, so every model “failed to converge”. Unknown arguments are now an error. The extrapolation vignette’s model comparison had been all failures for this reason.</li>
+<li>
+<code>dar(area_method = "voronoi")</code> computed bounding-box areas; it now sums the Voronoi cells of the accumulated sites. The convex-hull area of one or two sites is 0 instead of their bounding box.</li>
+<li>
+<code>diversityProfile(tree = )</code> scaled branch lengths by the maximum root-to-tip depth. It now uses the abundance-weighted mean depth of Chao et al. (2010), which is the same for an ultrametric tree and keeps the profile equal to the taxonomic one on a star tree otherwise. Phylogenetic and functional profiles run on the C++ kernels shared with <code><a href="../reference/spaccRedundancy.html">spaccRedundancy()</a></code>.</li>
+<li>
+<code><a href="../reference/rarefy.html">rarefy()</a></code> with <code>q = 1</code> or <code>q = 2</code> returned the Hill number of the full sample at every size (q = 1 plugged the sample proportions into Shannon, q = 2 ignored the subsample size). It now returns the expected Hill number of a random subsample at every order, matching iNEXT.3D, and extrapolates sizes above the sample size.</li>
+<li>
+<code><a href="../reference/extrapolateCoverage.html">extrapolateCoverage()</a></code> with <code>q = 1</code> or <code>q = 2</code> interpolated the richness curve within the observed coverage and applied ad hoc corrections beyond it. It now reads the Hill curve of the requested order (a <code><a href="../reference/spaccHillCoverage.html">spaccHillCoverage()</a></code> object; a <code>spacc_coverage</code> object carries <code>q = 0</code> only) and extrapolates the pooled sample with the Chao et al. (2014) estimators, which also replace the reconstructed singleton counts used for <code>q = 0</code>.</li>
+<li>
+<code><a href="../reference/spaccPhylo.html">spaccPhylo()</a></code> PD matched species to tree tips by column position, so it was wrong when <code>colnames(x)</code> were not in <code>tree$tip.label</code> order and read past the community when the tree held more tips than <code>x</code> had species. Species are now matched to tips by name.</li>
+</ul></div>
 <div class="section level3">
 <h3 id="internals-0-11-0">Internals<a class="anchor" aria-label="anchor" href="#internals-0-11-0"></a></h3>
 <ul><li>Every accumulation method is now an order generator (<code>src/orders.cpp</code>), and one kernel accumulates species along those orders (<code>src/accumulate.cpp</code>). The per-method serial/parallel/tree copies of the traversal (<code>knn.cpp</code>, <code>kncn.cpp</code>, <code>random.cpp</code>, <code>methods.cpp</code>, <code>metrics.cpp</code>) are gone; <code><a href="../reference/spacc.html">spacc()</a></code>, <code><a href="../reference/spaccMetrics.html">spaccMetrics()</a></code>, <code><a href="../reference/spaccDiversity.html">spaccDiversity()</a></code> and the metric front doors all take their site orders from <code>.accumulation_orders()</code>.</li>

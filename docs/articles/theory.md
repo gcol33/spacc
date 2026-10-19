@@ -1,5 +1,15 @@
 # Methods and Algorithms
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Overview
 
 This vignette describes what
@@ -204,6 +214,19 @@ sampled uniformly over the convex hull of eligible sites. An `sf`
 polygon supplied through `focal_domain` represents a known irregular
 boundary, including holes and disconnected parts. Exact coordinates
 supplied through `focal_points` reproduce a specified design.
+
+The Rarefy package (Thouverai et al. 2026) implements the same traversal
+with the observed plots as foci:
+[`Rarefy::directionalSAC()`](https://rdrr.io/pkg/Rarefy/man/directionalSAC.html)
+with the site distance matrix as gradient ranks the sites by distance
+from each plot in turn and averages the collector curves, which is
+`spacc(x, coords, method = "knn", focal_points = coords)` (on a 60-plot
+simulated community the two agree to machine precision). The packages
+differ in where the foci come from: Rarefy seeds at the plots, spacc by
+default at points drawn over the study area, so a plot-seeded curve
+weights the region by where plots happen to be. Rarefy curves can be
+brought into spacc with
+[`as_spacc()`](https://gillescolling.com/spacc/reference/as_spacc.md).
 
 ### Nearest-neighbour walk (`nn_walk`)
 
@@ -661,7 +684,7 @@ for nearest neighbor (kNN) search with k-d trees.
 ``` r
 
 sessionInfo()
-#> R version 4.6.1 (2026-06-24 ucrt)
+#> R version 4.6.0 (2026-04-24 ucrt)
 #> Platform: x86_64-w64-mingw32/x64
 #> Running under: Windows 11 x64 (build 26200)
 #> 
@@ -685,8 +708,8 @@ sessionInfo()
 #> [1] spacc_0.11.0
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6       jsonlite_2.0.0     dplyr_1.2.1        compiler_4.6.1    
-#>  [5] tidyselect_1.2.1   Rcpp_1.1.2         parallel_4.6.1     jquerylib_0.1.4   
+#>  [1] gtable_0.3.6       jsonlite_2.0.0     dplyr_1.2.1        compiler_4.6.0    
+#>  [5] tidyselect_1.2.1   Rcpp_1.1.2         parallel_4.6.0     jquerylib_0.1.4   
 #>  [9] systemfonts_1.3.2  scales_1.4.0       textshaping_1.0.5  yaml_2.3.12       
 #> [13] fastmap_1.2.0      ggplot2_4.0.3      R6_2.6.1           labeling_0.4.3    
 #> [17] generics_0.1.4     knitr_1.52         htmlwidgets_1.6.4  tibble_3.3.1      
@@ -694,7 +717,7 @@ sessionInfo()
 #> [25] RColorBrewer_1.1-3 rlang_1.3.0        cachem_1.1.0       xfun_0.60         
 #> [29] fs_2.1.0           sass_0.4.10        S7_0.2.2           RcppParallel_6.2.1
 #> [33] otel_0.2.0         cli_3.6.6          withr_3.0.3        pkgdown_2.2.1     
-#> [37] magrittr_2.0.5     digest_0.6.39      grid_4.6.1         lifecycle_1.0.5   
+#> [37] magrittr_2.0.5     digest_0.6.39      grid_4.6.0         lifecycle_1.0.5   
 #> [41] vctrs_0.7.3        evaluate_1.0.5     glue_1.8.1         farver_2.1.2      
-#> [45] rmarkdown_2.32     pkgconfig_2.0.3    tools_4.6.1        htmltools_0.5.9
+#> [45] rmarkdown_2.32     pkgconfig_2.0.3    tools_4.6.0        htmltools_0.5.9
 ```

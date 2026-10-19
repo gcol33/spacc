@@ -3,15 +3,24 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
       fill: none;
-      stroke: #000000;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
+      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -19,14 +28,14 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNTcuMjN8NDU4LjU0fDQwLjA1fDI0Ny41OQ=='>
@@ -49,28 +58,28 @@
 <polyline points='75.47,195.23 81.66,178.15 87.84,170.72 94.02,166.89 100.21,164.58 106.39,157.61 112.57,152.98 118.76,152.37 124.94,148.73 131.12,145.40 137.31,142.26 143.49,139.37 149.67,134.55 155.86,132.02 162.04,130.44 168.22,128.34 174.41,125.86 180.59,122.80 186.77,120.21 192.96,117.64 199.14,115.91 205.32,113.69 211.51,110.72 217.69,107.73 223.88,105.24 230.06,102.63 236.24,100.39 242.43,98.56 248.61,96.12 254.79,94.28 260.98,92.73 267.16,91.27 273.34,89.73 279.53,87.56 285.71,86.06 291.89,84.46 298.08,82.83 304.26,81.00 310.44,79.79 316.63,78.41 322.81,77.00 328.99,76.09 335.18,74.87 341.36,73.78 347.54,72.60 353.73,71.52 359.91,70.40 366.09,69.07 372.28,67.99 378.46,67.10 384.64,66.11 390.83,65.37 397.01,64.79 403.19,64.05 409.38,63.53 415.56,62.90 421.74,62.43 427.93,61.89 434.11,61.54 440.29,61.20 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='48.71' y='218.36' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='48.71' y='177.50' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>15</text>
-<text x='48.71' y='136.64' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='48.71' y='95.78' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>25</text>
-<text x='48.71' y='54.92' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>30</text>
-<text x='69.29' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='192.96' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='316.63' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='440.29' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>60</text>
-<text x='257.88' y='288.51' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='155.22px' lengthAdjust='spacingAndGlyphs'>Sites accumulated</text>
-<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='254.09px' lengthAdjust='spacingAndGlyphs'>Hill number (effective species)</text>
-<text x='123.64' y='337.79' style='font-size: 19.00px; font-family: "Arial";' textLength='48.56px' lengthAdjust='spacingAndGlyphs'>Order</text>
+<text x='48.71' y='218.36' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
+<text x='48.71' y='177.50' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>15</text>
+<text x='48.71' y='136.64' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='48.71' y='95.78' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>25</text>
+<text x='48.71' y='54.92' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
+<text x='69.29' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='192.96' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='316.63' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
+<text x='440.29' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
+<text x='257.88' y='288.51' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites accumulated</text>
+<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Hill number (effective species)</text>
+<text x='123.64' y='337.79' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Order</text>
 <rect x='182.89' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
 <line x1='183.68' y1='330.99' x2='199.81' y2='330.99' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
 <rect x='256.20' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
 <line x1='256.99' y1='330.99' x2='273.12' y2='330.99' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
 <rect x='329.51' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
 <line x1='330.30' y1='330.99' x2='346.43' y2='330.99' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
-<text x='211.29' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='34.22px' lengthAdjust='spacingAndGlyphs'>q = 0</text>
-<text x='284.60' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='34.22px' lengthAdjust='spacingAndGlyphs'>q = 1</text>
-<text x='357.91' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='34.22px' lengthAdjust='spacingAndGlyphs'>q = 2</text>
-<text x='57.23' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='336.92px' lengthAdjust='spacingAndGlyphs'>Spatial Hill Number Accumulation</text>
+<text x='211.29' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 0</text>
+<text x='284.60' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 1</text>
+<text x='357.91' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 2</text>
+<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial Hill Number Accumulation</text>
 </g>
 </g>
 </svg>

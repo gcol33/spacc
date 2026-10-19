@@ -96,6 +96,10 @@ An object of class `spacc_hill_coverage` containing:
 
   n_seeds x n_sites matrix of Chao-Jost coverage
 
+- pooled:
+
+  Species abundances pooled over all sites
+
 - standardized:
 
   List of per-q values interpolated at target coverage, or `NULL` if

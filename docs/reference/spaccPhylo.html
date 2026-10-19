@@ -88,6 +88,7 @@
 <span>  <span class="va">coords</span>,</span>
 <span>  <span class="va">tree</span>,</span>
 <span>  metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mpd"</span>, <span class="st">"mntd"</span><span class="op">)</span>,</span>
+<span>  rho <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  n_seeds <span class="op">=</span> <span class="fl">50L</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"nn_walk"</span><span class="op">)</span>,</span>
 <span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
@@ -122,10 +123,18 @@ a pairwise phylogenetic distance matrix.</p></dd>
 <dd><p>Character vector. Metrics to compute:</p><ul><li><p><code>"mpd"</code>: Mean Pairwise Distance</p></li>
 <li><p><code>"mntd"</code>: Mean Nearest Taxon Distance</p></li>
 <li><p><code>"pd"</code>: Faith's Phylogenetic Diversity (requires tree, not distance matrix)</p></li>
+<li><p><code>"evoheritage"</code>: EvoHeritage (Rosindell et al. 2024), PD with
+attrition of evolutionary heritage at rate <code>rho</code> (requires tree)</p></li>
 <li><p><code>"rao"</code>: Rao's quadratic entropy (abundance-weighted mean pairwise
 phylogenetic distance). Pass abundance data for weighting; with
 presence/absence it reduces to the equal-weight form.</p></li>
 </ul></dd>
+
+
+<dt id="arg-rho">rho<a class="anchor" aria-label="anchor" href="#arg-rho"></a></dt>
+<dd><p>Non-negative numeric vector. Attrition rate(s) for
+<code>"evoheritage"</code>, per unit of branch length. <code>rho = 0</code> gives Faith's PD.
+Several values give one curve each, named <code>evoheritage_rho&lt;value&gt;</code>.</p></dd>
 
 
 <dt id="arg-n-seeds">n_seeds<a class="anchor" aria-label="anchor" href="#arg-n-seeds"></a></dt>
@@ -179,6 +188,9 @@ and store per-site final values for spatial mapping. Enables
 <dt>metric</dt>
 <dd><p>Metrics computed</p></dd>
 
+<dt>tree</dt>
+<dd><p>The tree or distance matrix used</p></dd>
+
 <dt>coords, n_seeds, n_sites, method</dt>
 <dd><p>Parameters used</p></dd>
 
@@ -190,12 +202,25 @@ all pairs of species. Sensitive to tree-wide patterns.</p></li>
 <li><p><strong>MNTD (Mean Nearest Taxon Distance)</strong>: Average distance to closest
 relative. Sensitive to terminal clustering.</p></li>
 <li><p><strong>PD (Faith's Phylogenetic Diversity)</strong>: Total branch length connecting
-species. Requires full tree object.</p></li>
-</ul></div>
+species to the root. Requires full tree object.</p></li>
+<li><p><strong>EvoHeritage</strong>: Features accumulate along each branch and are lost at
+rate <code>rho</code>, so a branch of length <code>L</code> passes on a fraction <code>exp(-rho * L)</code>
+of what entered it. A feature counts once if it survives to at least one
+present species. The value is in standardised units (the heritage at the
+end of a single branch of unit length), so <code>rho = 0</code> gives PD and large
+<code>rho</code> tends to species richness. Scanning <code>rho</code> places a community
+between its richness and PD curves.</p></li>
+</ul><p>Tree-based metrics match the columns of <code>x</code> to <code>tree$tip.label</code> by name;
+the tree may contain species absent from <code>x</code>.</p>
+    </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Faith, D.P. (1992). Conservation evaluation and phylogenetic diversity.
 Biological Conservation, 61, 1-10.</p>
+<p>Rosindell, J., Manson, K., Gumbs, R., Pearse, W.D. &amp; Steel, M. (2024).
+Phylogenetic biodiversity metrics should account for both accumulation and
+attrition of evolutionary heritage. Systematic Biology, 73, 158-182.
+<a href="https://doi.org/10.1093/sysbio/syad072" class="external-link">doi:10.1093/sysbio/syad072</a></p>
 <p>Webb, C.O. (2000). Exploring the phylogenetic structure of ecological
 communities: an example for rain forest trees. American Naturalist, 156, 145-155.</p>
     </div>

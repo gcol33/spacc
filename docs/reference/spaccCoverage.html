@@ -96,6 +96,7 @@ following Chao &amp; Jost (2012) or the sample-based estimator of Chiu (2023).</
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"knn"</span>, <span class="st">"nn_walk"</span><span class="op">)</span>,</span>
 <span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"euclidean"</span>, <span class="st">"haversine"</span><span class="op">)</span>,</span>
 <span>  coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chao"</span>, <span class="st">"chiu"</span><span class="op">)</span>,</span>
+<span>  n_units <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -140,6 +141,13 @@ abundance (G1). The Chiu estimator is recommended for spatially aggregated
 data where sampling units are plots/sites rather than independent individuals.</p></dd>
 
 
+<dt id="arg-n-units">n_units<a class="anchor" aria-label="anchor" href="#arg-n-units"></a></dt>
+<dd><p>Total number of sampling units in the study region, when the
+sites are drawn without replacement from a finite set of units (atlas
+cells, a plot network). Requires <code>coverage = "chiu"</code>. <code>NULL</code> (default) or
+<code>Inf</code> assumes sampling with replacement. See Details.</p></dd>
+
+
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
 <dd><p>Logical. Use parallel processing? Default <code>TRUE</code>.</p></dd>
 
@@ -182,8 +190,14 @@ and store per-site final coverage and richness for spatial mapping. Enables
 <dt>coverage</dt>
 <dd><p>Matrix of coverage estimates</p></dd>
 
+<dt>pooled</dt>
+<dd><p>Species abundances pooled over all sites</p></dd>
+
 <dt>coverage_type</dt>
 <dd><p>Coverage estimator used (<code>"chao"</code> or <code>"chiu"</code>)</p></dd>
+
+<dt>n_units</dt>
+<dd><p>Number of units in the finite population, or <code>NULL</code></p></dd>
 
 <dt>coords, n_seeds, n_sites, method</dt>
 <dd><p>Parameters used</p></dd>
@@ -200,7 +214,21 @@ independently, which may not hold for plot-based spatial data.</p>
 <p>The <strong>Chiu (2023)</strong> estimator uses incidence frequency counts instead:
 Q1 (species in exactly 1 site), Q2 (species in exactly 2 sites), and G1
 (total abundance of Q1 species). It gives near-unbiased coverage estimates
-when organisms are spatially aggregated across sampling units.</p>
+when organisms are spatially aggregated across sampling units. It writes
+the abundance of undetected species as the Chao2 estimate of their number,
+\(\frac{t-1}{t} \frac{Q_1^2}{2 Q_2}\) after \(t\) sites, times the mean
+abundance of a unique species, \(G_1 / Q_1\).</p>
+<p>With <code>n_units = T</code>, the \(t\) sites are a fraction \(w = t / T\) of a
+finite set of units drawn without replacement, and the number of undetected
+species is the MoRE term of <code>chao2(x, n_units = )</code> (Chiu 2023, Methods in
+Ecology and Evolution, Eq. 5),
+$$\frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+},$$
+so richness and coverage of the same sample rest on one estimate of the
+undetected species. It vanishes at \(w = 1\): the coverage reaches 1 once
+the accumulation has visited every unit. On simulated grids its error is
+lower than that of the with-replacement form from \(w = 0.5\) on, and
+several-fold lower near a census; it is about equal at \(w = 0.3\) and
+larger at \(w = 0.1\) on a sparse grid (<code><a href="../articles/extrapolation.html">vignette("extrapolation")</a></code>).</p>
 <p>Coverage-based rarefaction allows fair comparison of diversity across
 communities with different abundances by standardizing to equal completeness
 rather than equal sample size.</p>
@@ -209,6 +237,9 @@ rather than equal sample size.</p>
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Chao, A. &amp; Jost, L. (2012). Coverage-based rarefaction and extrapolation:
 standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.</p>
+<p>Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+data sampled without replacement. Methods in Ecology and Evolution, 14,
+2482-2493. <a href="https://doi.org/10.1111/2041-210X.14146" class="external-link">doi:10.1111/2041-210X.14146</a></p>
 <p>Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
 Ecology, 104, e4099.</p>
     </div>
@@ -228,6 +259,9 @@ Ecology, 104, e4099.</p>
 <span></span>
 <span><span class="co"># Sample-based coverage (recommended for spatial data)</span></span>
 <span><span class="va">cov_chiu</span> <span class="op">&lt;-</span> <span class="fu">spaccCoverage</span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, coverage <span class="op">=</span> <span class="st">"chiu"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The 50 sites are 80% of a 62-cell grid</span></span>
+<span><span class="va">cov_grid</span> <span class="op">&lt;-</span> <span class="fu">spaccCoverage</span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, coverage <span class="op">=</span> <span class="st">"chiu"</span>, n_units <span class="op">=</span> <span class="fl">62</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Interpolate richness at 90% and 95% coverage</span></span>
 <span><span class="va">interp</span> <span class="op">&lt;-</span> <span class="fu"><a href="interpolateCoverage.html">interpolateCoverage</a></span><span class="op">(</span><span class="va">cov</span>, target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.90</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span>

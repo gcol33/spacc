@@ -104,7 +104,7 @@
                         <h4 data-toc-skip class="author">Gilles
 Colling</h4>
             
-            <h4 data-toc-skip class="date">2026-10-10</h4>
+            <h4 data-toc-skip class="date">2026-10-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gcol33/spacc/blob/HEAD/vignettes/richness-estimation.Rmd" class="external-link"><code>vignettes/richness-estimation.Rmd</code></a></small>
       <div class="d-none name"><code>richness-estimation.Rmd</code></div>
@@ -521,10 +521,10 @@ S(n-1)\)</span> are the rate at which new species appear. Three decay
 curves, log-normal, log-logistic and Weibull, are fitted to the tail of
 <span class="math inline">\(s_n\)</span>; the integral of each beyond
 <span class="math inline">\(N\)</span> is its count of undetected
-species. The estimate combines them with weights that minimise the
-misfit to <span class="math inline">\(s_n\)</span> plus a penalty on
-using the log-logistic and Weibull together, each weight bounded by caps
-built from the three estimates and <span class="math inline">\(S_{obs}\)</span>, and averages over fits to the
+species. The estimate combines them with weights fitted by the misfit to
+<span class="math inline">\(s_n\)</span> plus a penalty on using the
+log-logistic and Weibull together, each weight bounded by caps built
+from the three estimates and <span class="math inline">\(S_{obs}\)</span>, and averages over fits to the
 last 100 down to 70 percent of the curve.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r_arc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/arc.html">arc</a></span><span class="op">(</span><span class="va">species</span>, n_boot <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -532,7 +532,7 @@ last 100 down to 70 percent of the curve.</p>
 <span><span class="co">#&gt; Richness Estimator: ARC</span></span>
 <span><span class="co">#&gt; -------------------------------- </span></span>
 <span><span class="co">#&gt; Observed species (S_obs): 113</span></span>
-<span><span class="co">#&gt; Estimated richness:       122.1</span></span>
+<span><span class="co">#&gt; Estimated richness:       122.3</span></span>
 <span><span class="co">#&gt; Standard error:           NA</span></span>
 <span><span class="co">#&gt; 95% CI:                   [NA, NA]</span></span>
 <span><span class="va">r_arc</span><span class="op">$</span><span class="va">details</span><span class="op">$</span><span class="va">undetected</span></span>
@@ -540,7 +540,7 @@ last 100 down to 70 percent of the curve.</p>
 <span><span class="co">#&gt;    9.501777   21.039103    5.819697</span></span>
 <span><span class="va">r_arc</span><span class="op">$</span><span class="va">details</span><span class="op">$</span><span class="va">weights</span></span>
 <span><span class="co">#&gt;   lognormal loglogistic     weibull </span></span>
-<span><span class="co">#&gt;   0.9294882   0.0000000   0.0475043</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.929488214 0.006864283 0.040640018</span></span></code></pre></div>
 <p>The Weibull decays fastest and gives the fewest undetected species,
 the log-logistic slowest and the most. The estimate is close to the true
 120. The interval comes from a parametric bootstrap of the frequency
@@ -549,9 +549,17 @@ counts, which refits the curves <code>n_boot</code> times (default
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/arc.html">arc</a></span><span class="op">(</span><span class="va">species</span>, n_boot <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></code></pre></div>
-<p>With this seed the interval is [116.1, 142.3] around 122.1.
+<p>With this seed the interval is [116.2, 142.3] around 122.3.
 <code>data = "incidence"</code> runs the same estimator on the number of
 sites each species occupies.</p>
+<p>On 200 samples per scenario of the simulation below, with the default
+<code>n_boot = 2000</code>, the 95% interval contained the true richness
+in 96.0%, 94.5%, 93.0%, 93.5%, 89.0% and 89.5% of samples, from the
+sparsest scenario to the densest (standard errors 1.4 to 2.2 points). In
+the two densest scenarios the misses are mostly intervals lying entirely
+above the truth, from the upward bias of the point estimate there;
+Shestopaloff (2025) reports the same drop in coverage for non-sparse
+data.</p>
 <p>On 40 samples of 1000 species with Poisson counts and Gamma-mixture
 rates (the scenarios of Shestopaloff 2025, from sparse to dense), the
 relative bias and RMSE are:</p>
@@ -577,60 +585,62 @@ relative bias and RMSE are:</p>
 <td>1.0 / 0 / 0 / 0</td>
 <td>333</td>
 <td>+0.9%</td>
-<td>0.178</td>
+<td>0.164</td>
 <td>-24.6%</td>
 <td>0.258</td>
 </tr>
 <tr class="even">
 <td>0.6 / 0.4 / 0 / 0</td>
 <td>401</td>
-<td>-9.4%</td>
-<td>0.130</td>
+<td>+3.9%</td>
+<td>0.078</td>
 <td>-24.8%</td>
 <td>0.253</td>
 </tr>
 <tr class="odd">
 <td>0.2 / 0.8 / 0 / 0</td>
 <td>466</td>
-<td>-12.7%</td>
-<td>0.166</td>
+<td>+3.6%</td>
+<td>0.101</td>
 <td>-20.7%</td>
 <td>0.219</td>
 </tr>
 <tr class="even">
 <td>0 / 1 / 0 / 0</td>
 <td>501</td>
-<td>-17.0%</td>
-<td>0.169</td>
+<td>-1.1%</td>
+<td>0.099</td>
 <td>-21.2%</td>
 <td>0.203</td>
 </tr>
 <tr class="odd">
 <td>0 / 0.4 / 0.6 / 0</td>
 <td>649</td>
-<td>+2.9%</td>
-<td>0.061</td>
+<td>+3.6%</td>
+<td>0.059</td>
 <td>-10.9%</td>
 <td>0.115</td>
 </tr>
 <tr class="even">
 <td>0 / 0 / 0.6 / 0.4</td>
 <td>802</td>
-<td>+1.1%</td>
-<td>0.044</td>
+<td>+2.9%</td>
+<td>0.042</td>
 <td>-3.4%</td>
 <td>0.045</td>
 </tr>
 </tbody>
 </table>
 <p>The mixture weights are those of Gamma(1, 2), Gamma(1, 1), Gamma(2,
-1) and Gamma(3, 1). ARC has the lower RMSE in every row but the densest,
-where the two are equal, and by a wide margin in sparse samples. The
-author’s reference code reaches lower bias in the middle rows (between
--1.1% and +3.5%) because its optimiser stops at the caps of the
-log-normal and log-logistic weights rather than at the minimum of the
-weighted loss; <code><a href="../reference/arc.html">arc()</a></code> returns that minimum, which puts more
-weight on the Weibull there.</p>
+1) and Gamma(3, 1). ARC has the lower RMSE in every row, by a wide
+margin in sparse samples. The weights matter in the middle rows: the
+penalty in the weight loss gives it one local minimum that uses the
+log-logistic and one that uses the Weibull. <code><a href="../reference/arc.html">arc()</a></code> takes the
+one reached by gradient flow from zero weights, as the author’s
+reference code does, which is the log-logistic one there. The global
+minimum is the Weibull one, and with it the bias in the four middle rows
+would be -9.4%, -12.7%, -17.0% and +2.9%, at RMSE 0.130, 0.166, 0.169
+and 0.061.</p>
 </div>
 </div>
 <div class="section level2">
@@ -669,6 +679,7 @@ The standard error falls monotonically across the eight levels, so the
 estimate becomes both more accurate and more precise with effort.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: package 'ggplot2' was built under R version 4.6.1</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">conv</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">estimate</span> <span class="op">-</span> <span class="va">se</span>, ymax <span class="op">=</span> <span class="va">estimate</span> <span class="op">+</span> <span class="va">se</span><span class="op">)</span>,</span>
 <span>              fill <span class="op">=</span> <span class="st">"#4CAF50"</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span></span>
@@ -680,7 +691,88 @@ estimate becomes both more accurate and more precise with effort.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">17</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
 <span>        plot.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="richness-estimation_files/figure-html/convergence-plot-1.svg" class="r-plt" alt="" width="624"></p>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00' class="r-plt inline-svg" style="width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.65; stroke: none;' /> fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpNTguNzZ8NDU5LjUzfDM1LjgzfDMxMS4zMw=='>
+    <rect x='58.76' y='35.83' width='400.77' height='275.50' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNTguNzZ8NDU5LjUzfDM1LjgzfDMxMS4zMw==)'>
+<rect x='58.76' y='35.83' width='400.77' height='275.50' style='stroke-width: 1.65;' />
+<polyline points='58.76,291.51 459.53,291.51 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='58.76,208.88 459.53,208.88 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='58.76,126.26 459.53,126.26 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='58.76,43.63 459.53,43.63 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='76.98,311.33 76.98,35.83 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='181.08,311.33 181.08,35.83 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='285.17,311.33 285.17,35.83 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='389.27,311.33 389.27,35.83 ' style='stroke-width: 0.82; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='58.76,250.20 459.53,250.20 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='58.76,167.57 459.53,167.57 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='58.76,84.94 459.53,84.94 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='129.03,311.33 129.03,35.83 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='233.12,311.33 233.12,35.83 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='337.22,311.33 337.22,35.83 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polyline points='441.32,311.33 441.32,35.83 ' style='stroke-width: 1.65; stroke: #DFD7CA; stroke-linecap: butt;' />
+<polygon points='76.98,107.13 129.03,82.53 181.08,51.78 233.12,48.35 285.17,63.93 337.22,66.89 389.27,78.32 441.32,84.79 441.32,109.61 389.27,112.28 337.22,114.55 285.17,121.02 233.12,125.53 181.08,142.14 129.03,175.59 76.98,234.85 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #4CAF50; fill-opacity: 0.20;' />
+<polyline points='76.98,107.13 129.03,82.53 181.08,51.78 233.12,48.35 285.17,63.93 337.22,66.89 389.27,78.32 441.32,84.79 ' style='stroke-width: 1.65; stroke: none; stroke-linecap: butt;' />
+<polyline points='441.32,109.61 389.27,112.28 337.22,114.55 285.17,121.02 233.12,125.53 181.08,142.14 129.03,175.59 76.98,234.85 ' style='stroke-width: 1.65; stroke: none; stroke-linecap: butt;' />
+<polyline points='76.98,170.99 129.03,129.06 181.08,96.96 233.12,86.94 285.17,92.48 337.22,90.72 389.27,95.30 441.32,97.20 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
+<polyline points='76.98,298.81 129.03,221.00 181.08,184.51 233.12,158.48 285.17,142.92 337.22,129.98 389.27,120.89 441.32,113.86 ' style='stroke-width: 2.13; stroke: #78909C; stroke-linecap: butt;' />
+<line x1='58.76' y1='84.94' x2='459.53' y2='84.94' style='stroke-width: 1.65; stroke-dasharray: 8.79,8.79; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<text x='51.14' y='255.06' text-anchor='end' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>80</text>
+<text x='51.14' y='172.44' text-anchor='end' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>100</text>
+<text x='51.14' y='89.81' text-anchor='end' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>120</text>
+<text x='129.03' y='328.69' text-anchor='middle' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='233.12' y='328.69' text-anchor='middle' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
+<text x='337.22' y='328.69' text-anchor='middle' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
+<text x='441.32' y='328.69' text-anchor='middle' style='font-size: 1.36em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>80</text>
+<text x='259.15' y='347.95' text-anchor='middle' style='font-size: 1.7em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sampling units</text>
+<text transform='translate(20.64,173.58) rotate(-90)' text-anchor='middle' style='font-size: 1.7em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Richness</text>
+<text x='58.76' y='23.07' style='font-size: 2.04em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Chao1 estimate (green) and observed count (grey) vs effort</text>
+</g>
+</g>
+</svg></div></p>
 <p>The dashed line marks the true 120. The green band is the Chao1
 estimate plus or minus one standard error; the grey line is the observed
 count. The gap between grey and dashed is the deficit the estimator
@@ -753,13 +845,17 @@ cross-check on identical input. The agreement table places the
 <strong>spacc</strong> Chao1 alongside the <code>iNEXT</code> estimate
 and the true richness.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cr</span> <span class="op">&lt;-</span> <span class="fu">iNEXT</span><span class="fu">::</span><span class="fu">ChaoRichness</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>, datatype <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">cr</span> <span class="op">&lt;-</span> <span class="fu">iNEXT</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/iNEXT/man/ChaoRichness.html" class="external-link">ChaoRichness</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span><span class="op">)</span>, datatype <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
 <span><span class="va">sp_c1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/chao1.html">chao1</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"spacc::chao1"</span>, <span class="st">"iNEXT::ChaoRichness"</span>, <span class="st">"truth"</span><span class="op">)</span>,</span>
 <span>  estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">sp_c1</span><span class="op">$</span><span class="va">estimate</span>, <span class="va">cr</span><span class="op">[[</span><span class="st">"Estimator"</span><span class="op">]</span><span class="op">]</span>, <span class="va">S_true</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>  se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">sp_c1</span><span class="op">$</span><span class="va">se</span>, <span class="va">cr</span><span class="op">[[</span><span class="st">"Est_s.e."</span><span class="op">]</span><span class="op">]</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;                source estimate   se</span></span>
+<span><span class="co">#&gt; 1        spacc::chao1   117.03 3.00</span></span>
+<span><span class="co">#&gt; 2 iNEXT::ChaoRichness   117.03 3.32</span></span>
+<span><span class="co">#&gt; 3               truth   120.00   NA</span></span></code></pre></div>
 <p>The two Chao1 implementations agree to the displayed precision, which
 is the expected result for the same estimator on the same counts. Any
 residual difference would trace to interval conventions rather than the
@@ -802,7 +898,84 @@ diversity at that order.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cp</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span>,</span>
 <span>        plot.background <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"transparent"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="richness-estimation_files/figure-html/completeness-plot-1.svg" class="r-plt" alt="" width="624"></p>
+<p><div class="svg-container"><button type="button" class="btn btn-primary btn-copy-svg" title="Copy SVG to clipboard" aria-label="Copy SVG to clipboard" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fa fa-copy"></i></button>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='468.00pt' height='360.00pt' viewBox='0 0 468.00 360.00' class="r-plt inline-svg" style="width:100%;height:auto;">
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+      fill: #3E3F3A;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
+<defs>
+  <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
+    <rect x='0.00' y='0.00' width='468.00' height='360.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
+</g>
+<defs>
+  <clipPath id='cpNjkuOTB8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
+    <rect x='69.90' y='67.13' width='388.63' height='238.48' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNjkuOTB8NDU4LjU0fDY3LjEzfDMwNS42MQ==)'>
+<rect x='69.90' y='67.13' width='388.63' height='238.48' style='stroke-width: 1.84;' />
+<polyline points='87.57,95.41 122.90,95.60 158.23,95.60 193.56,94.80 228.89,92.62 264.22,88.61 299.55,93.65 334.88,96.37 370.21,96.82 405.54,95.05 440.87,91.09 ' style='stroke-width: 2.13; stroke: #4CAF50; stroke-linecap: butt;' />
+<circle cx='87.57' cy='95.41' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='122.90' cy='95.60' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='158.23' cy='95.60' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='193.56' cy='94.80' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='228.89' cy='92.62' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='264.22' cy='88.61' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='299.55' cy='93.65' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='334.88' cy='96.37' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='370.21' cy='96.82' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='405.54' cy='95.05' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<circle cx='440.87' cy='91.09' r='2.75' style='stroke-width: 1.22; stroke: #4CAF50; fill: #4CAF50;' />
+<line x1='69.90' y1='88.29' x2='458.54' y2='88.29' style='stroke-width: 1.84; stroke: #7F7F7F; stroke-dasharray: 9.83,9.83; stroke-linecap: butt;' />
+</g>
+<g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
+<text x='61.39' y='300.20' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.00</text>
+<text x='61.39' y='248.58' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.25</text>
+<text x='61.39' y='196.97' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.50</text>
+<text x='61.39' y='145.35' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.75</text>
+<text x='61.39' y='93.73' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.00</text>
+<text x='87.57' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.0</text>
+<text x='175.89' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.5</text>
+<text x='264.22' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.0</text>
+<text x='352.55' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.5</text>
+<text x='440.87' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2.0</text>
+<text x='264.22' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Diversity order (q)</text>
+<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Completeness (observed / estimated)</text>
+<text x='69.90' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>80 sites, 113 species</text>
+<text x='69.90' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sample Completeness Profile</text>
+</g>
+</g>
+</svg></div></p>
 <p>Completeness is lowest at <span class="math inline">\(q = 0\)</span>,
 where undetected rare species bite hardest, and rises toward one as
 <span class="math inline">\(q\)</span> increases and common species,
@@ -943,5 +1116,83 @@ species richness. <em>Biometrics</em>, 40, 119-129.</li>
 
 
 
-  </body>
+  <script>
+/* SVG Copy Button Functionality */
+(function() {
+  "use strict";
+
+  // Initialize SVG copy buttons after DOM is ready
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof ClipboardJS === "undefined") {
+      console.warn("ClipboardJS not loaded - SVG copy buttons disabled");
+      return;
+    }
+
+    // Initialize clipboard for SVG copy buttons
+    var svgClipboard = new ClipboardJS(".btn-copy-svg", {
+      text: function(trigger) {
+        var container = trigger.closest(".svg-container");
+        if (!container) return "";
+
+        var svg = container.querySelector("svg");
+        if (!svg) return "";
+
+        // Clone SVG to avoid modifying the original
+        var clone = svg.cloneNode(true);
+
+        // Remove inline-svg class (not needed in copied version)
+        clone.classList.remove("inline-svg");
+
+        // Add XML declaration and serialize
+        var serializer = new XMLSerializer();
+        var svgString = serializer.serializeToString(clone);
+
+        // Add XML declaration if not present
+        if (!svgString.startsWith("<?xml")) {
+          svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgString;
+        }
+
+        return svgString;
+      }
+    });
+
+    // Handle success
+    svgClipboard.on("success", function(e) {
+      var btn = e.trigger;
+      var originalTitle = btn.getAttribute("data-bs-original-title") || btn.getAttribute("title");
+
+      // Update tooltip to show "Copied!"
+      btn.setAttribute("data-bs-original-title", "Copied!");
+      var tooltip = bootstrap.Tooltip.getInstance(btn);
+      if (tooltip) {
+        tooltip.show();
+      }
+
+      // Reset after delay
+      setTimeout(function() {
+        btn.setAttribute("data-bs-original-title", originalTitle);
+      }, 1500);
+
+      e.clearSelection();
+    });
+
+    // Handle error
+    svgClipboard.on("error", function(e) {
+      var btn = e.trigger;
+      btn.setAttribute("data-bs-original-title", "Press Ctrl+C to copy");
+      var tooltip = bootstrap.Tooltip.getInstance(btn);
+      if (tooltip) {
+        tooltip.show();
+      }
+    });
+
+    // Initialize tooltips for SVG copy buttons
+    var svgCopyButtons = document.querySelectorAll(".btn-copy-svg");
+    svgCopyButtons.forEach(function(btn) {
+      new bootstrap.Tooltip(btn, { container: "body" });
+    });
+  });
+})();
+</script>
+</body>
 </html>

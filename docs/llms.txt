@@ -27,6 +27,18 @@ shuffles sites in random order, without using their spatial arrangement.
 `spacc` reproduces that random-order curve and adds the spatial one, so
 you can read the gap between them.
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
+## Quick start
+
 ``` r
 
 library(spacc)
@@ -161,16 +173,6 @@ sac_st <- spacc(species, coords, method = "nn_walk",
   [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
   object into the same plotting and comparison machinery.
 
-## Installation
-
-``` r
-
-install.packages("spacc")            # CRAN
-
-install.packages("pak")              # development version
-pak::pak("gcol33/spacc")
-```
-
 ## Documentation
 
 - [Getting
@@ -287,6 +289,10 @@ Accumulation of PD and FD metrics
   : Spatial Phylogenetic Diversity Accumulation
 - [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
   : Spatial Functional Diversity Accumulation
+- [`spaccRedundancy()`](https://gillescolling.com/spacc/reference/spaccRedundancy.md)
+  : Spatial Phylogenetic or Functional Redundancy Accumulation
+- [`spaccNetwork()`](https://gillescolling.com/spacc/reference/spaccNetwork.md)
+  : Spatial Accumulation of Interaction Diversity
 
 ## Coverage-Based Rarefaction
 
@@ -297,7 +303,7 @@ Standardize by sample completeness
 - [`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
   : Interpolate Richness at Target Coverage Levels
 - [`extrapolateCoverage()`](https://gillescolling.com/spacc/reference/extrapolateCoverage.md)
-  : Extrapolate Richness Beyond Observed Coverage
+  : Extrapolate Diversity Beyond Observed Coverage
 
 ## Per-Site Metrics
 
@@ -326,6 +332,8 @@ Non-parametric richness estimation
   : Jackknife Richness Estimator
 - [`bootstrap_richness()`](https://gillescolling.com/spacc/reference/bootstrap_richness.md)
   : Bootstrap Richness Estimator
+- [`arc()`](https://gillescolling.com/spacc/reference/arc.md) :
+  Accumulation Rate Curve (ARC) Richness Estimator
 - [`completenessProfile()`](https://gillescolling.com/spacc/reference/completenessProfile.md)
   : Sample Completeness Profile
 
@@ -409,7 +417,7 @@ Internal functions (not for end users)
   : Plot Spatial SAC
 - [`plot(`*`<spacc_metrics>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc_metrics.md)
   : Plot spacc_metrics
-- [`autoplot.spacc`](https://gillescolling.com/spacc/reference/autoplot.spacc.md)
+- [`autoplot(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/autoplot.spacc.md)
   : Autoplot Methods for spacc Objects
 
 # Articles

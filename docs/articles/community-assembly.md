@@ -1,5 +1,15 @@
 # Community Assembly and Turnover
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 A species list at a single site says little about how a community came
@@ -489,8 +499,8 @@ print(result)
 #> Input class: spacc
 #> Metric: richness
 #> Null model: curveball (19 permutations)
-#> SES range: [-2.26, 0.75]
-#> Mean SES: -0.15
+#> SES range: [-5.37, 0.42]
+#> Mean SES: -0.54
 #> Significant (p < 0.05): 0 / 60 values (0%)
 ```
 
@@ -555,7 +565,7 @@ res_freq <- ses(sac, species, coords,
                 progress = FALSE, seed = 1)
 c(curveball = mean(result$ses), frequency = mean(res_freq$ses))
 #>  curveball  frequency 
-#> -0.1455350 -0.3139387
+#> -0.5352222 -0.2360717
 ```
 
 The `frequency` null yields a more strongly negative mean SES than

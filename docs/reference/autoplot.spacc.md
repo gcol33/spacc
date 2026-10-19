@@ -5,6 +5,13 @@ methods for spacc objects. Each one calls the corresponding
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method, which
 already returns a ggplot2 object.
 
+## Usage
+
+``` r
+# S3 method for class 'spacc'
+autoplot(object, ...)
+```
+
 ## Arguments
 
 - object:

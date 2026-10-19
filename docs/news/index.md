@@ -2,6 +2,147 @@
 
 ## spacc 0.11.0
 
+CRAN release: 2026-10-11
+
+### New features
+
+- `spaccPhylo(metric = "evoheritage", rho = )` accumulates EvoHeritage
+  (Rosindell et al. 2024), phylogenetic diversity with attrition of
+  evolutionary heritage at rate `rho`. `rho = 0` reproduces Faith’s PD;
+  a vector `rho` gives one curve per rate
+  ([\#7](https://github.com/gcol33/spacc/issues/7)).
+- `chao2(x, n_units = )` estimates richness for sites drawn without
+  replacement from a finite set of `n_units` units (MoRE, Chiu 2023),
+  which reaches the observed richness when every unit is sampled instead
+  of overestimating it. `extrapolate(n_units = )` compares the asymptote
+  with MoRE and uses it as the reference for the disagreement warning
+  ([\#14](https://github.com/gcol33/spacc/issues/14)).
+- [`arc()`](https://gillescolling.com/spacc/reference/arc.md) estimates
+  total richness with the accumulation rate curve estimator of
+  Shestopaloff (2025): log-normal, log-logistic and Weibull fits to the
+  rate at which new species appear, combined with capped weights, with a
+  parametric bootstrap interval from a penalised Poisson mixture of the
+  frequency counts. `data = "incidence"` runs it on site occupancy. The
+  weights are the minimum of the paper’s loss reached by gradient flow
+  from zero weights, the one the author’s reference code reaches
+  ([\#13](https://github.com/gcol33/spacc/issues/13)).
+- `spaccCoverage(coverage = "chiu", n_units = )` gives the matching
+  sample coverage: the undetected abundance uses the MoRE estimate of
+  the undetected species, so the coverage reaches 1 when every unit is
+  sampled ([\#14](https://github.com/gcol33/spacc/issues/14)).
+- `spaccHillBeta(standardize = "coverage", coverage = )` standardises
+  gamma and alpha to a common sample coverage at every step
+  (iNEXT.beta3D, Chao et al. 2023) and returns the four dissimilarities
+  `1-CqN`, `1-UqN`, `1-VqN`, `1-SqN`. Final-step values match
+  [`iNEXT.beta3D::iNEXTbeta3D()`](https://rdrr.io/pkg/iNEXT.beta3D/man/iNEXTbeta3D.html)
+  ([\#6](https://github.com/gcol33/spacc/issues/6)).
+- `spaccFunc(metric = "K")` accumulates the aggregated functional
+  diversity K of Wojcik et al. (2024) with its four facets
+  (`k_richness`, `k_biomass_evenness`, `k_trait_evenness`,
+  `k_dispersion`); K is defined from two species on
+  ([\#8](https://github.com/gcol33/spacc/issues/8)).
+- [`spaccRedundancy()`](https://gillescolling.com/spacc/reference/spaccRedundancy.md)
+  tracks phylogenetic or functional redundancy along the accumulation:
+  the ratio of the taxonomic Hill number to the phylogenetic (Chao et
+  al. 2010) or similarity-sensitive functional (Leinster & Cobbold
+  2012. Hill number of the accumulated community
+        ([\#9](https://github.com/gcol33/spacc/issues/9)).
+- `spaccBeta(pool = )` repeats the turnover/nestedness partition between
+  pooled assemblages (habitats, regions) along the same site orders,
+  next to the site-level partition (Jones et al. 2025);
+  [`summary()`](https://rdrr.io/r/base/summary.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) take
+  `resolution = "site"`, `"pooled"` or (plot) `"both"`
+  ([\#11](https://github.com/gcol33/spacc/issues/11)).
+- `ses(null_model = "shift_rotate")` keeps the community and moves a
+  fixed sampling design (user-supplied `focal_points` of a `knn`
+  analysis) by random rotations and shifts (Ridder et al. 2024), testing
+  the design’s position rather than the community’s spatial structure
+  ([\#12](https://github.com/gcol33/spacc/issues/12)).
+- [`as_spacc()`](https://gillescolling.com/spacc/reference/as_spacc.md)
+  converts a numeric curve or a data frame column, including the output
+  of
+  [`Rarefy::directionalSAC()`](https://rdrr.io/pkg/Rarefy/man/directionalSAC.html)
+  and
+  [`Rarefy::rare_alpha()`](https://rdrr.io/pkg/Rarefy/man/rare_alpha.html).
+  `spacc(method = "knn", focal_points = coords)` is checked to reproduce
+  Rarefy’s directional curve exactly
+  ([\#16](https://github.com/gcol33/spacc/issues/16)).
+- [`spaccNetwork()`](https://gillescolling.com/spacc/reference/spaccNetwork.md)
+  accumulates an interaction network over space: interaction richness
+  and Hill numbers, sample coverage, the species curves of both levels
+  and connectance along the same orders (Chiu et al. 2023)
+  ([\#15](https://github.com/gcol33/spacc/issues/15)).
+- `spaccFunc(itv = TRUE)` takes traits per individual or population (a
+  long table with `species`, optional `site` and trait columns) and
+  evaluates FDis, FRic, Rao’s Q and K on the trait rows of the
+  accumulated sites; one row per species reproduces the species-mean
+  curves ([\#17](https://github.com/gcol33/spacc/issues/17)).
+- [`dar()`](https://gillescolling.com/spacc/reference/dar.md) is an S3
+  generic: besides a site-by-species matrix it takes a `spacc`,
+  `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy` object
+  and returns the diversity-area relationship of each of its curves,
+  along the same site orders, with a power-law fit per curve
+  ([`coef()`](https://rdrr.io/r/stats/coef.html)). The area kernels are
+  C++ (incremental convex hull, Voronoi cells), so
+  [`dar()`](https://gillescolling.com/spacc/reference/dar.md) no longer
+  needs `sf`. The result carries `curves`, `metric` and the curve
+  `object` it was built from (formerly `hill`)
+  ([\#10](https://github.com/gcol33/spacc/issues/10)).
+- New C++ engine for size- and coverage-based rarefaction and
+  extrapolation of Hill numbers (`src/core/inext_core.h`), matching
+  iNEXT.3D.
+
+### Bug fixes
+
+- [`ses()`](https://gillescolling.com/spacc/reference/ses.md) on
+  `spacc_phylo` and `spacc_func` objects always stopped with “Too few
+  valid permutations”: their null analyses were never rerun. The objects
+  now carry their tree, traits and metric settings, and
+  [`ses()`](https://gillescolling.com/spacc/reference/ses.md) reruns
+  them.
+- [`ses()`](https://gillescolling.com/spacc/reference/ses.md) reran
+  `knn` analyses with newly drawn focal points; the nulls now reuse the
+  observed design, and `spacc_beta` nulls keep the distance method.
+- [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)
+  and
+  [`compareModels()`](https://gillescolling.com/spacc/reference/compareModels.md)
+  passed unknown arguments (such as `progress = FALSE`) on to
+  [`nls()`](https://rdrr.io/r/stats/nls.html), which treated them as
+  data, so every model “failed to converge”. Unknown arguments are now
+  an error. The extrapolation vignette’s model comparison had been all
+  failures for this reason.
+- `dar(area_method = "voronoi")` computed bounding-box areas; it now
+  sums the Voronoi cells of the accumulated sites. The convex-hull area
+  of one or two sites is 0 instead of their bounding box.
+- `diversityProfile(tree = )` scaled branch lengths by the maximum
+  root-to-tip depth. It now uses the abundance-weighted mean depth of
+  Chao et al. (2010), which is the same for an ultrametric tree and
+  keeps the profile equal to the taxonomic one on a star tree otherwise.
+  Phylogenetic and functional profiles run on the C++ kernels shared
+  with
+  [`spaccRedundancy()`](https://gillescolling.com/spacc/reference/spaccRedundancy.md).
+- [`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md) with
+  `q = 1` or `q = 2` returned the Hill number of the full sample at
+  every size (q = 1 plugged the sample proportions into Shannon, q = 2
+  ignored the subsample size). It now returns the expected Hill number
+  of a random subsample at every order, matching iNEXT.3D, and
+  extrapolates sizes above the sample size.
+- [`extrapolateCoverage()`](https://gillescolling.com/spacc/reference/extrapolateCoverage.md)
+  with `q = 1` or `q = 2` interpolated the richness curve within the
+  observed coverage and applied ad hoc corrections beyond it. It now
+  reads the Hill curve of the requested order (a
+  [`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md)
+  object; a `spacc_coverage` object carries `q = 0` only) and
+  extrapolates the pooled sample with the Chao et al. (2014) estimators,
+  which also replace the reconstructed singleton counts used for
+  `q = 0`.
+- [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
+  PD matched species to tree tips by column position, so it was wrong
+  when `colnames(x)` were not in `tree$tip.label` order and read past
+  the community when the tree held more tips than `x` had species.
+  Species are now matched to tips by name.
+
 ### Internals
 
 - Every accumulation method is now an order generator

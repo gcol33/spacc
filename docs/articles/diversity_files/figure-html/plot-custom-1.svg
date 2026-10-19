@@ -3,15 +3,24 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
       fill: none;
-      stroke: #000000;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
+      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -19,14 +28,14 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNjEuNDV8NDU4LjU0fDY3LjEzfDMwNS42MQ=='>
@@ -41,17 +50,17 @@
 <polyline points='79.50,185.53 85.62,162.39 91.74,151.83 97.86,145.51 103.97,140.90 110.09,134.00 116.21,128.40 122.33,124.67 128.45,124.20 134.57,120.75 140.68,118.77 146.80,116.51 152.92,114.73 159.04,112.53 165.16,110.68 171.28,109.10 177.39,107.60 183.51,106.12 189.63,104.32 195.75,103.31 201.87,102.13 207.99,101.09 214.11,100.13 220.22,99.03 226.34,98.05 232.46,96.89 238.58,95.77 244.70,94.57 250.82,93.73 256.93,92.69 263.05,92.02 269.17,91.46 275.29,90.91 281.41,90.41 287.53,89.55 293.64,88.92 299.76,88.11 305.88,87.45 312.00,86.76 318.12,86.17 324.24,85.60 330.35,85.12 336.47,84.58 342.59,84.05 348.71,83.62 354.83,83.24 360.95,82.73 367.07,82.33 373.18,82.04 379.30,81.66 385.42,81.21 391.54,80.63 397.66,80.06 403.78,79.66 409.89,79.28 416.01,78.94 422.13,78.60 428.25,78.30 434.37,78.15 440.49,77.97 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='52.93' y='262.39' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='21.12px' lengthAdjust='spacingAndGlyphs'>2.0</text>
-<text x='52.93' y='197.32' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='21.12px' lengthAdjust='spacingAndGlyphs'>2.5</text>
-<text x='52.93' y='132.26' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='21.12px' lengthAdjust='spacingAndGlyphs'>3.0</text>
-<text x='73.38' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='195.75' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='318.12' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='440.49' y='325.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>60</text>
-<text x='259.99' y='346.53' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='119.31px' lengthAdjust='spacingAndGlyphs'>Sites sampled</text>
-<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='244.98px' lengthAdjust='spacingAndGlyphs'>Cumulative Shannon entropy</text>
-<text x='61.45' y='53.66' style='font-size: 19.00px; font-family: "Arial";' textLength='191.14px' lengthAdjust='spacingAndGlyphs'>knn, 20 seeds, 95% CI</text>
-<text x='61.45' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='314.14px' lengthAdjust='spacingAndGlyphs'>Custom Diversity Accumulation</text>
+<text x='52.93' y='262.39' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2.0</text>
+<text x='52.93' y='197.32' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2.5</text>
+<text x='52.93' y='132.26' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>3.0</text>
+<text x='73.38' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='195.75' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='318.12' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
+<text x='440.49' y='325.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
+<text x='259.99' y='346.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites sampled</text>
+<text transform='translate(23.07,186.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Cumulative Shannon entropy</text>
+<text x='61.45' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>knn, 20 seeds, 95% CI</text>
+<text x='61.45' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Custom Diversity Accumulation</text>
 </g>
 </g>
 </svg>

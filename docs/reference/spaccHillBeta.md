@@ -18,7 +18,9 @@ spaccHillBeta(
   seed = NULL,
   method = c("knn", "nn_walk"),
   focal_points = NULL,
-  focal_domain = NULL
+  focal_domain = NULL,
+  standardize = c("none", "coverage"),
+  coverage = NULL
 )
 ```
 
@@ -74,6 +76,19 @@ spaccHillBeta(
   Optional polygonal focal domain. See
   [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
 
+- standardize:
+
+  Character. `"none"` (default) decomposes the observed samples;
+  `"coverage"` standardises gamma and alpha to a common sample coverage
+  at every step (iNEXT.beta3D, Chao et al. 2023). Needs integer
+  abundances.
+
+- coverage:
+
+  Numeric in (0, 1\]. Fixed coverage for `standardize = "coverage"`, the
+  same at every step. `NULL` (default) uses, at each step, the lower of
+  the observed coverages of the pooled and joint samples.
+
 ## Value
 
 An object of class `spacc_hill_beta` containing:
@@ -89,6 +104,17 @@ An object of class `spacc_hill_beta` containing:
 - beta:
 
   Named list of n_seeds x n_sites matrices (one per q)
+
+- dissimilarity:
+
+  With `standardize = "coverage"`: list of the four dissimilarities
+  `1-CqN`, `1-UqN`, `1-VqN`, `1-SqN`, each a named list of n_seeds x
+  n_sites matrices (one per q); `NULL` otherwise
+
+- coverage:
+
+  With `standardize = "coverage"`: n_seeds x n_sites matrix of the
+  coverage used at each step
 
 - q:
 
@@ -118,10 +144,45 @@ completely different. This provides the Hill-number analogue of the
 Baselga-based
 [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md).
 
+## Coverage standardisation
+
+Observed beta depends on sampling completeness: gamma and alpha approach
+their asymptotes at different rates, so the ratio moves along the curve
+even where composition does not change. With `standardize = "coverage"`,
+gamma is the Hill number of the pooled sample and alpha the Hill number
+of the joint sample (every species-by-site cell treated as a unit)
+divided by k (Chiu et al. 2014), both rarefied or extrapolated to the
+same sample coverage C with the estimators of Chao et al. (2014); beta
+is their ratio (Chao et al. 2023). By default C is, at each step, the
+lower of the two observed coverages, so both values come from the
+observed samples or their rarefaction. A fixed `coverage` makes the
+curve comparable across steps and datasets, at the cost of extrapolation
+where a step's sample is less complete; for q = 0, Chao et al. (2023)
+advise against extrapolating beyond the coverage of twice the sample
+size.
+
+The standardised beta is transformed to four dissimilarities between 0
+and 1 (Chao et al. 2023): `1-CqN` (Sorensen-type, the classic Sorensen
+index at q = 0), `1-UqN` (Jaccard-type), `1-VqN` and `1-SqN`. They are
+`NA` at the first step, where there is one site.
+
 ## References
 
 Jost, L. (2007). Partitioning diversity into independent alpha and beta
 components. Ecology, 88, 2427-2439.
+
+Chiu, C.-H., Jost, L. & Chao, A. (2014). Phylogenetic beta diversity,
+similarity, and differentiation measures based on Hill numbers.
+Ecological Monographs, 84, 21-44.
+
+Chao, A., Gotelli, N.J., Hsieh, T.C., et al. (2014). Rarefaction and
+extrapolation with Hill numbers: a framework for sampling and estimation
+in species diversity studies. Ecological Monographs, 84, 45-67.
+
+Chao, A., Thorn, S., Chiu, C.-H., et al. (2023). Rarefaction and
+extrapolation with beta diversity under a framework of Hill numbers: the
+iNEXT.beta3D standardization. Ecological Monographs, 93, e1588.
+[doi:10.1002/ecm.1588](https://doi.org/10.1002/ecm.1588)
 
 ## See also
 

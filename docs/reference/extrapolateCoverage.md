@@ -1,8 +1,8 @@
-# Extrapolate Richness Beyond Observed Coverage
+# Extrapolate Diversity Beyond Observed Coverage
 
-Predict species richness at coverage levels beyond the empirical
-maximum, following the Chao et al. (2014) framework. Provides seamless
-interpolation and extrapolation as a function of sample coverage.
+Hill numbers at target sample coverages along a coverage-tracking
+accumulation, interpolated within the observed coverage and extrapolated
+beyond it (Chao et al. 2014).
 
 ## Usage
 
@@ -15,7 +15,10 @@ extrapolateCoverage(x, target_coverage = c(0.9, 0.95, 0.99), q = 0)
 - x:
 
   A `spacc_coverage` object from
-  [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md).
+  [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)
+  (richness, `q = 0` only) or a `spacc_hill_coverage` object from
+  [`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md)
+  (any of its orders).
 
 - target_coverage:
 
@@ -24,8 +27,8 @@ extrapolateCoverage(x, target_coverage = c(0.9, 0.95, 0.99), q = 0)
 
 - q:
 
-  Numeric. Diversity order for extrapolation: 0 (richness, default), 1
-  (Shannon), or 2 (Simpson).
+  Numeric. Diversity order: 0 (richness, default), or for a
+  `spacc_hill_coverage` object one of its orders.
 
 ## Value
 
@@ -33,7 +36,8 @@ An object of class `spacc_coverage_ext` containing:
 
 - richness:
 
-  Matrix of interpolated/extrapolated richness (n_seeds x n_targets)
+  Matrix of interpolated/extrapolated Hill numbers of order `q` (n_seeds
+  x n_targets)
 
 - target_coverage:
 
@@ -49,21 +53,20 @@ An object of class `spacc_coverage_ext` containing:
 
 - observed_richness:
 
-  Mean observed final richness
+  Mean observed final Hill number of order `q`
 
 ## Details
 
-For targets within observed coverage, linear interpolation is used. For
-targets beyond observed coverage, asymptotic estimators are applied:
-
-- **q = 0**: Chao1 estimator: S_est = S_obs + f1^2 / (2 \* f2), where
-  f1/f2 are singleton/doubleton counts. Extrapolation via coverage
-  deficit.
-
-- **q = 1**: Shannon extrapolation based on the Good-Turing frequency
-  formula.
-
-- **q = 2**: Simpson extrapolation using the unbiased estimator.
+A target at or below a seed's final coverage is read off that seed's
+spatial accumulation curve by linear interpolation in coverage. Above
+it, every seed has accumulated the same pooled sample, so the value is
+the coverage-based extrapolation of the pooled abundances (Chao et al.
+2014): the sample size reaching the target coverage is found from the
+Chao-Jost coverage deficit, and the Hill number at that size approaches
+the Chao1 (q = 0), Chao et al. (2013) Shannon (q = 1) or unbiased
+Simpson (q = 2) asymptote; `target_coverage = 1` gives the asymptote
+itself. Extrapolation is defined for integer `q` and for the
+individual-based coverage (`coverage = "chao"`).
 
 ## References
 

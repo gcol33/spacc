@@ -105,8 +105,7 @@ diversity for. Default <code>NULL</code> computes for all levels from 1 to total
 <dt id="arg-q">q<a class="anchor" aria-label="anchor" href="#arg-q"></a></dt>
 <dd><p>Numeric. Order of Hill number; any value <code>&gt;= 0</code>. Default 0
 (species richness). q=1 gives rarefied Shannon diversity, q=2 gives
-rarefied Simpson diversity. q=0, 1, and 2 use exact estimators; other
-orders report the Hill number of order <code>q</code> of the sampled composition.</p></dd>
+rarefied Simpson diversity.</p></dd>
 
 
 <dt id="arg-n-boot">n_boot<a class="anchor" aria-label="anchor" href="#arg-n-boot"></a></dt>
@@ -134,11 +133,14 @@ orders report the Hill number of order <code>q</code> of the sampled composition
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>For q=0 (species richness): uses the Hurlbert (1971) formula.</p>
-<p>For q=1 (Shannon diversity): rarefied Shannon entropy is computed and
-converted to effective number of species via exponentiation.</p>
-<p>For q=2 (Simpson diversity): rarefied Simpson concentration is computed
-and converted to effective number of species via inversion.</p>
+    <p>The expected Hill number of a random subsample of <code>n</code> individuals drawn
+without replacement from the pooled sample (Chao et al. 2014). Each
+species' subsample count is hypergeometric, and
+$${}^qD(n) = \left(\sum_i E\left[(Y_i / n)^q\right]\right)^{1/(1-q)},$$
+with the exponential of the expected Shannon entropy at q = 1. At q = 0 this
+is the Hurlbert (1971) formula. Sizes above the sample size are
+extrapolated towards the asymptotic estimators (Chao et al. 2014; integer
+<code>q</code> only).</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

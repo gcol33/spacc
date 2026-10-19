@@ -5,6 +5,15 @@
 - **Gilles Colling**. Author, maintainer, copyright holder.
   [](https://orcid.org/0000-0003-3070-6066)
 
+- **Marius Muja**. Contributor, copyright holder.\
+  nanoflann library (inst/include/nanoflann.hpp, BSD license)
+
+- **David G. Lowe**. Contributor, copyright holder.\
+  nanoflann library (inst/include/nanoflann.hpp, BSD license)
+
+- **Jose Luis Blanco**. Contributor, copyright holder.\
+  nanoflann library (inst/include/nanoflann.hpp, BSD license)
+
 ## Citation
 
 Source:

@@ -3,15 +3,24 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
       fill: none;
-      stroke: #000000;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
+      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -19,14 +28,14 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNDguNzh8NDU4LjU0fDQwLjA1fDI0Ny41OQ=='>
@@ -49,28 +58,28 @@
 <polyline points='67.40,84.13 73.72,73.89 80.03,71.01 86.35,67.29 92.66,63.59 98.97,63.22 105.29,57.30 111.60,54.07 117.91,53.28 124.23,52.97 130.54,52.62 136.85,52.30 143.17,52.09 149.48,51.34 155.80,51.03 162.11,50.95 168.42,50.64 174.74,50.20 181.05,49.99 187.36,49.94 193.68,49.70 199.99,49.70 206.30,49.49 212.62,49.49 218.93,49.49 225.25,49.49 231.56,49.49 237.87,49.49 244.19,49.49 250.50,49.49 256.81,49.49 263.13,49.49 269.44,49.49 275.76,49.49 282.07,49.49 288.38,49.49 294.70,49.49 301.01,49.49 307.32,49.49 313.64,49.49 319.95,49.49 326.26,49.49 332.58,49.49 338.89,49.49 345.21,49.49 351.52,49.49 357.83,49.49 364.15,49.49 370.46,49.49 376.77,49.49 383.09,49.49 389.40,49.49 395.71,49.49 402.03,49.49 408.34,49.49 414.66,49.49 420.97,49.49 427.28,49.49 433.60,49.49 439.91,49.49 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='40.26' y='244.79' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='40.26' y='200.12' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>2</text>
-<text x='40.26' y='155.45' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>4</text>
-<text x='40.26' y='110.78' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>6</text>
-<text x='40.26' y='66.12' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>8</text>
-<text x='61.09' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='187.36' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='313.64' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='439.91' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>60</text>
-<text x='253.66' y='288.51' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='155.22px' lengthAdjust='spacingAndGlyphs'>Sites accumulated</text>
-<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='183.72px' lengthAdjust='spacingAndGlyphs'>Phylogenetic diversity</text>
-<text x='119.81' y='337.79' style='font-size: 19.00px; font-family: "Arial";' textLength='51.72px' lengthAdjust='spacingAndGlyphs'>Metric</text>
+<text x='40.26' y='244.79' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='40.26' y='200.12' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>2</text>
+<text x='40.26' y='155.45' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>4</text>
+<text x='40.26' y='110.78' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>6</text>
+<text x='40.26' y='66.12' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>8</text>
+<text x='61.09' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='187.36' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='313.64' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
+<text x='439.91' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>60</text>
+<text x='253.66' y='288.51' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites accumulated</text>
+<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Phylogenetic diversity</text>
+<text x='119.81' y='337.79' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Metric</text>
 <rect x='182.21' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
 <line x1='183.00' y1='330.99' x2='199.13' y2='330.99' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
 <rect x='265.18' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
 <line x1='265.97' y1='330.99' x2='282.10' y2='330.99' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
 <rect x='338.02' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
 <line x1='338.81' y1='330.99' x2='354.94' y2='330.99' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
-<text x='210.61' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='43.88px' lengthAdjust='spacingAndGlyphs'>MNTD</text>
-<text x='293.58' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='33.75px' lengthAdjust='spacingAndGlyphs'>MPD</text>
-<text x='366.42' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='21.09px' lengthAdjust='spacingAndGlyphs'>PD</text>
-<text x='48.78' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='442.11px' lengthAdjust='spacingAndGlyphs'>Spatial Phylogenetic Diversity Accumulation</text>
+<text x='210.61' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>MNTD</text>
+<text x='293.58' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>MPD</text>
+<text x='366.42' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>PD</text>
+<text x='48.78' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Spatial Phylogenetic Diversity Accumulation</text>
 </g>
 </g>
 </svg>

@@ -3,15 +3,24 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
       fill: none;
-      stroke: #000000;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
+      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -19,14 +28,14 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='360.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' />
+<rect x='0.00' y='0.00' width='468.00' height='360.00' style='stroke-width: 1.84; stroke: none;' /> fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNTcuMjN8NDU4LjU0fDQwLjA1fDI0Ny41OQ=='>
@@ -49,27 +58,27 @@
 <polyline points='75.47,190.10 300.65,172.12 367.23,165.08 401.93,158.42 413.69,157.03 414.34,150.10 422.49,146.37 425.03,142.94 427.72,141.85 429.96,137.40 433.62,133.35 434.53,128.09 434.75,130.59 435.89,125.27 437.21,122.28 437.32,118.02 437.99,121.06 438.18,114.94 438.47,113.06 438.93,111.07 439.13,109.78 439.50,106.27 439.62,107.77 439.70,104.37 439.95,102.62 440.06,101.07 440.19,99.64 440.19,98.05 440.20,96.04 440.29,94.14 440.29,93.01 440.29,91.99 440.29,89.80 440.29,88.38 440.29,86.75 440.29,85.13 440.29,83.75 440.29,81.99 440.29,80.75 440.29,79.25 440.29,77.82 440.29,76.51 440.29,75.11 440.29,74.16 440.29,73.55 440.29,72.34 440.29,71.09 440.29,70.20 440.29,69.44 440.29,68.60 440.29,67.58 440.29,66.50 440.29,65.36 440.29,64.27 440.29,63.40 440.29,62.59 440.29,61.94 440.29,61.24 440.29,60.79 440.29,60.36 ' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzNjAuMDA=)'>
-<text x='48.71' y='206.64' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='48.71' y='130.78' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='48.71' y='54.92' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>30</text>
-<text x='71.96' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.80</text>
-<text x='164.04' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.85</text>
-<text x='256.13' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.90</text>
-<text x='348.21' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>0.95</text>
-<text x='440.29' y='266.98' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='29.58px' lengthAdjust='spacingAndGlyphs'>1.00</text>
-<text x='257.88' y='288.51' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='147.83px' lengthAdjust='spacingAndGlyphs'>Sample coverage</text>
-<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='96.06px' lengthAdjust='spacingAndGlyphs'>Hill number</text>
-<text x='123.64' y='337.79' style='font-size: 19.00px; font-family: "Arial";' textLength='48.56px' lengthAdjust='spacingAndGlyphs'>Order</text>
+<text x='48.71' y='206.64' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
+<text x='48.71' y='130.78' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='48.71' y='54.92' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
+<text x='71.96' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.80</text>
+<text x='164.04' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.85</text>
+<text x='256.13' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.90</text>
+<text x='348.21' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0.95</text>
+<text x='440.29' y='266.98' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>1.00</text>
+<text x='257.88' y='288.51' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sample coverage</text>
+<text transform='translate(23.07,143.82) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Hill number</text>
+<text x='123.64' y='337.79' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Order</text>
 <rect x='182.89' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #F8766D; fill-opacity: 0.20;' />
 <line x1='183.68' y1='330.99' x2='199.81' y2='330.99' style='stroke-width: 2.13; stroke: #F8766D; stroke-linecap: butt;' />
 <rect x='256.20' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #00BA38; fill-opacity: 0.20;' />
 <line x1='256.99' y1='330.99' x2='273.12' y2='330.99' style='stroke-width: 2.13; stroke: #00BA38; stroke-linecap: butt;' />
 <rect x='329.51' y='322.14' width='17.71' height='17.71' style='stroke-width: 1.84; stroke: none; stroke-linecap: butt; fill: #619CFF; fill-opacity: 0.20;' />
 <line x1='330.30' y1='330.99' x2='346.43' y2='330.99' style='stroke-width: 2.13; stroke: #619CFF; stroke-linecap: butt;' />
-<text x='211.29' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='34.22px' lengthAdjust='spacingAndGlyphs'>q = 0</text>
-<text x='284.60' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='34.22px' lengthAdjust='spacingAndGlyphs'>q = 1</text>
-<text x='357.91' y='336.43' style='font-size: 15.20px; font-family: "Arial";' textLength='34.22px' lengthAdjust='spacingAndGlyphs'>q = 2</text>
-<text x='57.23' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='354.67px' lengthAdjust='spacingAndGlyphs'>Hill Numbers vs. Sample Coverage</text>
+<text x='211.29' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 0</text>
+<text x='284.60' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 1</text>
+<text x='357.91' y='336.43' style='font-size: 1.52em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>q = 2</text>
+<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Hill Numbers vs. Sample Coverage</text>
 </g>
 </g>
 </svg>

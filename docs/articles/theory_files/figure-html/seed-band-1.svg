@@ -3,15 +3,24 @@
 <g class='svglite'>
 <defs>
   <style type='text/css'><![CDATA[
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+    /* theme-aware-processed */
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite circle {
       fill: none;
-      stroke: #000000;
+      stroke: #3E3F3A;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite > g > rect {
+      fill: none;
+      stroke: #3E3F3A;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-miterlimit: 10.00;
     }
     .svglite text {
       white-space: pre;
+      fill: #3E3F3A;
     }
     .svglite g.glyphgroup path {
       fill: inherit;
@@ -19,14 +28,14 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<rect class='svg-bg' width='100%' height='100%' style='stroke: none; fill: #F5F6F8;'/>
 <defs>
   <clipPath id='cpMC4wMHw0NjguMDB8MC4wMHwzMjQuMDA='>
     <rect x='0.00' y='0.00' width='468.00' height='324.00' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzMjQuMDA=)'>
-<rect x='0.00' y='0.00' width='468.00' height='324.00' style='stroke-width: 1.84; stroke: none; fill: #FFFFFF;' />
+<rect rx='4' x='0.00' y='0.00' width='468.00' height='324.00' style='stroke-width: 1.84; stroke: none; fill: #F5F6F8;' />
 </g>
 <defs>
   <clipPath id='cpNTcuMjN8NDU4LjU0fDY3LjEzfDI2OS42MQ=='>
@@ -40,20 +49,20 @@
 <polyline points='75.47,230.42 78.54,191.61 81.60,160.64 84.67,137.23 87.74,121.04 90.80,109.57 93.87,100.79 96.93,95.37 100.00,90.85 103.06,87.01 106.13,84.69 109.20,82.38 112.26,81.22 115.33,80.07 118.39,79.23 121.46,78.70 124.52,78.38 127.59,77.91 130.66,77.65 133.72,77.38 136.79,77.17 139.85,77.07 142.92,76.91 145.98,76.81 149.05,76.70 152.12,76.54 155.18,76.44 158.25,76.33 161.31,76.33 164.38,76.33 167.45,76.33 170.51,76.33 173.58,76.33 176.64,76.33 179.71,76.33 182.77,76.33 185.84,76.33 188.91,76.33 191.97,76.33 195.04,76.33 198.10,76.33 201.17,76.33 204.23,76.33 207.30,76.33 210.37,76.33 213.43,76.33 216.50,76.33 219.56,76.33 222.63,76.33 225.69,76.33 228.76,76.33 231.83,76.33 234.89,76.33 237.96,76.33 241.02,76.33 244.09,76.33 247.15,76.33 250.22,76.33 253.29,76.33 256.35,76.33 259.42,76.33 262.48,76.33 265.55,76.33 268.61,76.33 271.68,76.33 274.75,76.33 277.81,76.33 280.88,76.33 283.94,76.33 287.01,76.33 290.07,76.33 293.14,76.33 296.21,76.33 299.27,76.33 302.34,76.33 305.40,76.33 308.47,76.33 311.53,76.33 314.60,76.33 317.67,76.33 320.73,76.33 323.80,76.33 326.86,76.33 329.93,76.33 332.99,76.33 336.06,76.33 339.13,76.33 342.19,76.33 345.26,76.33 348.32,76.33 351.39,76.33 354.45,76.33 357.52,76.33 360.59,76.33 363.65,76.33 366.72,76.33 369.78,76.33 372.85,76.33 375.91,76.33 378.98,76.33 382.05,76.33 385.11,76.33 388.18,76.33 391.24,76.33 394.31,76.33 397.37,76.33 400.44,76.33 403.51,76.33 406.57,76.33 409.64,76.33 412.70,76.33 415.77,76.33 418.83,76.33 421.90,76.33 424.97,76.33 428.03,76.33 431.10,76.33 434.16,76.33 437.23,76.33 440.29,76.33 ' style='stroke-width: 2.13; stroke: #2E7D32; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw0NjguMDB8MC4wMHwzMjQuMDA=)'>
-<text x='48.71' y='239.54' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>10</text>
-<text x='48.71' y='186.95' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='48.71' y='134.36' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>30</text>
-<text x='48.71' y='81.77' text-anchor='end' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='72.41' y='289.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='8.45px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='149.05' y='289.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>25</text>
-<text x='225.69' y='289.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>50</text>
-<text x='302.34' y='289.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='16.91px' lengthAdjust='spacingAndGlyphs'>75</text>
-<text x='378.98' y='289.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='25.36px' lengthAdjust='spacingAndGlyphs'>100</text>
-<text x='455.62' y='289.00' text-anchor='middle' style='font-size: 15.20px;fill: #4D4D4D; font-family: "Arial";' textLength='25.36px' lengthAdjust='spacingAndGlyphs'>125</text>
-<text x='257.88' y='310.53' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='119.31px' lengthAdjust='spacingAndGlyphs'>Sites sampled</text>
-<text transform='translate(23.07,168.37) rotate(-90)' text-anchor='middle' style='font-size: 19.00px; font-family: "Arial";' textLength='164.70px' lengthAdjust='spacingAndGlyphs'>Cumulative species</text>
-<text x='57.23' y='53.66' style='font-size: 19.00px; font-family: "Arial";' textLength='201.70px' lengthAdjust='spacingAndGlyphs'>knn, 100 seeds, 95% CI</text>
-<text x='57.23' y='25.79' style='font-size: 22.80px; font-family: "Arial";' textLength='290.11px' lengthAdjust='spacingAndGlyphs'>Species Accumulation Curve</text>
+<text x='48.71' y='239.54' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>10</text>
+<text x='48.71' y='186.95' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>20</text>
+<text x='48.71' y='134.36' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>30</text>
+<text x='48.71' y='81.77' text-anchor='end' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>40</text>
+<text x='72.41' y='289.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>0</text>
+<text x='149.05' y='289.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>25</text>
+<text x='225.69' y='289.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>50</text>
+<text x='302.34' y='289.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>75</text>
+<text x='378.98' y='289.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>100</text>
+<text x='455.62' y='289.00' text-anchor='middle' style='font-size: 1.52em;fill: #4D4D4D; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>125</text>
+<text x='257.88' y='310.53' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Sites sampled</text>
+<text transform='translate(23.07,168.37) rotate(-90)' text-anchor='middle' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Cumulative species</text>
+<text x='57.23' y='53.66' style='font-size: 1.9em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>knn, 100 seeds, 95% CI</text>
+<text x='57.23' y='25.79' style='font-size: 2.28em; font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;'>Species Accumulation Curve</text>
 </g>
 </g>
 </svg>

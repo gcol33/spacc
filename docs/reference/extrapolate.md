@@ -13,6 +13,7 @@ extrapolate(
   R = 200L,
   level = 0.95,
   compare = TRUE,
+  n_units = NULL,
   warn_ratio = 2,
   ...
 )
@@ -53,6 +54,14 @@ extrapolate(
   [`chao2()`](https://gillescolling.com/spacc/reference/chao2.md) /
   [`iChao2()`](https://gillescolling.com/spacc/reference/iChao2.md)
   estimates and flag large disagreement.
+
+- n_units:
+
+  Total number of sampling units in the region when the sites are drawn
+  without replacement from a finite set. With `compare = TRUE` the
+  asymptote is then also compared with the MoRE estimator
+  (`chao2(x, n_units = )`, Chiu 2023), which is the reference for the
+  disagreement warning. Default `NULL` (sampling with replacement).
 
 - warn_ratio:
 
@@ -99,7 +108,8 @@ An object of class `spacc_fit` containing:
 
 - compare:
 
-  Nonparametric `chao2` / `iChao2` estimates, if available
+  Nonparametric `chao2` / `iChao2` estimates, and `MoRE` when `n_units`
+  is given, if available
 
 - boot:
 

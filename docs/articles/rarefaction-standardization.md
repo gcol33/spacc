@@ -1,5 +1,15 @@
 # Rarefaction and Standardization
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 Species richness counted from raw data confounds two things: how diverse
@@ -273,7 +283,7 @@ signature of a saturating community.
 rare_df <- as.data.frame(rare)
 head(rare_df, 4)
 #>     n expected           sd    lower    upper
-#> 1   1  1.00000 2.294488e-15  1.00000  1.00000
+#> 1   1  1.00000 1.380170e-11  1.00000  1.00000
 #> 2  37 17.00820 1.577237e-02 16.94641 17.00393
 #> 3  72 19.50629 1.006188e-02 19.46492 19.50324
 #> 4 108 19.92306 3.648140e-03 19.90731 19.92184
@@ -305,7 +315,7 @@ rare_q1 <- rarefy(species, q = 1)
 rare_q2 <- rarefy(species, q = 2)
 c(q0 = max(rare$expected), q1 = max(rare_q1$expected), q2 = max(rare_q2$expected))
 #>       q0       q1       q2 
-#> 20.00000 19.95649 20.01989
+#> 20.00000 19.95649 19.91239
 ```
 
 ``` r
@@ -440,14 +450,17 @@ returns the full matrix rather than a collapsed summary.
 
 ## Extrapolation beyond observed
 
-When a target coverage exceeds the maximum any seed reached,
-interpolation is impossible and
+When a target coverage exceeds the coverage a seed reached,
+interpolation is impossible. Every seed ends with the same pooled sample
+of all sites, and
 [`extrapolateCoverage()`](https://gillescolling.com/spacc/reference/extrapolateCoverage.md)
-switches to the Chao et al. (2014) asymptotic estimators. For \\q = 0\\
-it uses the Chao1 coverage deficit; for \\q = 1\\ and \\q = 2\\ it
-applies the corresponding Shannon and Simpson asymptotics. The returned
-`spacc_coverage_ext` object reports the observed coverage and richness
-alongside the extrapolated values.
+extrapolates that sample with the Chao et al. (2014) estimators, towards
+the Chao1 asymptote for \\q = 0\\. A `spacc_coverage` object carries
+richness only; for \\q = 1\\ and \\q = 2\\, pass a
+[`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md)
+object, whose extrapolation approaches the Shannon and Simpson
+asymptotes. The returned `spacc_coverage_ext` object reports the
+observed coverage and richness alongside the extrapolated values.
 
 ``` r
 

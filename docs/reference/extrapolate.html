@@ -93,6 +93,7 @@ species richness beyond the observed sampling effort.</p>
 <span>  R <span class="op">=</span> <span class="fl">200L</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  compare <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  n_units <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  warn_ratio <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -134,6 +135,14 @@ frequencies, compare the asymptote to the nonparametric <code><a href="chao2.htm
 <code><a href="iChao2.html">iChao2()</a></code> estimates and flag large disagreement.</p></dd>
 
 
+<dt id="arg-n-units">n_units<a class="anchor" aria-label="anchor" href="#arg-n-units"></a></dt>
+<dd><p>Total number of sampling units in the region when the sites
+are drawn without replacement from a finite set. With <code>compare = TRUE</code>
+the asymptote is then also compared with the MoRE estimator
+(<code>chao2(x, n_units = )</code>, Chiu 2023), which is the reference for the
+disagreement warning. Default <code>NULL</code> (sampling with replacement).</p></dd>
+
+
 <dt id="arg-warn-ratio">warn_ratio<a class="anchor" aria-label="anchor" href="#arg-warn-ratio"></a></dt>
 <dd><p>Numeric. Warn when the fitted asymptote exceeds the
 observed richness by more than this factor. Default 2. Set to <code>Inf</code> to
@@ -170,7 +179,8 @@ silence.</p></dd>
 observed range</p></dd>
 
 <dt>compare</dt>
-<dd><p>Nonparametric <code>chao2</code> / <code>iChao2</code> estimates, if available</p></dd>
+<dd><p>Nonparametric <code>chao2</code> / <code>iChao2</code> estimates, and <code>MoRE</code>
+when <code>n_units</code> is given, if available</p></dd>
 
 <dt>boot</dt>
 <dd><p>Bootstrap coefficient draws, if <code>interval = "bootstrap"</code></p></dd>

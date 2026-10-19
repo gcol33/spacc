@@ -1,5 +1,15 @@
 # Diversity Accumulation
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Introduction
 
 A species accumulation curve answers one question: how does the count of
@@ -181,6 +191,7 @@ hill
 ``` r
 
 library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.6.1
 plot(hill) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
@@ -489,6 +500,36 @@ for each \\q\\, so beta is itself an effective number of communities
 rather than a dissimilarity in \\\[0,1\]\\. This is the Jost (2007)
 decomposition tracked along the curve.
 
+The partition depends on the resolution at which assemblages are
+compared (Jones et al. 2025). Passing `pool`, a grouping of the sites
+such as habitat type, repeats the partition between pooled assemblages
+along the same orders, so site-level and pool-level turnover can be read
+side by side. Here the sites are pooled into three bands across the
+study area:
+
+``` r
+
+band <- cut(coords$x, breaks = c(-Inf, 33, 66, Inf), labels = c("west", "centre", "east"))
+beta_pool <- spaccBeta(pa, coords, n_seeds = 20, progress = FALSE, pool = band)
+beta_pool
+#> spacc beta diversity: 60 sites, 20 seeds
+#> Index: sorensen, Method: knn
+#> Mean final beta: 0.594 (turnover: 0.000, nestedness: 0.594)
+#> Mean final beta, 3 pools: 0.044 (turnover: 0.000, nestedness: 0.044)
+```
+
+``` r
+
+plot(beta_pool, resolution = "both") +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+![Beta partition between sites and between pooled
+bands.](diversity_files/figure-html/plot-beta-pool-1.svg)
+
+Beta partition between sites and between pooled bands.
+
 ``` r
 
 hb <- spaccHillBeta(species, coords, q = c(0, 1, 2), n_seeds = 15, progress = FALSE)
@@ -519,6 +560,42 @@ different questions: Baselga asks whether dissimilarity is replacement
 or loss, while Hill beta asks how many distinct communities the
 accumulated set is worth. Reporting both is reasonable when the
 distinction matters.
+
+Part of that rise is a sampling effect. Each site is an incomplete
+sample, so the alpha of a few sites and the gamma of their pool are
+estimated at different completeness, and their ratio grows with the
+number of sites even where composition does not change (Chao et
+al. 2023). In a region where every site samples the same species pool,
+true beta is 1 at every step:
+
+``` r
+
+set.seed(42)
+lambda <- rlnorm(80, -0.5, 1.3)
+homog <- matrix(rpois(60 * 80, rep(lambda, each = 60)), nrow = 60)
+homog_xy <- data.frame(x = runif(60, 0, 100), y = runif(60, 0, 100))
+
+hb_obs <- spaccHillBeta(homog, homog_xy, n_seeds = 15, progress = FALSE, seed = 1)
+hb_std <- spaccHillBeta(homog, homog_xy, n_seeds = 15, progress = FALSE, seed = 1,
+                        standardize = "coverage")
+at <- c(2, 10, 30, 60)
+drift <- rbind(observed = colMeans(hb_obs$beta$q0)[at],
+               standardised = colMeans(hb_std$beta$q0)[at])
+colnames(drift) <- paste(at, "sites")
+drift
+#>               2 sites 10 sites 30 sites 60 sites
+#> observed     1.331141 1.766511 1.842301 1.912061
+#> standardised 1.052576 1.019351 1.021101 1.017954
+```
+
+The observed \\q = 0\\ beta climbs from about 1.3 at two sites to 1.9 at
+sixty, while the coverage-standardised beta stays close to 1. With
+`standardize = "coverage"`, gamma and alpha are both brought to the same
+sample coverage before their ratio is taken (the iNEXT.beta3D
+standardisation), and the result carries the four dissimilarities of
+Chao et al. (2023), such as the Sorensen-type `1-CqN`. A fixed
+`coverage = 0.9`, for example, puts every step and every dataset on the
+same completeness level.
 
 When species carry traits, functional beta weights turnover by how
 different the incoming and outgoing species are in trait space. Passing
@@ -564,6 +641,7 @@ lineages.
 ``` r
 
 library(ape)
+#> Warning: package 'ape' was built under R version 4.6.1
 #> 
 #> Attaching package: 'ape'
 #> The following object is masked from 'package:spacc':
@@ -631,6 +709,38 @@ late are close relatives of ones already present, since they measure
 average distances rather than totals. A flat MPD with a rising PD says
 the region keeps adding species but not new deep branches.
 
+PD counts every unit of branch length as a feature that all descendants
+still carry. EvoHeritage (Rosindell et al. 2024) adds attrition:
+features arise along a branch and are lost at rate \\\rho\\ per unit
+length, so a branch of length \\L\\ passes on a fraction \\e^{-\rho L}\\
+of what entered it, and a feature counts once if it survives to at least
+one accumulated species. At \\\rho = 0\\ this is PD; as \\\rho\\ grows,
+long internal branches lose what they carry and the value tends to the
+number of species. `metric = "evoheritage"` with a vector `rho` gives
+one curve per rate.
+
+``` r
+
+evo_acc <- spaccPhylo(pa, coords, tree,
+                      metric = "evoheritage", rho = c(0, 0.5, 5),
+                      n_seeds = 20, progress = FALSE)
+evo_df <- summary(evo_acc)
+evo_df[evo_df$sites == max(evo_df$sites), c("metric", "mean", "lower", "upper")]
+#>                 metric      mean     lower     upper
+#> 60    evoheritage_rho0  8.501226  8.501226  8.501226
+#> 120 evoheritage_rho0.5  8.428235  8.428235  8.428235
+#> 180   evoheritage_rho5 13.816928 13.816928 13.816928
+sum(colSums(pa) > 0)   # observed richness
+#> [1] 30
+```
+
+The \\\rho = 0\\ curve is PD. Values are in standardised units, the
+heritage at the end of a single branch of unit length, so a rate changes
+both how much of the deep branches survives and what one unit means. The
+limit of one unit per species is reached only once \\\rho L\\ is large
+for the shortest terminal branches, which on a coalescent tree such as
+this one takes rates far above 5.
+
 Functional accumulation works the same way in trait space.
 [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
 tracks functional dispersion (FDis), the abundance-weighted mean
@@ -664,6 +774,37 @@ the mean distance much. A FDis curve that keeps climbing indicates the
 region is still gaining functionally extreme species at large spatial
 scales.
 
+`metric = "K"` aggregates four facets into one index between 0 and 1
+(Wojcik et al. 2024): the share of the trait axis covered, the evenness
+of abundances, the evenness of the spacing along the trait axis, and the
+spread of abundance around the mean trait. Each facet is 1 for species
+spread uniformly along the axis with equal abundances, and K is their
+geometric mean, so the facet curves show which aspect a new site adds.
+
+``` r
+
+func_k <- spaccFunc(species, coords, traits, metric = "K",
+                    n_seeds = 20, progress = FALSE)
+k_df <- summary(func_k)
+k_df[k_df$sites %in% c(1, 10, max(k_df$sites)), c("metric", "sites", "mean")]
+#>                 metric sites      mean
+#> 1           k_richness     1 0.7673825
+#> 10          k_richness    10 0.9548999
+#> 60          k_richness    60 1.0000000
+#> 61  k_biomass_evenness     1 0.8228742
+#> 70  k_biomass_evenness    10 0.8523109
+#> 120 k_biomass_evenness    60 0.9583984
+#> 121   k_trait_evenness     1 0.7044989
+#> 130   k_trait_evenness    10 0.7569841
+#> 180   k_trait_evenness    60 0.7650405
+#> 181       k_dispersion     1 0.8611679
+#> 190       k_dispersion    10 0.6107553
+#> 240       k_dispersion    60 0.5909673
+#> 241                  K     1 0.7803655
+#> 250                  K    10 0.7800032
+#> 300                  K    60 0.8113318
+```
+
 The continuous-\\q\\ profile extends to both paradigms.
 [`diversityProfile()`](https://gillescolling.com/spacc/reference/diversityProfile.md)
 with a `tree` argument gives phylogenetic Hill numbers across \\q\\, and
@@ -677,9 +818,42 @@ fp <- diversityProfile(species, traits = traits, q = seq(0, 3, by = 0.5))
 fp
 #> Functional diversity profile: 60 sites, 30 species
 #> q range: [0.0, 3.0] (7 values)
-#> Per-site: mean D_0 = 1.5, mean D_1 = 1.5, mean D_2 = 1.5
-#> Regional: D_0 = 1.6, D_1 = 1.5, D_2 = 1.5
+#> Per-site: mean D_0 = 1.4, mean D_1 = 1.4, mean D_2 = 1.4
+#> Regional: D_0 = 1.5, D_1 = 1.5, D_2 = 1.4
 ```
+
+The ratio of the taxonomic to the phylogenetic Hill number is never
+below 1, and equals 1 only when all species are equally and maximally
+distinct (a star tree).
+[`spaccRedundancy()`](https://gillescolling.com/spacc/reference/spaccRedundancy.md)
+tracks this ratio along the accumulation, with a `tree` or with `traits`
+(similarity-sensitive Hill numbers, Leinster & Cobbold 2012). A ratio
+that rises as sites accumulate says the region keeps adding species that
+are close relatives of, or functionally similar to, those already
+present.
+
+``` r
+
+red <- spaccRedundancy(species, coords, tree = tree, n_seeds = 20, progress = FALSE)
+red
+#> spacc phylogenetic redundancy: 60 sites, 30 species, 20 seeds
+#> Orders (q): 0, 1, 2
+#>   q = 0: mean final redundancy = 8.59
+#>   q = 1: mean final redundancy = 16.32
+#>   q = 2: mean final redundancy = 20.93
+```
+
+``` r
+
+plot(red) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+```
+
+![Taxonomic over phylogenetic Hill number along
+accumulation.](diversity_files/figure-html/plot-redundancy-1.svg)
+
+Taxonomic over phylogenetic Hill number along accumulation.
 
 ## Rao’s quadratic entropy
 
@@ -723,9 +897,9 @@ func_rao <- spaccFunc(species, coords, traits,
                       n_seeds = 20, progress = FALSE)
 tail(as.data.frame(func_rao), 3)
 #>    metric sites     mean    lower    upper          sd
-#> 58    rao    58 1.934095 1.922281 1.944042 0.008915432
-#> 59    rao    59 1.934749 1.930139 1.938609 0.003703098
-#> 60    rao    60 1.935485 1.935485 1.935485 0.000000000
+#> 58    rao    58 1.461826 1.458388 1.466472 0.003009061
+#> 59    rao    59 1.463061 1.460878 1.466638 0.002161477
+#> 60    rao    60 1.465947 1.465947 1.465947 0.000000000
 ```
 
 With presence/absence data Rao’s Q reduces to an equal-weight form; with
@@ -741,9 +915,9 @@ func_rao_cover <- spaccFunc(cover, coords, traits,
                             metric = "rao", n_seeds = 10, progress = FALSE)
 tail(as.data.frame(func_rao_cover), 3)
 #>    metric sites     mean    lower    upper           sd
-#> 58    rao    58 1.932631 1.922281 1.944042 9.289699e-03
-#> 59    rao    59 1.934717 1.930139 1.938609 4.057622e-03
-#> 60    rao    60 1.935485 1.935485 1.935485 3.625973e-16
+#> 58    rao    58 1.464865 1.458584 1.468526 3.557764e-03
+#> 59    rao    59 1.465415 1.461466 1.466766 2.058509e-03
+#> 60    rao    60 1.465947 1.465947 1.465947 2.220446e-16
 ```
 
 Rao’s Q saturates faster than richness because once the community spans
@@ -798,9 +972,9 @@ cov_chiu <- spaccCoverage(species, coords, coverage = "chiu",
                           n_seeds = 20, progress = FALSE)
 tail(as.data.frame(cov_chiu), 3)
 #>    sites richness individuals coverage richness_sd coverage_sd
-#> 58    58       30      2274.7        1           0           0
-#> 59    59       30      2290.1        1           0           0
-#> 60    60       30      2308.0        1           0           0
+#> 58    58       30     2276.45        1           0           0
+#> 59    59       30     2293.70        1           0           0
+#> 60    60       30     2308.00        1           0           0
 ```
 
 Once coverage is tracked, richness can be read at fixed completeness
@@ -814,12 +988,12 @@ targets, interpolating within the observed range.
 interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 summary(interp)
 #>       C90             C95       
-#>  Min.   : 7.00   Min.   : 7.00  
-#>  1st Qu.:15.00   1st Qu.:20.71  
-#>  Median :18.49   Median :21.55  
-#>  Mean   :17.58   Mean   :20.71  
-#>  3rd Qu.:20.93   3rd Qu.:23.70  
-#>  Max.   :25.00   Max.   :27.00
+#>  Min.   :10.80   Min.   :15.94  
+#>  1st Qu.:15.44   1st Qu.:18.25  
+#>  Median :18.00   Median :20.93  
+#>  Mean   :17.98   Mean   :20.57  
+#>  3rd Qu.:20.36   3rd Qu.:22.02  
+#>  Max.   :25.00   Max.   :26.93
 ```
 
 The same idea applied to Hill numbers gives coverage-standardised
@@ -968,7 +1142,7 @@ The table below summarises which function fits which question.
 | Is turnover replacement or species loss | [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md) | presence/absence | turnover, nestedness |
 | How many distinct communities (Hill beta) | [`spaccHillBeta()`](https://gillescolling.com/spacc/reference/spaccHillBeta.md) | abundance | beta per order |
 | Does turnover involve distinct traits or lineages | `spaccBeta(traits=)`, `spaccBeta(tree=)` | P/A + traits/tree | weighted beta |
-| How does evolutionary or trait diversity accumulate | [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md), [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | abundance + tree/traits | MPD, MNTD, PD, FDis, FRic |
+| How does evolutionary or trait diversity accumulate | [`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md), [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md) | abundance + tree/traits | MPD, MNTD, PD, EvoHeritage, FDis, FRic |
 | Abundance-weighted trait/lineage dispersion | `spaccPhylo(metric="rao")`, `spaccFunc(metric="rao")` | abundance + tree/traits | Rao’s Q |
 | Fair comparison under unequal effort | [`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md), [`spaccHillCoverage()`](https://gillescolling.com/spacc/reference/spaccHillCoverage.md) | abundance | coverage-standardised |
 | An index spacc does not implement | [`spaccDiversity()`](https://gillescolling.com/spacc/reference/spaccDiversity.md) | any | user function |

@@ -94,7 +94,8 @@ null model algorithms and works with most spacc output classes.</p>
 <span>  <span class="va">species</span>,</span>
 <span>  coords <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  metric <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  null_model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"richness"</span>, <span class="st">"both"</span>, <span class="st">"curveball"</span>, <span class="st">"torus"</span>, <span class="st">"spatial_swap"</span><span class="op">)</span>,</span>
+<span>  null_model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequency"</span>, <span class="st">"richness"</span>, <span class="st">"both"</span>, <span class="st">"curveball"</span>, <span class="st">"torus"</span>, <span class="st">"spatial_swap"</span>,</span>
+<span>    <span class="st">"shift_rotate"</span><span class="op">)</span>,</span>
 <span>  n_perm <span class="op">=</span> <span class="fl">999L</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -145,6 +146,10 @@ Requires <code>coords</code>.</p></li>
 <li><p><code>"spatial_swap"</code>: Independent swap restricted to spatially proximate site
 pairs. Preserves both marginals while respecting spatial structure.
 Requires <code>coords</code>.</p></li>
+<li><p><code>"shift_rotate"</code>: Keeps the community and moves the sampling design:
+the user-supplied focal points of a <code>method = "knn"</code> analysis are
+rotated by a random angle and shifted by a random offset (Ridder et al.
+2024). Requires <code>coords</code>.</p></li>
 </ul></dd>
 
 
@@ -216,7 +221,18 @@ richness</p></li>
 co-occurrence patterns</p></li>
 <li><p><code>"curveball"</code>: Efficient alternative to <code>"both"</code> with proven uniform
 sampling properties</p></li>
-</ul></div>
+<li><p><code>"shift_rotate"</code>: The permutation nulls destroy the spatial structure of
+the community, so a spatially structured curve differs from almost any
+of them. The shift-and-rotate null keeps that structure intact and asks
+instead whether the curve depends on where the fixed design sits within
+it: each replicate moves the focal points by a rigid motion (rotation
+about their centroid, shift within the extent of the sites), drops those
+that leave the convex hull of the sites, and recomputes the curve. It is
+defined only for a fixed design; randomly drawn focal points are already
+a sample over all positions.</p></li>
+</ul><p>For <code>method = "knn"</code> analyses the permutation nulls reuse the observed
+focal points, so observed and null curves share one design.</p>
+    </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Gotelli, N.J. (2000). Null model analysis of species co-occurrence patterns.
@@ -224,6 +240,10 @@ Ecology, 81, 2606-2621.</p>
 <p>Strona, G., Nappo, D., Boccacci, F., Fattorini, S. &amp; San-Miguel-Ayanz, J.
 (2014). A fast and unbiased procedure to randomize ecological binary
 matrices with fixed row and column totals. Nature Communications, 5, 4114.</p>
+<p>Ridder, G., Hardy, O.J. &amp; Ovaskainen, O. (2024). Generating spatially
+realistic environmental null models with the shift-&amp;-rotate approach helps
+evaluate false positives in species distribution modelling. Methods in
+Ecology and Evolution, 15, 2331-2342. <a href="https://doi.org/10.1111/2041-210X.14443" class="external-link">doi:10.1111/2041-210X.14443</a></p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

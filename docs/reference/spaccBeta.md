@@ -22,7 +22,8 @@ spaccBeta(
   seed = NULL,
   map = FALSE,
   focal_points = NULL,
-  focal_domain = NULL
+  focal_domain = NULL,
+  pool = NULL
 )
 ```
 
@@ -96,6 +97,12 @@ spaccBeta(
   Optional polygonal focal domain. See
   [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md).
 
+- pool:
+
+  Optional vector with one value per site (habitat, degradation level,
+  region) grouping sites into pools. The partition is then also computed
+  between pooled assemblages along the same orders.
+
 ## Value
 
 An object of class `spacc_beta` containing:
@@ -115,6 +122,11 @@ An object of class `spacc_beta` containing:
 - distance:
 
   Matrix of cumulative distances
+
+- pooled:
+
+  With `pool`: the same four matrices for the pooled assemblages
+  (n_seeds x n_pools-1), plus `pool` and `n_pools`; else `NULL`
 
 - n_seeds, n_sites, method, index:
 
@@ -143,10 +155,25 @@ length. The taxonomic, functional, and phylogenetic variants all return
 a `spacc_beta` object whose `beta_type` field records which was
 computed. `map = TRUE` is supported for the taxonomic variant only.
 
+With `pool`, sites are aggregated into pooled assemblages (a species is
+present in a pool if it occurs in any of its sites) and the partition is
+repeated between pools: each site order becomes the order in which its
+pools are first reached, and the distance between two pools is the mean
+distance between their sites. Partitions at the two resolutions can
+disagree, for example when degraded habitats are homogenised at the pool
+level while individual sites still differ (Jones et al. 2025).
+`summary(x, resolution = "pooled")` and `plot(x, resolution = "pooled")`
+or `"both"` show the pooled partition.
+
 ## References
 
 Baselga, A. (2010). Partitioning the turnover and nestedness components
 of beta diversity. Global Ecology and Biogeography, 19, 134-143.
+
+Jones, F.A.M., Hardenbol, A.A., Hekkala, A.-M., et al. (2025).
+Partitioning beta diversity at two spatial resolutions reveals biotic
+homogenisation with habitat degradation. Diversity and Distributions,
+31, e70080. [doi:10.1111/ddi.70080](https://doi.org/10.1111/ddi.70080)
 
 ## See also
 

@@ -1,5 +1,15 @@
 # Richness Estimation and Completeness
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
 ## Overview
 
 Observed richness is a floor, never the truth. A survey records the
@@ -392,6 +402,92 @@ margin here, which is consistent with a sample that is close to but not
 at saturation. A large iChao-minus-Chao gap would flag a heavy rare tail
 and a sample far from complete.
 
+### Accumulation rate curve (ARC)
+
+The ARC estimator (Shestopaloff 2025) uses more of the frequency counts
+than the Chao family. Drawing the \\N\\ observations of the species seen
+at most \\K\\ times (default 20) in random order, the expected number of
+these species seen after \\n\\ draws is
+
+\\ S(n) = \sum\_{k=1}^{K} f_k \left\[ 1 - \left(1 -
+\frac{n}{N}\right)^{k} \right\] , \\
+
+and its increments \\s_n = S(n) - S(n-1)\\ are the rate at which new
+species appear. Three decay curves, log-normal, log-logistic and
+Weibull, are fitted to the tail of \\s_n\\; the integral of each beyond
+\\N\\ is its count of undetected species. The estimate combines them
+with weights fitted by the misfit to \\s_n\\ plus a penalty on using the
+log-logistic and Weibull together, each weight bounded by caps built
+from the three estimates and \\S\_{obs}\\, and averages over fits to the
+last 100 down to 70 percent of the curve.
+
+``` r
+
+r_arc <- arc(species, n_boot = 0)
+r_arc
+#> Richness Estimator: ARC
+#> -------------------------------- 
+#> Observed species (S_obs): 113
+#> Estimated richness:       122.3
+#> Standard error:           NA
+#> 95% CI:                   [NA, NA]
+r_arc$details$undetected
+#>   lognormal loglogistic     weibull 
+#>    9.501777   21.039103    5.819697
+r_arc$details$weights
+#>   lognormal loglogistic     weibull 
+#> 0.929488214 0.006864283 0.040640018
+```
+
+The Weibull decays fastest and gives the fewest undetected species, the
+log-logistic slowest and the most. The estimate is close to the true
+120. The interval comes from a parametric bootstrap of the frequency
+counts, which refits the curves `n_boot` times (default 2000):
+
+``` r
+
+set.seed(2)
+arc(species, n_boot = 200)
+```
+
+With this seed the interval is \[116.2, 142.3\] around 122.3.
+`data = "incidence"` runs the same estimator on the number of sites each
+species occupies.
+
+On 200 samples per scenario of the simulation below, with the default
+`n_boot = 2000`, the 95% interval contained the true richness in 96.0%,
+94.5%, 93.0%, 93.5%, 89.0% and 89.5% of samples, from the sparsest
+scenario to the densest (standard errors 1.4 to 2.2 points). In the two
+densest scenarios the misses are mostly intervals lying entirely above
+the truth, from the upward bias of the point estimate there;
+Shestopaloff (2025) reports the same drop in coverage for non-sparse
+data.
+
+On 40 samples of 1000 species with Poisson counts and Gamma-mixture
+rates (the scenarios of Shestopaloff 2025, from sparse to dense), the
+relative bias and RMSE are:
+
+| Gamma mixture     | \\S\_{obs}\\ | ARC bias | ARC RMSE | iChao1 bias | iChao1 RMSE |
+|-------------------|--------------|----------|----------|-------------|-------------|
+| 1.0 / 0 / 0 / 0   | 333          | +0.9%    | 0.164    | -24.6%      | 0.258       |
+| 0.6 / 0.4 / 0 / 0 | 401          | +3.9%    | 0.078    | -24.8%      | 0.253       |
+| 0.2 / 0.8 / 0 / 0 | 466          | +3.6%    | 0.101    | -20.7%      | 0.219       |
+| 0 / 1 / 0 / 0     | 501          | -1.1%    | 0.099    | -21.2%      | 0.203       |
+| 0 / 0.4 / 0.6 / 0 | 649          | +3.6%    | 0.059    | -10.9%      | 0.115       |
+| 0 / 0 / 0.6 / 0.4 | 802          | +2.9%    | 0.042    | -3.4%       | 0.045       |
+
+The mixture weights are those of Gamma(1, 2), Gamma(1, 1), Gamma(2, 1)
+and Gamma(3, 1). ARC has the lower RMSE in every row, by a wide margin
+in sparse samples. The weights matter in the middle rows: the penalty in
+the weight loss gives it one local minimum that uses the log-logistic
+and one that uses the Weibull.
+[`arc()`](https://gillescolling.com/spacc/reference/arc.md) takes the
+one reached by gradient flow from zero weights, as the author’s
+reference code does, which is the log-logistic one there. The global
+minimum is the Weibull one, and with it the bias in the four middle rows
+would be -9.4%, -12.7%, -17.0% and +2.9%, at RMSE 0.130, 0.166, 0.169
+and 0.061.
+
 ## Behaviour with sample size
 
 The defining property of a useful richness estimator is that it climbs
@@ -433,6 +529,7 @@ estimate becomes both more accurate and more precise with effort.
 ``` r
 
 library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.6.1
 ggplot(conv, aes(sites)) +
   geom_ribbon(aes(ymin = estimate - se, ymax = estimate + se),
               fill = "#4CAF50", alpha = 0.2) +
@@ -701,5 +798,7 @@ structure of the community.
 - Chiu, C.H., Wang, Y.T., Walther, B.A. & Chao, A. (2014). An improved
   nonparametric lower bound of species richness via a modified
   Good-Turing frequency formula. *Biometrics*, 70, 671-682.
+- Shestopaloff, K. (2025). An accumulation rate curve estimator for
+  total species. *Environmental and Ecological Statistics*, 32, 311-345.
 - Smith, E.P. & van Belle, G. (1984). Nonparametric estimation of
   species richness. *Biometrics*, 40, 119-129.

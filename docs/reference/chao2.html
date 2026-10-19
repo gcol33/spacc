@@ -86,7 +86,7 @@ using the Chao2 estimator (Chao 1987).</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">chao2</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">chao2</span><span class="op">(</span><span class="va">x</span>, n_units <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -97,6 +97,14 @@ using the Chao2 estimator (Chao 1987).</p>
 <dd><p>A site-by-species matrix (presence/absence or abundance).
 Automatically binarized.</p></dd>
 
+
+<dt id="arg-n-units">n_units<a class="anchor" aria-label="anchor" href="#arg-n-units"></a></dt>
+<dd><p>Total number of sampling units in the study region, when
+the rows of <code>x</code> are a sample drawn without replacement from a finite set
+of units (atlas cells, a plot network). <code>NULL</code> (default) or <code>Inf</code> assumes
+sampling with replacement and gives Chao2; a finite value gives the MoRE
+estimator of Chiu (2023).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -105,14 +113,30 @@ Automatically binarized.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The Chao2 estimator is the incidence-based analogue of Chao1:
-$$S_{Chao2} = S_{obs} + \frac{Q_1^2}{2 Q_2}$$
-where \(Q_1\) is the number of uniques (species found at exactly 1 site)
-and \(Q_2\) is the number of duplicates (species found at exactly 2 sites).</p>
+$$S_{Chao2} = S_{obs} + \frac{t-1}{t} \frac{Q_1^2}{2 Q_2}$$
+where \(t\) is the number of sites, \(Q_1\) is the number of uniques
+(species found at exactly 1 site) and \(Q_2\) is the number of duplicates
+(species found at exactly 2 sites).</p>
+<p>Chao2 assumes the sites are drawn with replacement, or from an effectively
+infinite set of units. When they are a large fraction \(w = t / T\) of a
+finite set of \(T\) units it overestimates richness and does not reach the
+true richness as \(w \to 1\). With <code>n_units = T</code>, <code>chao2()</code> returns the
+moment-based estimator for sampling without replacement (MoRE, Chiu 2023,
+Eq. 5):
+$$S_{MoRE} = S_{obs} + \frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+}$$
+where \((A)^+\) is \(A\) for \(A &gt; 0\) and 1 otherwise; for
+\(Q_2 = 0\) the undetected term is \(\frac{t-1}{t} \frac{1-w}{w} (Q_1 - 1)\).
+MoRE equals the observed richness at \(w = 1\). Its standard error is the
+delta-method variance of Chiu (2023) and the interval is the log-normal one
+used for Chao2.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Chao, A. (1987). Estimating the population size for capture-recapture data
 with unequal catchability. Biometrics, 43, 783-791.</p>
+<p>Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+data sampled without replacement. Methods in Ecology and Evolution, 14,
+2482-2493. <a href="https://doi.org/10.1111/2041-210X.14146" class="external-link">doi:10.1111/2041-210X.14146</a></p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -123,6 +147,8 @@ with unequal catchability. Biometrics, 43, 783-791.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">50</span> <span class="op">*</span> <span class="fl">30</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span><span class="fu">chao2</span><span class="op">(</span><span class="va">species</span><span class="op">)</span></span>
+<span><span class="co"># the 50 sites are 80% of a 62-cell grid</span></span>
+<span><span class="fu">chao2</span><span class="op">(</span><span class="va">species</span>, n_units <span class="op">=</span> <span class="fl">62</span><span class="op">)</span></span>
 <span></span></code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

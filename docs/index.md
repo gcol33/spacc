@@ -27,6 +27,18 @@ shuffles sites in random order, without using their spatial arrangement.
 `spacc` reproduces that random-order curve and adds the spatial one, so
 you can read the gap between them.
 
+## Installation
+
+``` r
+
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
+## Quick start
+
 ``` r
 
 library(spacc)
@@ -160,16 +172,6 @@ sac_st <- spacc(species, coords, method = "nn_walk",
   bring an existing
   [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
   object into the same plotting and comparison machinery.
-
-## Installation
-
-``` r
-
-install.packages("spacc")            # CRAN
-
-install.packages("pak")              # development version
-pak::pak("gcol33/spacc")
-```
 
 ## Documentation
 

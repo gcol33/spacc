@@ -67,6 +67,10 @@ Accumulation of PD and FD metrics
   : Spatial Phylogenetic Diversity Accumulation
 - [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)
   : Spatial Functional Diversity Accumulation
+- [`spaccRedundancy()`](https://gillescolling.com/spacc/reference/spaccRedundancy.md)
+  : Spatial Phylogenetic or Functional Redundancy Accumulation
+- [`spaccNetwork()`](https://gillescolling.com/spacc/reference/spaccNetwork.md)
+  : Spatial Accumulation of Interaction Diversity
 
 ## Coverage-Based Rarefaction
 
@@ -77,7 +81,7 @@ Standardize by sample completeness
 - [`interpolateCoverage()`](https://gillescolling.com/spacc/reference/interpolateCoverage.md)
   : Interpolate Richness at Target Coverage Levels
 - [`extrapolateCoverage()`](https://gillescolling.com/spacc/reference/extrapolateCoverage.md)
-  : Extrapolate Richness Beyond Observed Coverage
+  : Extrapolate Diversity Beyond Observed Coverage
 
 ## Per-Site Metrics
 
@@ -106,6 +110,8 @@ Non-parametric richness estimation
   : Jackknife Richness Estimator
 - [`bootstrap_richness()`](https://gillescolling.com/spacc/reference/bootstrap_richness.md)
   : Bootstrap Richness Estimator
+- [`arc()`](https://gillescolling.com/spacc/reference/arc.md) :
+  Accumulation Rate Curve (ARC) Richness Estimator
 - [`completenessProfile()`](https://gillescolling.com/spacc/reference/completenessProfile.md)
   : Sample Completeness Profile
 
@@ -189,5 +195,5 @@ Internal functions (not for end users)
   : Plot Spatial SAC
 - [`plot(`*`<spacc_metrics>`*`)`](https://gillescolling.com/spacc/reference/plot.spacc_metrics.md)
   : Plot spacc_metrics
-- [`autoplot.spacc`](https://gillescolling.com/spacc/reference/autoplot.spacc.md)
+- [`autoplot(`*`<spacc>`*`)`](https://gillescolling.com/spacc/reference/autoplot.spacc.md)
   : Autoplot Methods for spacc Objects
