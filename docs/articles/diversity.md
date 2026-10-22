@@ -191,7 +191,6 @@ hill
 ``` r
 
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.6.1
 plot(hill) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
@@ -641,7 +640,6 @@ lineages.
 ``` r
 
 library(ape)
-#> Warning: package 'ape' was built under R version 4.6.1
 #> 
 #> Attaching package: 'ape'
 #> The following object is masked from 'package:spacc':

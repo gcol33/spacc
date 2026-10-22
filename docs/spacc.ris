@@ -2,7 +2,9 @@ TY  - COMP
 AU  - Colling, Gilles
 TI  - spacc: Fast Spatial Species Accumulation Curves
 PY  - 2026
-UR  - https://CRAN.R-project.org/package=spacc
+DO  - 10.32614/CRAN.package.spacc
+UR  - https://gillescolling.com/spacc/
 N1  - R package version 0.11.0
+ID  - colling2026spacc
 ER  - 
 

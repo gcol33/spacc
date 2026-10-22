@@ -2,194 +2,245 @@
 
 *species accumulating in the neighbourhood*
 
-[![CRAN
-status](https://www.r-pkg.org/badges/version/spacc)](https://CRAN.R-project.org/package=spacc)
-[![CRAN
-downloads](https://cranlogs.r-pkg.org/badges/grand-total/spacc)](https://cran.r-project.org/package=spacc)
-[![Monthly
-downloads](https://cranlogs.r-pkg.org/badges/spacc)](https://cran.r-project.org/package=spacc)
-[![R-CMD-check](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml)
-[![Codecov test
-coverage](https://codecov.io/gh/gcol33/spacc/graph/badge.svg)](https://app.codecov.io/gh/gcol33/spacc)
-[![License:
-MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+spacc builds species accumulation curves that add sampling sites in the
+order of their distance from a starting point, such as plots added one
+by one outward from a point in a survey region, and shows how the curve
+changes with that point.
 
-**Spatial species accumulation curves built by fixed-focus expansion in
-C++.**
+The classical curve of `specaccum()` in
+[vegan](https://vegandevs.github.io/vegan/) adds sites in random order,
+without using their spatial arrangement. spacc samples a focal point in
+continuous space, ranks every site by its distance from that point and
+counts the new species along the ranking. It repeats this from many
+focal points in C++ with RcppParallel, so the curve carries a confidence
+ribbon showing how richness depends on where the expansion begins. spacc
+also computes the random-order curve, so you can compare the two and
+judge how much the spatial arrangement of your sites matters.
 
-Sample a focal point in continuous space, rank every sampling unit by
-its distance from that point, then count new species along the ranking.
-`spacc` repeats this from many focal points (Rcpp/RcppParallel backend),
-so the curve carries a confidence ribbon showing how richness depends on
-*where* expansion begins. The classical curve in
+spacc supports:
+
+- **Seven expansion orders.** Fixed-focus nearest neighbours (`knn`),
+  nearest-centroid expansion (`kncn`), a nearest-neighbour walk
+  (`nn_walk`), distance- and direction-weighted growth (`gaussian`,
+  `cone`), the classical random order (`random`) and the data order
+  (`collector`).
+- **Diversity beyond richness.** Hill numbers, beta diversity with
+  turnover and nestedness, coverage-based rarefaction, and phylogenetic
+  and functional diversity accumulate along the same spatial order;
+  [`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.html)
+  is the entry point.
+- **Geographic coordinates.** `distance = "haversine"` works on
+  longitude and latitude with no projection step, and an sf polygon
+  through `focal_domain` restricts the focal points to a known study
+  boundary.
+- **Large site sets.** Above 500 sites the nearest-neighbour methods
+  switch from a distance matrix to a k-d tree from
+  [nanoflann](https://github.com/jlblancoc/nanoflann), or a ball tree
+  for haversine distances ([Methods and
+  Algorithms](https://gillescolling.com/spacc/articles/theory.html#the-two-tier-traversal-backend)).
+- **Fitting and comparing curves.**
+  [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.html)
+  fits asymptotic richness models, including Michaelis-Menten, Lomolino,
+  Weibull, logistic and extreme value models, and
+  [`compare()`](https://gillescolling.com/spacc/reference/compare.md)
+  tests two curves by permutation, bootstrap or area under the curve.
+
+Existing curves from
 [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
-shuffles sites in random order, without using their spatial arrangement.
-`spacc` reproduces that random-order curve and adds the spatial one, so
-you can read the gap between them.
+enter through
+[`as_spacc()`](https://gillescolling.com/spacc/reference/as_spacc.md),
+so they share the plotting and comparison methods. Each method follows a
+published definition, listed with its reference in the DESCRIPTION and
+in [Methods and
+Algorithms](https://gillescolling.com/spacc/articles/theory.html), and a
+methods section can cite those papers for the estimators and spacc for
+the spatial ordering.
 
 ## Installation
 
+Install the released version from CRAN. Windows and macOS get a binary
+that needs no build tools:
+
 ``` r
 
-install.packages("spacc")            # CRAN
+install.packages("spacc")
+```
 
-install.packages("pak")              # development version
+The development version compiles C++ code. Install the build tools for
+your operating system first:
+
+| Operating system | Build tools |
+|----|----|
+| Windows | [Rtools](https://cran.r-project.org/bin/windows/Rtools/) matching your R version |
+| macOS | Run `xcode-select --install` in Terminal |
+| Debian / Ubuntu | Install `r-base-dev` |
+
+Check that R can find the compiler:
+
+``` r
+
+pkgbuild::has_build_tools(debug = TRUE)
+```
+
+Then install spacc from GitHub:
+
+``` r
+
+# install.packages("pak")
 pak::pak("gcol33/spacc")
 ```
 
-## Quick start
+The build needs GNU make and a C++17 compiler, which the build tools
+above provide. The nanoflann library ships as a header inside the
+package, and RcppParallel brings its own threading library, so no system
+libraries are needed.
+
+## Usage
+
+1.  Build a spatial accumulation curve with
+    [`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) from
+    a site-by-species matrix and the site coordinates.
+2.  Build the random-order curve with `method = "random"` and test the
+    difference with
+    [`compare()`](https://gillescolling.com/spacc/reference/compare.md).
+3.  Fit an asymptote with
+    [`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md),
+    or follow other diversity measures with
+    [`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md)
+    and
+    [`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md).
+
+The input is a matrix or data frame with one row per site and one column
+per species, holding presence-absence or abundance, and the site
+coordinates as a data frame with columns `x` and `y` or an sf object of
+points. Coordinates are planar by default; `distance = "haversine"`
+reads `x` and `y` as longitude and latitude in degrees.
+
+In the example below, each of 40 species occurs around its own position
+along the x axis, so neighbouring sites share species:
 
 ``` r
 
 library(spacc)
 
-coords  <- data.frame(x = runif(100), y = runif(100))
-species <- matrix(rbinom(100 * 50, 1, 0.3), nrow = 100)
+set.seed(1)
+coords <- data.frame(x = runif(200), y = runif(200))
+centres <- runif(40)
+prob <- outer(coords$x, centres, function(x, m) exp(-(x - m)^2 / 0.02))
+species <- matrix(rbinom(length(prob), 1, prob), nrow = 200)
 
-# spatial accumulation around continuous focal points
-sac <- spacc(species, coords, method = "knn", n_seeds = 100)
+sac <- spacc(species, coords)
 plot(sac)
 ```
 
-## Spatial order, not random order
+![Species accumulation curve rising from about 10 species at one site to
+all 40 species at around 150 sites, with a green band showing the 95%
+interval of the curves from 50 focal
+points](reference/figures/README-spacc-1.png)
 
-[`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
-accumulates sites in random or collector order, so geography drops out.
-[`spacc()`](https://gillescolling.com/spacc/reference/spacc.md) keeps
-it: each curve expands around a continuous focal point, and the spread
-across focal points is the spatial signal. Run both and compare them
-directly.
+The line is the mean over 50 focal points, and the ribbon holds 95% of
+the curves from single focal points.
 
-``` r
-
-sac        <- spacc(species, coords, method = "knn",    n_seeds = 100)
-sac_random <- spacc(species, coords, method = "random", n_seeds = 100)
-
-comp <- compare(sac, sac_random)   # permutation, bootstrap, or AUC test
-plot(comp)
-```
-
-Seven expansion methods are available: `knn` (fixed-focus spatially
-constrained rarefaction), `kncn` (nearest-centroid expansion), `nn_walk`
-(a greedy nearest-neighbour traversal), `gaussian` and `cone` (distance-
-and direction-weighted growth), `random` (the classical null), and
-`collector` (data order). Geographic coordinates use
-`distance = "haversine"` with no projection step.
-
-By default, continuous focal points are sampled uniformly from the
-convex hull of the eligible sites. Pass an `sf` polygon through
-`focal_domain` when the study boundary is known, or pass exact
-coordinates through `focal_points` for reproducible focal definitions.
-
-## Backend selection
-
-The `nn_walk` and `kncn` methods pick a nearest-neighbour backend by
-site count, overridable with `backend`. Fixed-focus `knn` ranks
-distances directly.
-
-| Backend | Distance | Cost per query | When |
-|----|----|----|----|
-| Exact (brute force) | any | O(n) | \<= 500 sites (auto) |
-| k-d tree ([nanoflann](https://github.com/jlblancoc/nanoflann)) | Euclidean | O(log n) | \> 500 sites (auto) |
-| Ball tree | Haversine | O(log n) | \> 500 sites, `distance = "haversine"` |
+Adding the sites in random order instead reaches the species far faster,
+because it ignores that neighbouring sites share species:
 
 ``` r
 
-sac <- spacc(species, coords_lonlat, distance = "haversine", n_seeds = 50)
-sac <- spacc(species, coords, backend = "kdtree", n_seeds = 50)
+sac_random <- spacc(species, coords, method = "random")
+compare(sac, sac_random)
+#> Comparison: sac vs sac_random 
+#> ---------------------------------------- 
+#> Method: permutation (n=999)
+#> AUC difference: -1028.1 (p < 0.001***)
+#> Saturation: sac at 90 sites, sac_random at 10 sites
+#> 
+#> sac_random saturates faster.
 ```
 
 ## Diversity beyond richness
 
-Accumulation works for more than species counts. Each function carries
-the spatial ordering through to a different diversity measure, with
-`map = TRUE` and
+Each diversity function carries the spatial ordering through to a
+different measure, with `map = TRUE` for per-site values and
 [`as_sf()`](https://gillescolling.com/spacc/reference/as_sf.md) for GIS
-output.
-
-- **[`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.md)**:
-  Hill numbers (q = 0, 1, 2) along the accumulation, extending the iNEXT
-  framework to spatial order.
-- **[`spaccBeta()`](https://gillescolling.com/spacc/reference/spaccBeta.md)**:
-  beta diversity with turnover and nestedness components (Baselga 2010).
-- **[`spaccCoverage()`](https://gillescolling.com/spacc/reference/spaccCoverage.md)**:
-  coverage-based rarefaction via the Good-Turing estimator (Chao & Jost
-  2012).
-- **[`spaccPhylo()`](https://gillescolling.com/spacc/reference/spaccPhylo.md)
-  /
-  [`spaccFunc()`](https://gillescolling.com/spacc/reference/spaccFunc.md)**:
-  phylogenetic (MPD, MNTD) and functional (FDis, FRic) accumulation.
-- **[`alphaDiversity()`](https://gillescolling.com/spacc/reference/alphaDiversity.md)
-  /
-  [`gammaDiversity()`](https://gillescolling.com/spacc/reference/gammaDiversity.md)
-  /
-  [`diversityPartition()`](https://gillescolling.com/spacc/reference/diversityPartition.md)**:
-  local, regional, and alpha-beta-gamma decomposition (Jost 2007).
+output:
 
 ``` r
 
-hill <- spaccHill(species, coords, q = c(0, 1, 2), n_seeds = 50, map = TRUE)
-plot(hill)                       # accumulation curves
-plot(hill, type = "map", q = 0)  # per-site richness map
+hill <- spaccHill(species, coords, q = c(0, 1, 2), map = TRUE)
+plot(hill, type = "map", q = 0)
 
-beta <- spaccBeta(species, coords, index = "sorensen", n_seeds = 50)
-plot(beta, partition = TRUE)     # turnover vs nestedness
+beta <- spaccBeta(species, coords, index = "sorensen")
+plot(beta, partition = TRUE)
 ```
+
+[Diversity
+Accumulation](https://gillescolling.com/spacc/articles/diversity.html)
+covers Hill numbers, the alpha, beta and gamma partition, and
+phylogenetic and functional diversity.
 
 ## Grouped and spatiotemporal accumulation
 
-Split species into groups (native vs alien, families, any factor) and
-accumulate each under the **same** spatial site ordering, or add a
-temporal axis to weight space against time.
+`groups` splits the species into groups, such as native and alien
+species or families, and accumulates each under the same spatial site
+order. `time` adds a temporal axis to the distance, weighted against
+space with `w_space` and `w_time`:
 
 ``` r
 
-# same spatial ordering, separate curve per group
 sac_grouped <- spacc(species, coords, groups = status, seed = 42)
 plot(sac_grouped, facet = TRUE)
 
-# sites sampled across years: weighted space-time distance
 sac_st <- spacc(species, coords, method = "nn_walk",
                 time = site_years, w_space = 1, w_time = 0.5)
 ```
 
-## Fitting and standardizing
-
-- **[`extrapolate()`](https://gillescolling.com/spacc/reference/extrapolate.md)**:
-  asymptotic richness models (Michaelis-Menten, Lomolino, Weibull,
-  logistic, EVT).
-- **[`compare()`](https://gillescolling.com/spacc/reference/compare.md)**:
-  permutation, bootstrap, or AUC tests between curves.
-- **[`rarefy()`](https://gillescolling.com/spacc/reference/rarefy.md) /
-  [`subsample()`](https://gillescolling.com/spacc/reference/subsample.md)**:
-  rarefaction to common effort, spatial subsampling.
-- **[`coleman()`](https://gillescolling.com/spacc/reference/coleman.md)
-  / [`mao_tau()`](https://gillescolling.com/spacc/reference/mao_tau.md)
-  /
-  [`spatialRarefaction()`](https://gillescolling.com/spacc/reference/spatialRarefaction.md)**:
-  analytical (non-simulation) curves.
-- **[`as_spacc()`](https://gillescolling.com/spacc/reference/as_spacc.md)**:
-  bring an existing
-  [`vegan::specaccum()`](https://vegandevs.github.io/vegan/reference/specaccum.html)
-  object into the same plotting and comparison machinery.
+[Community Assembly and
+Turnover](https://gillescolling.com/spacc/articles/community-assembly.html)
+applies grouped curves to community structure.
 
 ## Documentation
 
-- [Getting
-  Started](https://gillescolling.com/spacc/articles/quickstart.html)
+Start with [Getting Started with
+spacc](https://gillescolling.com/spacc/articles/quickstart.html): one
+path from a site-by-species matrix to spatial and random-order curves,
+their comparison and extrapolation.
+
 - [Diversity
-  Accumulation](https://gillescolling.com/spacc/articles/diversity.html)
-- [Extrapolation](https://gillescolling.com/spacc/articles/extrapolation.html)
-- [Spatial
-  Analysis](https://gillescolling.com/spacc/articles/spatial-analysis.html)
-- [Community
-  Assembly](https://gillescolling.com/spacc/articles/community-assembly.html)
-- [Richness
-  Estimation](https://gillescolling.com/spacc/articles/richness-estimation.html)
-- [Rarefaction](https://gillescolling.com/spacc/articles/rarefaction-standardization.html)
+  Accumulation](https://gillescolling.com/spacc/articles/diversity.html):
+  Hill numbers, beta diversity, phylogenetic and functional
+  accumulation.
+- [Extrapolation and Species-Area
+  Models](https://gillescolling.com/spacc/articles/extrapolation.html):
+  asymptotic models and total richness beyond the sampled sites.
+- [Richness Estimation and
+  Completeness](https://gillescolling.com/spacc/articles/richness-estimation.html):
+  total richness from frequency counts and sample completeness.
+- [Rarefaction and
+  Standardization](https://gillescolling.com/spacc/articles/rarefaction-standardization.html):
+  curves standardized to common effort or coverage.
+- [Spatial Analysis: Endemism, Fragmentation, and
+  SAR](https://gillescolling.com/spacc/articles/spatial-analysis.html):
+  endemism-area curves, fragmentation and species-area relationships.
+- [Community Assembly and
+  Turnover](https://gillescolling.com/spacc/articles/community-assembly.html):
+  grouped curves, turnover and null models of the sampling design.
 - [Methods and
-  Algorithms](https://gillescolling.com/spacc/articles/theory.html)
-- [Function Reference](https://gillescolling.com/spacc/reference/)
+  Algorithms](https://gillescolling.com/spacc/articles/theory.html): the
+  expansion methods, distance metrics and nearest-neighbour backends.
+- [Full reference](https://gillescolling.com/spacc/reference/): every
+  function, grouped by job.
+
+## Getting help
+
+Questions and bug reports go to the [GitHub
+issues](https://github.com/gcol33/spacc/issues). A bug report is easiest
+to act on with a small reproducible example, for instance made with
+[reprex](https://reprex.tidyverse.org/).
+
+## Contributing
+
+Pull requests are welcome; see the [contributing
+guide](https://gillescolling.com/spacc/CONTRIBUTING.html).
 
 ## Support
 
@@ -205,17 +256,39 @@ say thanks. It helps with my coffee addiction.
 [![Buy Me A
 Coffee](https://img.shields.io/badge/-Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gcol33)
 
+## Acknowledgements
+
+The k-d tree search uses
+[nanoflann](https://github.com/jlblancoc/nanoflann) by Marius Muja,
+David G. Lowe and Jose Luis Blanco, bundled in `inst/include`.
+
 ## License
 
-MIT (see the LICENSE.md file)
+spacc is licensed under MIT. The bundled nanoflann library is licensed
+under BSD; `inst/COPYRIGHTS` lists its copyright holders.
 
 ## Citation
 
+``` text
+Colling G (2026). _spacc: Fast Spatial Species Accumulation Curves_.
+doi:10.32614/CRAN.package.spacc
+<https://doi.org/10.32614/CRAN.package.spacc>. R package version
+0.11.0, <https://gillescolling.com/spacc/>.
+```
+
+BibTeX:
+
 ``` bibtex
-@Manual{spacc,
+@Manual{colling2026spacc,
+  title = {spacc: Fast Spatial Species Accumulation Curves},
   author = {Gilles Colling},
-  title  = {spacc: Fast Spatial Species Accumulation Curves},
-  year   = {2026},
-  url    = {https://CRAN.R-project.org/package=spacc}
+  year = {2026},
+  note = {R package version 0.11.0},
+  url = {https://gillescolling.com/spacc/},
+  doi = {10.32614/CRAN.package.spacc},
 }
 ```
+
+Download the citation as
+[BibTeX](https://gillescolling.com/spacc/spacc.bib) or
+[RIS](https://gillescolling.com/spacc/spacc.ris).

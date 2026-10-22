@@ -25,3 +25,5 @@
 ^figure$
 ^refs$
 ^CITATION\.cff$
+^\.run.*$
+^sidecars$

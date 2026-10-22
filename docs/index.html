@@ -100,154 +100,157 @@
 <div class="page-header"><h1 id="spacc">spacc<a class="anchor" aria-label="anchor" href="#spacc"></a>
 </h1></div>
 <p><em>species accumulating in the neighbourhood</em></p>
-<p><a href="https://CRAN.R-project.org/package=spacc" class="external-link"><img src="https://www.r-pkg.org/badges/version/spacc" alt="CRAN status"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/spacc" alt="CRAN downloads"></a> <a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/spacc" alt="Monthly downloads"></a> <a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
-<p><strong>Spatial species accumulation curves built by fixed-focus expansion in C++.</strong></p>
-<p>Sample a focal point in continuous space, rank every sampling unit by its distance from that point, then count new species along the ranking. <code>spacc</code> repeats this from many focal points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how richness depends on <em>where</em> expansion begins. The classical curve in <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> shuffles sites in random order, without using their spatial arrangement. <code>spacc</code> reproduces that random-order curve and adds the spatial one, so you can read the gap between them.</p>
+<!-- badges: start -->
+
+<p>spacc builds species accumulation curves that add sampling sites in the order of their distance from a starting point, such as plots added one by one outward from a point in a survey region, and shows how the curve changes with that point.</p>
+<p>The classical curve of <code>specaccum()</code> in <a href="https://vegandevs.github.io/vegan/" class="external-link">vegan</a> adds sites in random order, without using their spatial arrangement. spacc samples a focal point in continuous space, ranks every site by its distance from that point and counts the new species along the ranking. It repeats this from many focal points in C++ with RcppParallel, so the curve carries a confidence ribbon showing how richness depends on where the expansion begins. spacc also computes the random-order curve, so you can compare the two and judge how much the spatial arrangement of your sites matters.</p>
+<p>spacc supports:</p>
+<ul>
+<li>
+<strong>Seven expansion orders.</strong> Fixed-focus nearest neighbours (<code>knn</code>), nearest-centroid expansion (<code>kncn</code>), a nearest-neighbour walk (<code>nn_walk</code>), distance- and direction-weighted growth (<code>gaussian</code>, <code>cone</code>), the classical random order (<code>random</code>) and the data order (<code>collector</code>).</li>
+<li>
+<strong>Diversity beyond richness.</strong> Hill numbers, beta diversity with turnover and nestedness, coverage-based rarefaction, and phylogenetic and functional diversity accumulate along the same spatial order; <a href="https://gillescolling.com/spacc/reference/spaccHill.html"><code>spaccHill()</code></a> is the entry point.</li>
+<li>
+<strong>Geographic coordinates.</strong> <code>distance = "haversine"</code> works on longitude and latitude with no projection step, and an sf polygon through <code>focal_domain</code> restricts the focal points to a known study boundary.</li>
+<li>
+<strong>Large site sets.</strong> Above 500 sites the nearest-neighbour methods switch from a distance matrix to a k-d tree from <a href="https://github.com/jlblancoc/nanoflann" class="external-link">nanoflann</a>, or a ball tree for haversine distances (<a href="https://gillescolling.com/spacc/articles/theory.html#the-two-tier-traversal-backend">Methods and Algorithms</a>).</li>
+<li>
+<strong>Fitting and comparing curves.</strong> <a href="https://gillescolling.com/spacc/reference/extrapolate.html"><code>extrapolate()</code></a> fits asymptotic richness models, including Michaelis-Menten, Lomolino, Weibull, logistic and extreme value models, and <code><a href="reference/compare.html">compare()</a></code> tests two curves by permutation, bootstrap or area under the curve.</li>
+</ul>
+<p>Existing curves from <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> enter through <code><a href="reference/as_spacc.html">as_spacc()</a></code>, so they share the plotting and comparison methods. Each method follows a published definition, listed with its reference in the DESCRIPTION and in <a href="https://gillescolling.com/spacc/articles/theory.html">Methods and Algorithms</a>, and a methods section can cite those papers for the estimators and spacc for the spatial ordering.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>Install the released version from CRAN. Windows and macOS get a binary that needs no build tools:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"spacc"</span><span class="op">)</span>            <span class="co"># CRAN</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span>              <span class="co"># development version</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/spacc"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
-</h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">coords</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">50</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># spatial accumulation around continuous focal points</span></span>
-<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="spatial-order-not-random-order">Spatial order, not random order<a class="anchor" aria-label="anchor" href="#spatial-order-not-random-order"></a>
-</h2>
-<p><code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> accumulates sites in random or collector order, so geography drops out. <code><a href="reference/spacc.html">spacc()</a></code> keeps it: each curve expands around a continuous focal point, and the spread across focal points is the spatial signal. Run both and compare them directly.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sac</span>        <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"knn"</span>,    n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="va">sac_random</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"random"</span>, n_seeds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">sac_random</span><span class="op">)</span>   <span class="co"># permutation, bootstrap, or AUC test</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">comp</span><span class="op">)</span></span></code></pre></div>
-<p>Seven expansion methods are available: <code>knn</code> (fixed-focus spatially constrained rarefaction), <code>kncn</code> (nearest-centroid expansion), <code>nn_walk</code> (a greedy nearest-neighbour traversal), <code>gaussian</code> and <code>cone</code> (distance- and direction-weighted growth), <code>random</code> (the classical null), and <code>collector</code> (data order). Geographic coordinates use <code>distance = "haversine"</code> with no projection step.</p>
-<p>By default, continuous focal points are sampled uniformly from the convex hull of the eligible sites. Pass an <code>sf</code> polygon through <code>focal_domain</code> when the study boundary is known, or pass exact coordinates through <code>focal_points</code> for reproducible focal definitions.</p>
-</div>
-<div class="section level2">
-<h2 id="backend-selection">Backend selection<a class="anchor" aria-label="anchor" href="#backend-selection"></a>
-</h2>
-<p>The <code>nn_walk</code> and <code>kncn</code> methods pick a nearest-neighbour backend by site count, overridable with <code>backend</code>. Fixed-focus <code>knn</code> ranks distances directly.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"spacc"</span><span class="op">)</span></span></code></pre></div>
+<p>The development version compiles C++ code. Install the build tools for your operating system first:</p>
 <table class="table">
 <colgroup>
-<col width="25%">
-<col width="25%">
-<col width="25%">
-<col width="25%">
+<col width="50%">
+<col width="50%">
 </colgroup>
 <thead><tr>
-<th>Backend</th>
-<th>Distance</th>
-<th>Cost per query</th>
-<th>When</th>
+<th>Operating system</th>
+<th>Build tools</th>
 </tr></thead>
 <tbody>
 <tr>
-<td>Exact (brute force)</td>
-<td>any</td>
-<td>O(n)</td>
-<td>&lt;= 500 sites (auto)</td>
+<td>Windows</td>
+<td>
+<a href="https://cran.r-project.org/bin/windows/Rtools/" class="external-link">Rtools</a> matching your R version</td>
 </tr>
 <tr>
-<td>k-d tree (<a href="https://github.com/jlblancoc/nanoflann" class="external-link">nanoflann</a>)</td>
-<td>Euclidean</td>
-<td>O(log n)</td>
-<td>&gt; 500 sites (auto)</td>
+<td>macOS</td>
+<td>Run <code>xcode-select --install</code> in Terminal</td>
 </tr>
 <tr>
-<td>Ball tree</td>
-<td>Haversine</td>
-<td>O(log n)</td>
-<td>&gt; 500 sites, <code>distance = "haversine"</code>
+<td>Debian / Ubuntu</td>
+<td>Install <code>r-base-dev</code>
 </td>
 </tr>
 </tbody>
 </table>
+<p>Check that R can find the compiler:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">pkgbuild</span><span class="fu">::</span><span class="fu"><a href="https://pkgbuild.r-lib.org/reference/has_build_tools.html" class="external-link">has_build_tools</a></span><span class="op">(</span>debug <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>Then install spacc from GitHub:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/spacc"</span><span class="op">)</span></span></code></pre></div>
+<p>The build needs GNU make and a C++17 compiler, which the build tools above provide. The nanoflann library ships as a header inside the package, and RcppParallel brings its own threading library, so no system libraries are needed.</p>
+</div>
+<div class="section level2">
+<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
+</h2>
+<ol style="list-style-type: decimal">
+<li>Build a spatial accumulation curve with <code><a href="reference/spacc.html">spacc()</a></code> from a site-by-species matrix and the site coordinates.</li>
+<li>Build the random-order curve with <code>method = "random"</code> and test the difference with <code><a href="reference/compare.html">compare()</a></code>.</li>
+<li>Fit an asymptote with <code><a href="reference/extrapolate.html">extrapolate()</a></code>, or follow other diversity measures with <code><a href="reference/spaccHill.html">spaccHill()</a></code> and <code><a href="reference/spaccBeta.html">spaccBeta()</a></code>.</li>
+</ol>
+<p>The input is a matrix or data frame with one row per site and one column per species, holding presence-absence or abundance, and the site coordinates as a data frame with columns <code>x</code> and <code>y</code> or an sf object of points. Coordinates are planar by default; <code>distance = "haversine"</code> reads <code>x</code> and <code>y</code> as longitude and latitude in degrees.</p>
+<p>In the example below, each of 40 species occurs around its own position along the x axis, so neighbouring sites share species:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords_lonlat</span>, distance <span class="op">=</span> <span class="st">"haversine"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, backend <span class="op">=</span> <span class="st">"kdtree"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">200</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">200</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">centres</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">40</span><span class="op">)</span></span>
+<span><span class="va">prob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="va">coords</span><span class="op">$</span><span class="va">x</span>, <span class="va">centres</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">x</span> <span class="op">-</span> <span class="va">m</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">0.02</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">species</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">prob</span><span class="op">)</span>, <span class="fl">1</span>, <span class="va">prob</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-spacc-1.png" alt="Species accumulation curve rising from about 10 species at one site to all 40 species at around 150 sites, with a green band showing the 95% interval of the curves from 50 focal points"></p>
+<p>The line is the mean over 50 focal points, and the ribbon holds 95% of the curves from single focal points.</p>
+<p>Adding the sites in random order instead reaches the species far faster, because it ignores that neighbouring sites share species:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sac_random</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"random"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">sac_random</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Comparison: sac vs sac_random </span></span>
+<span><span class="co">#&gt; ---------------------------------------- </span></span>
+<span><span class="co">#&gt; Method: permutation (n=999)</span></span>
+<span><span class="co">#&gt; AUC difference: -1028.1 (p &lt; 0.001***)</span></span>
+<span><span class="co">#&gt; Saturation: sac at 90 sites, sac_random at 10 sites</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; sac_random saturates faster.</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="diversity-beyond-richness">Diversity beyond richness<a class="anchor" aria-label="anchor" href="#diversity-beyond-richness"></a>
 </h2>
-<p>Accumulation works for more than species counts. Each function carries the spatial ordering through to a different diversity measure, with <code>map = TRUE</code> and <code><a href="reference/as_sf.html">as_sf()</a></code> for GIS output.</p>
-<ul>
-<li>
-<strong><code><a href="reference/spaccHill.html">spaccHill()</a></code></strong>: Hill numbers (q = 0, 1, 2) along the accumulation, extending the iNEXT framework to spatial order.</li>
-<li>
-<strong><code><a href="reference/spaccBeta.html">spaccBeta()</a></code></strong>: beta diversity with turnover and nestedness components (Baselga 2010).</li>
-<li>
-<strong><code><a href="reference/spaccCoverage.html">spaccCoverage()</a></code></strong>: coverage-based rarefaction via the Good-Turing estimator (Chao &amp; Jost 2012).</li>
-<li>
-<strong><code><a href="reference/spaccPhylo.html">spaccPhylo()</a></code> / <code><a href="reference/spaccFunc.html">spaccFunc()</a></code></strong>: phylogenetic (MPD, MNTD) and functional (FDis, FRic) accumulation.</li>
-<li>
-<strong><code><a href="reference/alphaDiversity.html">alphaDiversity()</a></code> / <code><a href="reference/gammaDiversity.html">gammaDiversity()</a></code> / <code><a href="reference/diversityPartition.html">diversityPartition()</a></code></strong>: local, regional, and alpha-beta-gamma decomposition (Jost 2007).</li>
-</ul>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">hill</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccHill.html">spaccHill</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, n_seeds <span class="op">=</span> <span class="fl">50</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span><span class="op">)</span>                       <span class="co"># accumulation curves</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span>, type <span class="op">=</span> <span class="st">"map"</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>  <span class="co"># per-site richness map</span></span>
+<p>Each diversity function carries the spatial ordering through to a different measure, with <code>map = TRUE</code> for per-site values and <code><a href="reference/as_sf.html">as_sf()</a></code> for GIS output:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">hill</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccHill.html">spaccHill</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span>, type <span class="op">=</span> <span class="st">"map"</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccBeta.html">spaccBeta</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, index <span class="op">=</span> <span class="st">"sorensen"</span>, n_seeds <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta</span>, partition <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>     <span class="co"># turnover vs nestedness</span></span></code></pre></div>
+<span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccBeta.html">spaccBeta</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, index <span class="op">=</span> <span class="st">"sorensen"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">beta</span>, partition <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><a href="https://gillescolling.com/spacc/articles/diversity.html">Diversity Accumulation</a> covers Hill numbers, the alpha, beta and gamma partition, and phylogenetic and functional diversity.</p>
 </div>
 <div class="section level2">
 <h2 id="grouped-and-spatiotemporal-accumulation">Grouped and spatiotemporal accumulation<a class="anchor" aria-label="anchor" href="#grouped-and-spatiotemporal-accumulation"></a>
 </h2>
-<p>Split species into groups (native vs alien, families, any factor) and accumulate each under the <strong>same</strong> spatial site ordering, or add a temporal axis to weight space against time.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># same spatial ordering, separate curve per group</span></span>
-<span><span class="va">sac_grouped</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, groups <span class="op">=</span> <span class="va">status</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
+<p><code>groups</code> splits the species into groups, such as native and alien species or families, and accumulates each under the same spatial site order. <code>time</code> adds a temporal axis to the distance, weighted against space with <code>w_space</code> and <code>w_time</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sac_grouped</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, groups <span class="op">=</span> <span class="va">status</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac_grouped</span>, facet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># sites sampled across years: weighted space-time distance</span></span>
 <span><span class="va">sac_st</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"nn_walk"</span>,</span>
 <span>                time <span class="op">=</span> <span class="va">site_years</span>, w_space <span class="op">=</span> <span class="fl">1</span>, w_time <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="fitting-and-standardizing">Fitting and standardizing<a class="anchor" aria-label="anchor" href="#fitting-and-standardizing"></a>
-</h2>
-<ul>
-<li>
-<strong><code><a href="reference/extrapolate.html">extrapolate()</a></code></strong>: asymptotic richness models (Michaelis-Menten, Lomolino, Weibull, logistic, EVT).</li>
-<li>
-<strong><code><a href="reference/compare.html">compare()</a></code></strong>: permutation, bootstrap, or AUC tests between curves.</li>
-<li>
-<strong><code><a href="reference/rarefy.html">rarefy()</a></code> / <code><a href="reference/subsample.html">subsample()</a></code></strong>: rarefaction to common effort, spatial subsampling.</li>
-<li>
-<strong><code><a href="reference/coleman.html">coleman()</a></code> / <code><a href="reference/mao_tau.html">mao_tau()</a></code> / <code><a href="reference/spatialRarefaction.html">spatialRarefaction()</a></code></strong>: analytical (non-simulation) curves.</li>
-<li>
-<strong><code><a href="reference/as_spacc.html">as_spacc()</a></code></strong>: bring an existing <code><a href="https://vegandevs.github.io/vegan/reference/specaccum.html" class="external-link">vegan::specaccum()</a></code> object into the same plotting and comparison machinery.</li>
-</ul>
+<p><a href="https://gillescolling.com/spacc/articles/community-assembly.html">Community Assembly and Turnover</a> applies grouped curves to community structure.</p>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
+<p>Start with <a href="https://gillescolling.com/spacc/articles/quickstart.html">Getting Started with spacc</a>: one path from a site-by-species matrix to spatial and random-order curves, their comparison and extrapolation.</p>
 <ul>
-<li><a href="https://gillescolling.com/spacc/articles/quickstart.html">Getting Started</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/diversity.html">Diversity Accumulation</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/extrapolation.html">Extrapolation</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/spatial-analysis.html">Spatial Analysis</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/community-assembly.html">Community Assembly</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/richness-estimation.html">Richness Estimation</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/rarefaction-standardization.html">Rarefaction</a></li>
-<li><a href="https://gillescolling.com/spacc/articles/theory.html">Methods and Algorithms</a></li>
-<li><a href="https://gillescolling.com/spacc/reference/">Function Reference</a></li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/diversity.html">Diversity Accumulation</a>: Hill numbers, beta diversity, phylogenetic and functional accumulation.</li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/extrapolation.html">Extrapolation and Species-Area Models</a>: asymptotic models and total richness beyond the sampled sites.</li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/richness-estimation.html">Richness Estimation and Completeness</a>: total richness from frequency counts and sample completeness.</li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/rarefaction-standardization.html">Rarefaction and Standardization</a>: curves standardized to common effort or coverage.</li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/spatial-analysis.html">Spatial Analysis: Endemism, Fragmentation, and SAR</a>: endemism-area curves, fragmentation and species-area relationships.</li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/community-assembly.html">Community Assembly and Turnover</a>: grouped curves, turnover and null models of the sampling design.</li>
+<li>
+<a href="https://gillescolling.com/spacc/articles/theory.html">Methods and Algorithms</a>: the expansion methods, distance metrics and nearest-neighbour backends.</li>
+<li>
+<a href="https://gillescolling.com/spacc/reference/">Full reference</a>: every function, grouped by job.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
+</h2>
+<p>Questions and bug reports go to the <a href="https://github.com/gcol33/spacc/issues" class="external-link">GitHub issues</a>. A bug report is easiest to act on with a small reproducible example, for instance made with <a href="https://reprex.tidyverse.org/" class="external-link">reprex</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
+</h2>
+<p>Pull requests are welcome; see the <a href="https://gillescolling.com/spacc/CONTRIBUTING.html">contributing guide</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="support">Support<a class="anchor" aria-label="anchor" href="#support"></a>
@@ -260,19 +263,32 @@
 <p><a href="https://buymeacoffee.com/gcol33" class="external-link"><img src="https://img.shields.io/badge/-Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&amp;logoColor=black" alt="Buy Me A Coffee"></a></p>
 </div>
 <div class="section level2">
+<h2 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
+</h2>
+<p>The k-d tree search uses <a href="https://github.com/jlblancoc/nanoflann" class="external-link">nanoflann</a> by Marius Muja, David G. Lowe and Jose Luis Blanco, bundled in <code>inst/include</code>.</p>
+</div>
+<div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
-<p>MIT (see the LICENSE.md file)</p>
+<p>spacc is licensed under MIT. The bundled nanoflann library is licensed under BSD; <code>inst/COPYRIGHTS</code> lists its copyright holders.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">spacc</span>,</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="dt">author</span> = {Gilles Colling},</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="dt">title</span>  = {spacc: Fast Spatial Species Accumulation Curves},</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="dt">year</span>   = {2026},</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="dt">url</span>    = {https://CRAN.R-project.org/package=spacc}</span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>}</span></code></pre></div>
+<pre class="text"><code>Colling G (2026). _spacc: Fast Spatial Species Accumulation Curves_.
+doi:10.32614/CRAN.package.spacc
+&lt;https://doi.org/10.32614/CRAN.package.spacc&gt;. R package version
+0.11.0, &lt;https://gillescolling.com/spacc/&gt;.</code></pre>
+<p>BibTeX:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">colling2026spacc</span>,</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="dt">title</span> = {spacc: Fast Spatial Species Accumulation Curves},</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="dt">author</span> = {Gilles Colling},</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="dt">year</span> = {2026},</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="dt">note</span> = {R package version 0.11.0},</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="dt">url</span> = {https://gillescolling.com/spacc/},</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="dt">doi</span> = {10.32614/CRAN.package.spacc},</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>}</span></code></pre></div>
+<p>Download the citation as <a href="https://gillescolling.com/spacc/spacc.bib">BibTeX</a> or <a href="https://gillescolling.com/spacc/spacc.ris">RIS</a>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -315,7 +331,15 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://CRAN.R-project.org/package=spacc" class="external-link"><img src="https://www.r-pkg.org/badges/version/spacc" alt="CRAN status"></a></li>
+<li><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

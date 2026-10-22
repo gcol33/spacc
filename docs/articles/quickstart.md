@@ -252,7 +252,6 @@ backgrounds so the figure sits cleanly on the page.
 ``` r
 
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.6.1
 ggplot(sac_df, aes(sites, mean)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "#4CAF50") +
   geom_line(linewidth = 1, colour = "#2E7D32") +

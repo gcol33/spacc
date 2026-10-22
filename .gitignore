@@ -30,3 +30,4 @@ paper_draft/
 
 # Reference PDFs fetched by refs/retrieval.py
 refs/*.pdf
+.run*

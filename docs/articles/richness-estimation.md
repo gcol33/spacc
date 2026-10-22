@@ -529,7 +529,6 @@ estimate becomes both more accurate and more precise with effort.
 ``` r
 
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.6.1
 ggplot(conv, aes(sites)) +
   geom_ribbon(aes(ymin = estimate - se, ymax = estimate + se),
               fill = "#4CAF50", alpha = 0.2) +
