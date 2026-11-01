@@ -18,8 +18,8 @@ Community ecologists and biogeographers who know vegan::specaccum() and iNEXT-st
 ### A1 Where you start changes the curve
 - question: does the spatial arrangement of my sites change the accumulation curve?
 - answer: fixed-focus expansion from many focal points, compared with random order via compare()
-- evidence: vignettes/quickstart.Rmd
-- home: vignettes/quickstart.Rmd
+- evidence: vignettes/spacc.Rmd
+- home: vignettes/spacc.Rmd
 - also: README Usage
 
 ### A2 Diversity beyond richness
@@ -46,7 +46,7 @@ None stated in the docs.
 ## Documents
 - DESCRIPTION: claim, methods with references
 - README / landing: claim, relation, first curve, comparison, routing
-- Get Started (quickstart): one path from matrix to curves, comparison, extrapolation
+- Get Started (spacc.Rmd): one path from matrix to curves, comparison, extrapolation
 - articles: diversity, extrapolation, richness-estimation, rarefaction-standardization, spatial-analysis, community-assembly (how-to); theory (explanation)
 
 ## Open

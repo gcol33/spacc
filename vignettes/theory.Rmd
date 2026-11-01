@@ -48,7 +48,7 @@ formally, derive each expansion method from its ordering rule, give the distance
 metrics those rules depend on, map the mathematics onto the function arguments,
 and explain the two-tier nearest-neighbour backend that keeps the computation
 fast on large datasets. The applied vignettes build on this foundation: see
-`vignette("quickstart")` for the basic workflow, `vignette("diversity")` for the
+`vignette("spacc")` for the basic workflow, `vignette("diversity")` for the
 Hill, beta, and coverage extensions, and `vignette("extrapolation")` for fitting
 asymptotic models to the curves.
 
@@ -604,7 +604,7 @@ nearest neighbor (kNN) search with k-d trees.
 
 ## See also
 
-- `vignette("quickstart")` -- the basic workflow end to end
+- `vignette("spacc")` -- the basic workflow end to end
 
 - `vignette("diversity")` -- Hill numbers, beta diversity, coverage
 

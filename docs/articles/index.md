@@ -1,10 +1,5 @@
 # Articles
 
-### Get started
-
-- [Getting Started with
-  spacc](https://gillescolling.com/spacc/articles/quickstart.md):
-
 ### Practical guides
 
 - [Diversity

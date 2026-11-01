@@ -30,7 +30,7 @@ distance metrics those rules depend on, map the mathematics onto the
 function arguments, and explain the two-tier nearest-neighbour backend
 that keeps the computation fast on large datasets. The applied vignettes
 build on this foundation: see
-[`vignette("quickstart")`](https://gillescolling.com/spacc/articles/quickstart.md)
+[`vignette("spacc")`](https://gillescolling.com/spacc/articles/spacc.md)
 for the basic workflow,
 [`vignette("diversity")`](https://gillescolling.com/spacc/articles/diversity.md)
 for the Hill, beta, and coverage extensions, and
@@ -667,7 +667,7 @@ for nearest neighbor (kNN) search with k-d trees.
 
 ## See also
 
-- [`vignette("quickstart")`](https://gillescolling.com/spacc/articles/quickstart.md)
+- [`vignette("spacc")`](https://gillescolling.com/spacc/articles/spacc.md)
   – the basic workflow end to end
 
 - [`vignette("diversity")`](https://gillescolling.com/spacc/articles/diversity.md)

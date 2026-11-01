@@ -39,16 +39,10 @@ navbar:
     - github
     - lightswitch
   components:
-    intro:
-      text: Get started
-      href: articles/quickstart.html
     github:
       icon: fab fa-github
       href: https://github.com/gcol33/spacc
 articles:
-- title: Get started
-  contents:
-  - quickstart
 - title: Practical guides
   navbar: Guides
   contents:
@@ -175,3 +169,5 @@ reference:
   - plot.spacc
   - plot.spacc_metrics
   - autoplot.spacc
+redirects:
+- ["articles/quickstart.html", "articles/spacc.html"]

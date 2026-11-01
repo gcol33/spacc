@@ -202,7 +202,7 @@ plot(sac)
 ```
 
 ![Spatial species accumulation curve with 95% confidence
-ribbon.](quickstart_files/figure-html/plot-sac-1.svg)
+ribbon.](spacc_files/figure-html/plot-sac-1.svg)
 
 Spatial species accumulation curve with 95% confidence ribbon.
 
@@ -262,7 +262,7 @@ ggplot(sac_df, aes(sites, mean)) +
 ```
 
 ![Manual ggplot from the summary data
-frame.](quickstart_files/figure-html/custom-plot-1.svg)
+frame.](spacc_files/figure-html/custom-plot-1.svg)
 
 Manual ggplot from the summary data frame.
 
@@ -302,7 +302,7 @@ plot(combined)
 ```
 
 ![Fixed-focus kNN, kNCN, nearest-neighbour walk, and random
-accumulation.](quickstart_files/figure-html/combine-1.svg)
+accumulation.](spacc_files/figure-html/combine-1.svg)
 
 Fixed-focus kNN, kNCN, nearest-neighbour walk, and random accumulation.
 
@@ -439,7 +439,7 @@ plot(fit)
 ```
 
 ![Fitted Lomolino curve with asymptote
-estimate.](quickstart_files/figure-html/plot-fit-1.svg)
+estimate.](spacc_files/figure-html/plot-fit-1.svg)
 
 Fitted Lomolino curve with asymptote estimate.
 
@@ -587,7 +587,7 @@ plot(hill)
 ```
 
 ![Hill number accumulation at q = 0, 1,
-2.](quickstart_files/figure-html/plot-hill-1.svg)
+2.](spacc_files/figure-html/plot-hill-1.svg)
 
 Hill number accumulation at q = 0, 1, 2.
 
@@ -628,7 +628,7 @@ plot(beta)
 ```
 
 ![Beta diversity partitioned into turnover and
-nestedness.](quickstart_files/figure-html/plot-beta-1.svg)
+nestedness.](spacc_files/figure-html/plot-beta-1.svg)
 
 Beta diversity partitioned into turnover and nestedness.
 
@@ -880,7 +880,7 @@ ggplot2::autoplot(sac)
 ```
 
 ![autoplot returns a ggplot
-object.](quickstart_files/figure-html/s3-autoplot-1.svg)
+object.](spacc_files/figure-html/s3-autoplot-1.svg)
 
 autoplot returns a ggplot object.
 

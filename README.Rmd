@@ -128,7 +128,7 @@ sac_st <- spacc(species, coords, method = "nn_walk",
 
 ## Documentation
 
-Start with [Getting Started with spacc](https://gillescolling.com/spacc/articles/quickstart.html): one path from a site-by-species matrix to spatial and random-order curves, their comparison and extrapolation.
+Start with [Getting Started with spacc](https://gillescolling.com/spacc/articles/spacc.html): one path from a site-by-species matrix to spatial and random-order curves, their comparison and extrapolation.
 
 - [Diversity Accumulation](https://gillescolling.com/spacc/articles/diversity.html): Hill numbers, beta diversity, phylogenetic and functional accumulation.
 - [Extrapolation and Species-Area Models](https://gillescolling.com/spacc/articles/extrapolation.html): asymptotic models and total richness beyond the sampled sites.

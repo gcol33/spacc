@@ -196,7 +196,7 @@ applies grouped curves to community structure.
 ## Documentation
 
 Start with [Getting Started with
-spacc](https://gillescolling.com/spacc/articles/quickstart.html): one
+spacc](https://gillescolling.com/spacc/articles/spacc.html): one
 path from a site-by-species matrix to spatial and random-order curves,
 their comparison and extrapolation.
 
