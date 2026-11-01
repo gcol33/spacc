@@ -35,11 +35,10 @@ judge how much the spatial arrangement of your sites matters.
 
 spacc supports:
 
-- **Seven expansion orders.** Fixed-focus nearest neighbours (`knn`),
-  nearest-centroid expansion (`kncn`), a nearest-neighbour walk
-  (`nn_walk`), distance- and direction-weighted growth (`gaussian`,
-  `cone`), the classical random order (`random`) and the data order
-  (`collector`).
+- **Seven expansion orders.** Fixed-focus nearest neighbours,
+  nearest-centroid expansion, a nearest-neighbour walk,
+  distance-weighted and direction-weighted growth, the classical random
+  order and the data order, chosen through `method`.
 - **Diversity beyond richness.** Hill numbers, beta diversity with
   turnover and nestedness, coverage-based rarefaction, and phylogenetic
   and functional diversity accumulate along the same spatial order;
@@ -114,10 +113,10 @@ libraries are needed.
     measures with `spaccHill()` and `spaccBeta()`.
 
 The input is a matrix or data frame with one row per site and one column
-per species, holding presence-absence or abundance, and the site
+per species, with presence-absence or abundance values, and the site
 coordinates as a data frame with columns `x` and `y` or an sf object of
 points. Coordinates are planar by default; `distance = "haversine"`
-reads `x` and `y` as longitude and latitude in degrees.
+reads the two columns as longitude and latitude in degrees.
 
 In the example below, each of 40 species occurs around its own position
 along the x axis, so neighbouring sites share species:
@@ -137,11 +136,12 @@ plot(sac)
 
 <img src="man/figures/README-spacc-1.png" alt="Species accumulation curve rising from about 10 species at one site to all 40 species at around 150 sites, with a green band showing the 95% interval of the curves from 50 focal points"  />
 
-The line is the mean over 50 focal points, and the ribbon holds 95% of
-the curves from single focal points.
+The line is the mean over 50 focal points, and the ribbon spans the 2.5%
+and 97.5% quantiles of the curves from single focal points.
 
-Adding the sites in random order instead reaches the species far faster,
-because it ignores that neighbouring sites share species:
+Adding the sites in random order reaches the species in fewer sites,
+because each new site comes from anywhere in the region instead of the
+already sampled neighbourhood:
 
 ``` r
 sac_random <- spacc(species, coords, method = "random")
@@ -158,8 +158,8 @@ compare(sac, sac_random)
 ## Diversity beyond richness
 
 Each diversity function carries the spatial ordering through to a
-different measure, with `map = TRUE` for per-site values and `as_sf()`
-for GIS output:
+different measure. Per-site values come with `map = TRUE`, and `as_sf()`
+turns them into an sf object for GIS:
 
 ``` r
 hill <- spaccHill(species, coords, q = c(0, 1, 2), map = TRUE)
@@ -178,8 +178,8 @@ phylogenetic and functional diversity.
 
 `groups` splits the species into groups, such as native and alien
 species or families, and accumulates each under the same spatial site
-order. `time` adds a temporal axis to the distance, weighted against
-space with `w_space` and `w_time`:
+order. `time` adds a temporal axis to the distance; the two weights
+below set how much space and time each count:
 
 ``` r
 sac_grouped <- spacc(species, coords, groups = status, seed = 42)

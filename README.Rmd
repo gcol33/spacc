@@ -27,7 +27,7 @@ The classical curve of `specaccum()` in [vegan](https://vegandevs.github.io/vega
 
 spacc supports:
 
-- **Seven expansion orders.** Fixed-focus nearest neighbours (`knn`), nearest-centroid expansion (`kncn`), a nearest-neighbour walk (`nn_walk`), distance- and direction-weighted growth (`gaussian`, `cone`), the classical random order (`random`) and the data order (`collector`).
+- **Seven expansion orders.** Fixed-focus nearest neighbours, nearest-centroid expansion, a nearest-neighbour walk, distance-weighted and direction-weighted growth, the classical random order and the data order, chosen through `method`.
 - **Diversity beyond richness.** Hill numbers, beta diversity with turnover and nestedness, coverage-based rarefaction, and phylogenetic and functional diversity accumulate along the same spatial order; [`spaccHill()`](https://gillescolling.com/spacc/reference/spaccHill.html) is the entry point.
 - **Geographic coordinates.** `distance = "haversine"` works on longitude and latitude with no projection step, and an sf polygon through `focal_domain` restricts the focal points to a known study boundary.
 - **Large site sets.** Above 500 sites the nearest-neighbour methods switch from a distance matrix to a k-d tree from [nanoflann](https://github.com/jlblancoc/nanoflann), or a ball tree for haversine distances ([Methods and Algorithms](https://gillescolling.com/spacc/articles/theory.html#the-two-tier-traversal-backend)).
@@ -72,7 +72,7 @@ The build needs GNU make and a C++17 compiler, which the build tools above provi
 2. Build the random-order curve with `method = "random"` and test the difference with `compare()`.
 3. Fit an asymptote with `extrapolate()`, or follow other diversity measures with `spaccHill()` and `spaccBeta()`.
 
-The input is a matrix or data frame with one row per site and one column per species, holding presence-absence or abundance, and the site coordinates as a data frame with columns `x` and `y` or an sf object of points. Coordinates are planar by default; `distance = "haversine"` reads `x` and `y` as longitude and latitude in degrees.
+The input is a matrix or data frame with one row per site and one column per species, with presence-absence or abundance values, and the site coordinates as a data frame with columns `x` and `y` or an sf object of points. Coordinates are planar by default; `distance = "haversine"` reads the two columns as longitude and latitude in degrees.
 
 In the example below, each of 40 species occurs around its own position along the x axis, so neighbouring sites share species:
 
@@ -89,9 +89,9 @@ sac <- spacc(species, coords)
 plot(sac)
 ```
 
-The line is the mean over 50 focal points, and the ribbon holds 95% of the curves from single focal points.
+The line is the mean over 50 focal points, and the ribbon spans the 2.5% and 97.5% quantiles of the curves from single focal points.
 
-Adding the sites in random order instead reaches the species far faster, because it ignores that neighbouring sites share species:
+Adding the sites in random order reaches the species in fewer sites, because each new site comes from anywhere in the region instead of the already sampled neighbourhood:
 
 ```{r compare}
 sac_random <- spacc(species, coords, method = "random")
@@ -100,7 +100,7 @@ compare(sac, sac_random)
 
 ## Diversity beyond richness
 
-Each diversity function carries the spatial ordering through to a different measure, with `map = TRUE` for per-site values and `as_sf()` for GIS output:
+Each diversity function carries the spatial ordering through to a different measure. Per-site values come with `map = TRUE`, and `as_sf()` turns them into an sf object for GIS:
 
 ```r
 hill <- spaccHill(species, coords, q = c(0, 1, 2), map = TRUE)
@@ -114,7 +114,7 @@ plot(beta, partition = TRUE)
 
 ## Grouped and spatiotemporal accumulation
 
-`groups` splits the species into groups, such as native and alien species or families, and accumulates each under the same spatial site order. `time` adds a temporal axis to the distance, weighted against space with `w_space` and `w_time`:
+`groups` splits the species into groups, such as native and alien species or families, and accumulates each under the same spatial site order. `time` adds a temporal axis to the distance; the two weights below set how much space and time each count:
 
 ```r
 sac_grouped <- spacc(species, coords, groups = status, seed = 42)
