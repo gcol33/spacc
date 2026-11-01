@@ -44,17 +44,17 @@ the bend sits.
 
 The **Michaelis-Menten** form (the default) rises steeply and
 decelerates smoothly, reaching half its ceiling at a fixed effort. It is
-the hyperbolic curve familiar from enzyme kinetics, transplanted to
-accumulation. The **asymptotic exponential** approaches its ceiling at a
-constant relative rate and has no inflection, so it is the most
-conservative of the five when the curve is already near saturation. The
-**logistic** is sigmoidal: it has an inflection point and an initial
-slow phase, which suits curves that start gently before accelerating.
-The **Weibull** form is a flexible generalisation that can be concave or
-sigmoidal depending on its shape parameter, and it nests the exponential
-as a special case. The **Lomolino** model is a sigmoidal curve on a
-logarithmic effort axis, designed by Lomolino (2000) specifically for
-species-area data and able to capture a long slow tail.
+the hyperbolic curve of enzyme kinetics, applied to accumulation. The
+**asymptotic exponential** approaches its ceiling at a constant relative
+rate and has no inflection, so it is the most conservative of the five
+when the curve is already near saturation. The **logistic** is
+sigmoidal: it has an inflection point and an initial slow phase, which
+suits curves that start gently before accelerating. The **Weibull** form
+is a flexible generalisation that can be concave or sigmoidal depending
+on its shape parameter, and it nests the exponential as a special case.
+The **Lomolino** model is a sigmoidal curve on a logarithmic effort
+axis, designed by Lomolino (2000) specifically for species-area data and
+able to capture a long slow tail.
 
 The **EVT** model is different in kind. Following Borda-de-Agua et al.
 (2025), it represents the species-area relationship as a two-component

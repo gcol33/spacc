@@ -60,8 +60,7 @@ ceiling and differ in how sharply they bend and where the bend sits.
 
 The **Michaelis-Menten** form (the default) rises steeply and decelerates
 smoothly, reaching half its ceiling at a fixed effort. It is the
-hyperbolic curve familiar from enzyme kinetics, transplanted to
-accumulation. The **asymptotic exponential** approaches its ceiling at a
+hyperbolic curve of enzyme kinetics, applied to accumulation. The **asymptotic exponential** approaches its ceiling at a
 constant relative rate and has no inflection, so it is the most
 conservative of the five when the curve is already near saturation. The
 **logistic** is sigmoidal: it has an inflection point and an initial slow
