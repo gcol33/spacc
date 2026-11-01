@@ -52,13 +52,12 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/quickstart.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
-    <li><a class="dropdown-item" href="articles/quickstart.html">Getting Started with spacc</a></li>
-    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="articles/diversity.html">Diversity Accumulation</a></li>
     <li><a class="dropdown-item" href="articles/extrapolation.html">Extrapolation and Species-Area Models</a></li>
@@ -71,9 +70,10 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
     <li><a class="dropdown-item" href="articles/theory.html">Methods and Algorithms</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -107,7 +107,7 @@
 <p>spacc supports:</p>
 <ul>
 <li>
-<strong>Seven expansion orders.</strong> Fixed-focus nearest neighbours (<code>knn</code>), nearest-centroid expansion (<code>kncn</code>), a nearest-neighbour walk (<code>nn_walk</code>), distance- and direction-weighted growth (<code>gaussian</code>, <code>cone</code>), the classical random order (<code>random</code>) and the data order (<code>collector</code>).</li>
+<strong>Seven expansion orders.</strong> Fixed-focus nearest neighbours, nearest-centroid expansion, a nearest-neighbour walk, distance-weighted and direction-weighted growth, the classical random order and the data order, chosen through <code>method</code>.</li>
 <li>
 <strong>Diversity beyond richness.</strong> Hill numbers, beta diversity with turnover and nestedness, coverage-based rarefaction, and phylogenetic and functional diversity accumulate along the same spatial order; <a href="https://gillescolling.com/spacc/reference/spaccHill.html"><code>spaccHill()</code></a> is the entry point.</li>
 <li>
@@ -168,7 +168,7 @@
 <li>Build the random-order curve with <code>method = "random"</code> and test the difference with <code><a href="reference/compare.html">compare()</a></code>.</li>
 <li>Fit an asymptote with <code><a href="reference/extrapolate.html">extrapolate()</a></code>, or follow other diversity measures with <code><a href="reference/spaccHill.html">spaccHill()</a></code> and <code><a href="reference/spaccBeta.html">spaccBeta()</a></code>.</li>
 </ol>
-<p>The input is a matrix or data frame with one row per site and one column per species, holding presence-absence or abundance, and the site coordinates as a data frame with columns <code>x</code> and <code>y</code> or an sf object of points. Coordinates are planar by default; <code>distance = "haversine"</code> reads <code>x</code> and <code>y</code> as longitude and latitude in degrees.</p>
+<p>The input is a matrix or data frame with one row per site and one column per species, with presence-absence or abundance values, and the site coordinates as a data frame with columns <code>x</code> and <code>y</code> or an sf object of points. Coordinates are planar by default; <code>distance = "haversine"</code> reads the two columns as longitude and latitude in degrees.</p>
 <p>In the example below, each of 40 species occurs around its own position along the x axis, so neighbouring sites share species:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/spacc/">spacc</a></span><span class="op">)</span></span>
@@ -182,8 +182,8 @@
 <span><span class="va">sac</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac</span><span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-spacc-1.png" alt="Species accumulation curve rising from about 10 species at one site to all 40 species at around 150 sites, with a green band showing the 95% interval of the curves from 50 focal points"></p>
-<p>The line is the mean over 50 focal points, and the ribbon holds 95% of the curves from single focal points.</p>
-<p>Adding the sites in random order instead reaches the species far faster, because it ignores that neighbouring sites share species:</p>
+<p>The line is the mean over 50 focal points, and the ribbon spans the 2.5% and 97.5% quantiles of the curves from single focal points.</p>
+<p>Adding the sites in random order reaches the species in fewer sites, because each new site comes from anywhere in the region instead of the already sampled neighbourhood:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac_random</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, method <span class="op">=</span> <span class="st">"random"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/compare.html">compare</a></span><span class="op">(</span><span class="va">sac</span>, <span class="va">sac_random</span><span class="op">)</span></span>
@@ -198,7 +198,7 @@
 <div class="section level2">
 <h2 id="diversity-beyond-richness">Diversity beyond richness<a class="anchor" aria-label="anchor" href="#diversity-beyond-richness"></a>
 </h2>
-<p>Each diversity function carries the spatial ordering through to a different measure, with <code>map = TRUE</code> for per-site values and <code><a href="reference/as_sf.html">as_sf()</a></code> for GIS output:</p>
+<p>Each diversity function carries the spatial ordering through to a different measure. Per-site values come with <code>map = TRUE</code>, and <code><a href="reference/as_sf.html">as_sf()</a></code> turns them into an sf object for GIS:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hill</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spaccHill.html">spaccHill</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, map <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hill</span>, type <span class="op">=</span> <span class="st">"map"</span>, q <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -210,7 +210,7 @@
 <div class="section level2">
 <h2 id="grouped-and-spatiotemporal-accumulation">Grouped and spatiotemporal accumulation<a class="anchor" aria-label="anchor" href="#grouped-and-spatiotemporal-accumulation"></a>
 </h2>
-<p><code>groups</code> splits the species into groups, such as native and alien species or families, and accumulates each under the same spatial site order. <code>time</code> adds a temporal axis to the distance, weighted against space with <code>w_space</code> and <code>w_time</code>:</p>
+<p><code>groups</code> splits the species into groups, such as native and alien species or families, and accumulates each under the same spatial site order. <code>time</code> adds a temporal axis to the distance; the two weights below set how much space and time each count:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sac_grouped</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spacc.html">spacc</a></span><span class="op">(</span><span class="va">species</span>, <span class="va">coords</span>, groups <span class="op">=</span> <span class="va">status</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">sac_grouped</span>, facet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -335,6 +335,8 @@ doi:10.32614/CRAN.package.spacc
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://CRAN.R-project.org/package=spacc" class="external-link"><img src="https://www.r-pkg.org/badges/version/spacc" alt="CRAN status"></a></li>
+<li><a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/spacc" alt="CRAN downloads"></a></li>
+<li><a href="https://cran.r-project.org/package=spacc" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/spacc" alt="Monthly downloads"></a></li>
 <li><a href="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml" class="external-link"><img src="https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://app.codecov.io/gh/gcol33/spacc" class="external-link"><img src="https://codecov.io/gh/gcol33/spacc/graph/badge.svg" alt="Codecov test coverage"></a></li>
 <li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></li>

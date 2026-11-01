@@ -31,28 +31,31 @@ navbar:
   structure:
     left:
     - intro
-    - articles
     - reference
+    - articles
     - news
     right:
     - search
     - github
     - lightswitch
   components:
+    intro:
+      text: Get started
+      href: articles/quickstart.html
     github:
       icon: fab fa-github
       href: https://github.com/gcol33/spacc
 articles:
-- title: Getting Started
-  navbar: Getting Started
-  contents: quickstart
-- title: Practical Guides
+- title: Get started
+  contents:
+  - quickstart
+- title: Practical guides
   navbar: Guides
   contents:
   - diversity
   - extrapolation
   - spatial-analysis
-- title: Advanced Topics
+- title: Advanced topics
   navbar: Advanced
   contents:
   - richness-estimation
@@ -60,7 +63,8 @@ articles:
   - rarefaction-standardization
 - title: Theory
   navbar: Theory
-  contents: theory
+  contents:
+  - theory
 reference:
 - title: Core Functions
   desc: Main spatial accumulation functions

@@ -1,11 +1,11 @@
 # Articles
 
-### Getting Started
+### Get started
 
 - [Getting Started with
   spacc](https://gillescolling.com/spacc/articles/quickstart.md):
 
-### Practical Guides
+### Practical guides
 
 - [Diversity
   Accumulation](https://gillescolling.com/spacc/articles/diversity.md):
@@ -14,7 +14,7 @@
 - [Spatial Analysis: Endemism, Fragmentation, and
   SAR](https://gillescolling.com/spacc/articles/spatial-analysis.md):
 
-### Advanced Topics
+### Advanced topics
 
 - [Richness Estimation and
   Completeness](https://gillescolling.com/spacc/articles/richness-estimation.md):
